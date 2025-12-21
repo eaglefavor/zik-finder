@@ -15,7 +15,7 @@ export default function PostLodge() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLodge } = useData();
-  const { user, isLoading } = useAppContext();
+  const { user, role, isLoading } = useAppContext();
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
   
@@ -36,7 +36,7 @@ export default function PostLodge() {
     );
   }
 
-  if (!user?.is_verified) {
+  if (!user?.is_verified && role !== 'admin') {
     return (
       <div className="px-4 py-6 flex flex-col items-center justify-center h-[80vh] text-center">
         <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6 text-red-500">

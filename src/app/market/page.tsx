@@ -13,11 +13,6 @@ export default function MarketRequests() {
 
   return (
     <div className="px-4 py-6 pb-24">
-      {/* Debug Info - Remove before production */}
-      <div className="bg-gray-100 p-2 text-[10px] text-gray-500 mb-4 rounded border border-gray-200">
-        Debug: Role={role}, Verified={user?.is_verified ? 'True' : 'False'}, ID={user?.id?.slice(0, 8)}...
-      </div>
-
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Marketplace</h1>
@@ -87,11 +82,11 @@ export default function MarketRequests() {
                 "{request.description}"
               </p>
 
-              {role === 'landlord' && (
+              {(role === 'landlord' || role === 'admin') && (
                 <button 
                   className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-medium active:scale-95 transition-transform shadow-md shadow-blue-100"
                   onClick={() => {
-                    if (!user?.is_verified) {
+                    if (!user?.is_verified && role !== 'admin') {
                       alert('You must be a verified landlord to contact students. Please complete verification in your Profile.');
                       return;
                     }

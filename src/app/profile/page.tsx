@@ -101,6 +101,23 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action is permanent and cannot be undone.')) {
+      return;
+    }
+
+    const { error } = await supabase.rpc('delete_own_user');
+
+    if (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account: ' + error.message);
+      return;
+    }
+
+    await logout();
+    router.push('/');
+  };
+
   return (
     <div className="px-4 py-6">
       <header className="flex flex-col items-center py-8">
@@ -201,7 +218,7 @@ export default function ProfilePage() {
           </button>
           
           <button 
-            onClick={() => confirm('Are you sure you want to delete your account? This cannot be undone.') && handleLogout()}
+            onClick={handleDeleteAccount}
             className="w-full py-2 text-red-400 text-xs font-medium"
           >
             Delete Account
