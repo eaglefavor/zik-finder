@@ -1,0 +1,17 @@
+{
+  "name": "Zik-Lodge Finder",
+  "short_name": "ZikLodge",
+  "description": "Find your next lodge at UNIZIK easily",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/ios-filled/512/2563eb/home.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
