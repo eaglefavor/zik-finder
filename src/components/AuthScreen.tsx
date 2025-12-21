@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { useAppContext } from '@/lib/context';
-import { Home, Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Home, Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
 export default function AuthScreen() {
   const { login, signup } = useAppContext();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -20,6 +22,31 @@ export default function AuthScreen() {
     role: 'student' as UserRole
   });
 
+  const handleResendVerification = async () => {
+    setResending(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+        options: {
+          emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+        }
+      });
+      if (error) {
+        // Rate limit error often comes here
+        setError(error.message);
+      } else {
+        setSuccessMessage(`Verification email resent to ${formData.email}. Please check your inbox and spam folder.`);
+      }
+    } catch (err) {
+      setError('Failed to resend email.');
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -29,7 +56,9 @@ export default function AuthScreen() {
     try {
       if (mode === 'login') {
         const res = await login(formData.email, formData.password);
-        if (!res.success) setError(res.message);
+        if (!res.success) {
+          setError(res.message);
+        }
       } else {
         // Validation
         if (!formData.name || !formData.email || !formData.password || !formData.phone) {
@@ -94,14 +123,28 @@ export default function AuthScreen() {
         {successMessage && (
           <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl flex items-start gap-3 text-green-700 text-sm">
             <CheckCircle className="shrink-0 mt-0.5" size={18} />
-            {successMessage}
+            <div>
+              <p>{successMessage}</p>
+            </div>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm animate-shake">
-            <AlertCircle size={18} />
-            {error}
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex flex-col gap-2 text-red-600 text-sm animate-shake">
+            <div className="flex items-center gap-3">
+              <AlertCircle size={18} />
+              {error}
+            </div>
+            {error.toLowerCase().includes('email not confirmed') && (
+              <button 
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="mt-2 flex items-center justify-center gap-2 w-full py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-xs font-bold transition-colors"
+              >
+                {resending ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
+                Resend Verification Email
+              </button>
+            )}
           </div>
         )}
 
