@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserRole, Profile } from './types';
 import { supabase } from './supabase';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface AppContextType {
   user: Profile | null;
@@ -19,6 +20,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [role, setRole] = useState<UserRole>('student');
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -96,6 +99,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Redirect to onboarding if phone number is missing
+  useEffect(() => {
+    if (!isLoading && user && !user.phone_number && pathname !== '/onboarding') {
+      router.push('/onboarding');
+    }
+  }, [user, isLoading, pathname, router]);
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
