@@ -6,11 +6,18 @@ import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle } from 'lucide-r
 import Link from 'next/link';
 
 export default function MarketRequests() {
-  const { role, user } = useAppContext();
+  const { role, user, isLoading } = useAppContext();
   const { requests, deleteRequest } = useData();
+
+  if (isLoading) return <div className="p-8 text-center text-gray-500">Loading marketplace...</div>;
 
   return (
     <div className="px-4 py-6 pb-24">
+      {/* Debug Info - Remove before production */}
+      <div className="bg-gray-100 p-2 text-[10px] text-gray-500 mb-4 rounded border border-gray-200">
+        Debug: Role={role}, Verified={user?.is_verified ? 'True' : 'False'}, ID={user?.id?.slice(0, 8)}...
+      </div>
+
       <header className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Marketplace</h1>
