@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2 } from 'lucide-react';
+import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
@@ -15,7 +15,7 @@ export default function PostLodge() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLodge } = useData();
-  const { user } = useAppContext();
+  const { user, isLoading } = useAppContext();
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
   
@@ -27,6 +27,36 @@ export default function PostLodge() {
     amenities: [] as string[],
     image_urls: [] as string[]
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
+
+  if (!user?.is_verified) {
+    return (
+      <div className="px-4 py-6 flex flex-col items-center justify-center h-[80vh] text-center">
+        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6 text-red-500">
+          <ShieldAlert size={40} />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">Verification Required</h1>
+        <p className="text-gray-600 mb-8 max-w-xs mx-auto">
+          To ensure student safety, only verified landlords can post listings. Please upload your ID to get verified.
+        </p>
+        <div className="space-y-3 w-full max-w-xs">
+          <Link href="/profile" className="block w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200">
+            Go to Profile
+          </Link>
+          <Link href="/" className="block w-full py-4 bg-white text-gray-500 font-bold">
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const handleNext = () => setStep(step + 1);
   const handleBack = () => setStep(step - 1);

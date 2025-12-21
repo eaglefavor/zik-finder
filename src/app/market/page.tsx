@@ -83,7 +83,13 @@ export default function MarketRequests() {
               {role === 'landlord' && (
                 <button 
                   className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-medium active:scale-95 transition-transform shadow-md shadow-blue-100"
-                  onClick={() => window.open(`https://wa.me/234${request.student_phone.substring(1)}?text=Hello ${request.student_name}, I saw your request on Zik-Lodge for a lodge in ${request.location}. I have something available.`)}
+                  onClick={() => {
+                    if (!user?.is_verified) {
+                      alert('You must be a verified landlord to contact students. Please complete verification in your Profile.');
+                      return;
+                    }
+                    window.open(`https://wa.me/234${request.student_phone.substring(1)}?text=Hello ${request.student_name}, I saw your request on Zik-Lodge for a lodge in ${request.location}. I have something available.`);
+                  }}
                 >
                   <MessageCircle size={18} /> I have a Lodge for you
                 </button>
