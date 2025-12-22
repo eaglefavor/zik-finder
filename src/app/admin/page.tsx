@@ -136,7 +136,16 @@ export default function AdminPage() {
 
   return (
     <div className="px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+        <button 
+          onClick={fetchPendingDocs}
+          className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors"
+          title="Refresh List"
+        >
+          <Loader2 size={20} className={loading ? 'animate-spin' : ''} />
+        </button>
+      </div>
       
       <div className="space-y-6">
         <h2 className="text-lg font-bold text-gray-700">Pending Verifications</h2>

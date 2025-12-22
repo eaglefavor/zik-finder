@@ -294,10 +294,6 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="space-y-2">
           <button 
