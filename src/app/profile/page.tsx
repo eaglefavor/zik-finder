@@ -95,8 +95,32 @@ export default function ProfilePage() {
       if (selfieError) throw selfieError;
 
       // 3. Record in DB
-      // If re-submitting, we'll delete old rejected entries to keep DB clean
+      // If re-submitting, delete old rejected entries and their files
       if (verificationStatus === 'rejected') {
+         // Fetch old paths first
+         const { data: oldDocs } = await supabase
+           .from('verification_docs')
+           .select('id_card_path, selfie_path')
+           .eq('landlord_id', user.id)
+           .eq('status', 'rejected');
+
+         if (oldDocs && oldDocs.length > 0) {
+           const pathsToDelete: string[] = [];
+           oldDocs.forEach(doc => {
+             if (doc.id_card_path) pathsToDelete.push(doc.id_card_path);
+             if (doc.selfie_path) pathsToDelete.push(doc.selfie_path);
+           });
+           
+           if (pathsToDelete.length > 0) {
+             const { error: removeError } = await supabase.storage
+               .from('secure-docs')
+               .remove(pathsToDelete);
+             
+             if (removeError) console.error('Error removing old files:', removeError);
+           }
+         }
+
+         // Delete the DB row
          await supabase.from('verification_docs').delete().eq('landlord_id', user.id).eq('status', 'rejected');
       }
 
