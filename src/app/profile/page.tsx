@@ -5,6 +5,7 @@ import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, FileText, Loader
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import Compressor from 'compressorjs';
 
 export default function ProfilePage() {
   const { user, role, logout } = useAppContext();
@@ -63,10 +64,32 @@ export default function ProfilePage() {
     router.push('/');
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      new Compressor(file, {
+        quality: 0.6, // Moderate quality
+        maxWidth: 1200, // Max width 1200px
+        success(result) {
+          resolve(result as File);
+        },
+        error(err) {
+          reject(err);
+        },
+      });
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFiles(prev => ({ ...prev, [type]: file }));
+      try {
+        const compressedFile = await compressImage(file);
+        setSelectedFiles(prev => ({ ...prev, [type]: compressedFile }));
+      } catch (err) {
+        console.error('Compression failed:', err);
+        // Fallback to original file if compression fails
+        setSelectedFiles(prev => ({ ...prev, [type]: file }));
+      }
     }
   };
 
