@@ -263,7 +263,7 @@ export default function AuthScreen() {
 
           {mode === 'login' && (
             <div className="text-right">
-              <button type="button" className="text-xs font-bold text-blue-600">Forgot Password?</button>
+              <a href="/forgot-password" className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors">Forgot Password?</a>
             </div>
           )}
 
