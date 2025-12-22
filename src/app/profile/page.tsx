@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppContext } from '@/lib/context';
+import { useData } from '@/lib/data-context';
 import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, FileText, Loader2, CheckCircle, User, AlertCircle, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
@@ -9,6 +10,7 @@ import Compressor from 'compressorjs';
 
 export default function ProfilePage() {
   const { user, role, logout } = useAppContext();
+  const { lodges, deleteLodge } = useData();
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'none' | 'pending' | 'verified' | 'rejected'>('none');
@@ -176,16 +178,24 @@ export default function ProfilePage() {
       return;
     }
 
-    const { error } = await supabase.rpc('delete_own_user');
+    try {
+      // 1. Clean up Cloudinary images by deleting all lodges
+      const userLodges = lodges.filter(l => l.landlord_id === user.id);
+      for (const lodge of userLodges) {
+        await deleteLodge(lodge.id);
+      }
 
-    if (error) {
+      // 2. Clean up Supabase storage and Account (via SQL function)
+      const { error } = await supabase.rpc('delete_own_user');
+
+      if (error) throw error;
+
+      await logout();
+      router.push('/');
+    } catch (error: any) {
       console.error('Error deleting account:', error);
       alert('Failed to delete account: ' + error.message);
-      return;
     }
-
-    await logout();
-    router.push('/');
   };
 
   return (

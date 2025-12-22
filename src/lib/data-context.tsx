@@ -107,12 +107,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteLodge = async (id: string) => {
-    const { error } = await supabase
-      .from('lodges')
-      .delete()
-      .eq('id', id);
+    if (!user) return;
 
-    if (!error) await refreshLodges();
+    // Optimistic update
+    setLodges(prev => prev.filter(l => l.id !== id));
+
+    try {
+      const res = await fetch('/api/lodges/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lodgeId: id, userId: user.id })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error('Failed to delete lodge:', err);
+        // Revert optimistic update if needed, but for now we refresh
+        await refreshLodges();
+        alert('Failed to delete lodge: ' + (err.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting lodge:', error);
+      await refreshLodges();
+    }
   };
 
   const addRequest = async (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at'>) => {

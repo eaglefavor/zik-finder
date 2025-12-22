@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
+    "cloudinary": "^2.8.0",
     "cloudinary-build-url": "^0.2.4",
     "compressorjs": "^1.2.1",
     "framer-motion": "^12.23.26",
