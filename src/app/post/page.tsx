@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert } from 'lucide-react';
+import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
@@ -14,9 +14,10 @@ export default function PostLodge() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addLodge } = useData();
-  const { user, role, isLoading } = useAppContext();
+  const { user, role, isLoading, refreshProfile } = useAppContext();
   const [step, setStep] = useState(1);
   const [uploading, setUploading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -26,6 +27,12 @@ export default function PostLodge() {
     amenities: [] as string[],
     image_urls: [] as string[]
   });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshProfile();
+    setRefreshing(false);
+  };
 
   if (isLoading) {
     return (
@@ -46,7 +53,15 @@ export default function PostLodge() {
           To ensure student safety, only verified landlords can post listings. Please upload your ID to get verified.
         </p>
         <div className="space-y-3 w-full max-w-xs">
-          <Link href="/profile" className="block w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200">
+          <button 
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center justify-center gap-2 w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all"
+          >
+            {refreshing ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
+            Check Verification Status
+          </button>
+          <Link href="/profile" className="block w-full py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold">
             Go to Profile
           </Link>
           <Link href="/" className="block w-full py-4 bg-white text-gray-500 font-bold">
