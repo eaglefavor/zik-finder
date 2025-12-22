@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { Home, Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
@@ -13,6 +13,18 @@ export default function AuthScreen() {
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  
+  // Self-healing: Check if we actually have a session but are stuck on AuthScreen
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('Session found in storage, reloading to sync state...');
+        window.location.reload();
+      }
+    };
+    checkSession();
+  }, []);
   
   const [formData, setFormData] = useState({
     name: '',
