@@ -66,11 +66,20 @@ export default function AdminPage() {
       return;
     }
 
-    // 2. The database trigger 'on_verification_approved' should handle 
-    // updating the profile's is_verified status, but we can do it manually 
-    // here as a backup if the trigger fails or for immediate UI feedback if needed,
-    // though the trigger is the source of truth.
-    
+    // 2. Explicitly update the profile verification status
+    // (Backup in case the DB trigger fails)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ is_verified: true })
+      .eq('id', landlordId);
+
+    if (profileError) {
+      console.error('Error verifying profile:', profileError);
+      alert('Document approved, but failed to verify user profile: ' + profileError.message);
+    } else {
+      alert('Landlord verified successfully!');
+    }
+
     // Refresh list
     await fetchPendingDocs();
   };
