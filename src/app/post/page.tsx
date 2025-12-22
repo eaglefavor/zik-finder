@@ -8,8 +8,8 @@ import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 
 // Cloudinary Configuration
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges_preset';
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dmjkpuddh';
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 export default function PostLodge() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
