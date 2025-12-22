@@ -12,6 +12,7 @@ interface AppContextType {
   signup: (userData: { email: string; name: string; phone: string; role: UserRole }, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
   isLoading: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -78,10 +79,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    let profileSubscription: any = null;
+
     // Check active sessions
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        fetchProfile(session.user.id).finally(() => setIsLoading(false));
+        const userId = session.user.id;
+        fetchProfile(userId).finally(() => setIsLoading(false));
+
+        // Subscribe to realtime changes for this user's profile
+        profileSubscription = supabase
+          .channel(`profile:${userId}`)
+          .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'profiles', 
+            filter: `id=eq.${userId}` 
+          }, (payload) => {
+            console.log('Profile updated via Realtime:', payload.new);
+            setUser(payload.new as Profile);
+            setRole((payload.new as Profile).role);
+          })
+          .subscribe();
       } else {
         setIsLoading(false);
       }
@@ -90,14 +109,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        fetchProfile(session.user.id);
+        const userId = session.user.id;
+        fetchProfile(userId);
+        
+        // Re-subscribe if user changes
+        if (profileSubscription) supabase.removeChannel(profileSubscription);
+        profileSubscription = supabase
+          .channel(`profile:${userId}`)
+          .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'profiles', 
+            filter: `id=eq.${userId}` 
+          }, (payload) => {
+            console.log('Profile updated via Realtime:', payload.new);
+            setUser(payload.new as Profile);
+            setRole((payload.new as Profile).role);
+          })
+          .subscribe();
+
       } else {
         setUser(null);
         setRole('student');
+        if (profileSubscription) supabase.removeChannel(profileSubscription);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (profileSubscription) supabase.removeChannel(profileSubscription);
+    };
   }, []);
 
   // Redirect to onboarding if phone number is missing
@@ -135,8 +176,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const refreshProfile = async () => {
+    if (user) await fetchProfile(user.id);
+  };
+
   return (
-    <AppContext.Provider value={{ user, role, login, signup, logout, isLoading }}>
+    <AppContext.Provider value={{ user, role, login, signup, logout, isLoading, refreshProfile }}>
       {children}
     </AppContext.Provider>
   );
