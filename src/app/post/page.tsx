@@ -1,15 +1,19 @@
-'use client';
-
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
+import Compressor from 'compressorjs';
 
 // Cloudinary Configuration
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges_preset';
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dmjkpuddh';
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
+
+if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
+  throw new Error('Missing Cloudinary environment variables');
+}
+
 export default function PostLodge() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,6 +36,21 @@ export default function PostLodge() {
     setRefreshing(true);
     await refreshProfile();
     setRefreshing(false);
+  };
+
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      new Compressor(file, {
+        quality: 0.6,
+        maxWidth: 1200,
+        success(result) {
+          resolve(result as File);
+        },
+        error(err) {
+          reject(err);
+        },
+      });
+    });
   };
 
   if (isLoading) {
@@ -109,7 +128,16 @@ export default function PostLodge() {
     setUploading(true);
     
     try {
-      const uploadPromises = Array.from(files).map(file => uploadToCloudinary(file));
+      const uploadPromises = Array.from(files).map(async (file) => {
+        try {
+          const compressedFile = await compressImage(file);
+          return uploadToCloudinary(compressedFile);
+        } catch (err) {
+          console.error('Compression failed for one image, uploading original:', err);
+          return uploadToCloudinary(file);
+        }
+      });
+      
       const urls = await Promise.all(uploadPromises);
       
       setFormData(prev => ({
@@ -124,6 +152,7 @@ export default function PostLodge() {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+
 
   const handleSubmit = async () => {
     if (!user) return;
