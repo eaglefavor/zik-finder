@@ -10,6 +10,7 @@ interface VerificationDoc {
   id: string;
   landlord_id: string;
   id_card_path: string;
+  selfie_path?: string;
   status: 'pending' | 'approved';
   created_at: string;
   profiles: {
@@ -85,6 +86,10 @@ export default function AdminPage() {
   };
 
   const getSignedUrl = async (path: string) => {
+    if (!path) {
+        alert('File path is missing');
+        return;
+    }
     const { data, error } = await supabase
       .storage
       .from('secure-docs')
@@ -135,18 +140,28 @@ export default function AdminPage() {
                 </span>
               </div>
               
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => getSignedUrl(doc.id_card_path)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold active:scale-95 transition-transform"
-                >
-                  <ExternalLink size={16} /> View ID
-                </button>
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                    <button 
+                    onClick={() => getSignedUrl(doc.id_card_path)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold active:scale-95 transition-transform"
+                    >
+                    <ExternalLink size={14} /> View ID Card
+                    </button>
+                    {doc.selfie_path && (
+                        <button 
+                        onClick={() => getSignedUrl(doc.selfie_path!)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-purple-50 text-purple-600 rounded-xl text-xs font-bold active:scale-95 transition-transform"
+                        >
+                        <ExternalLink size={14} /> View Selfie
+                        </button>
+                    )}
+                </div>
                 <button 
                   onClick={() => handleApprove(doc.id, doc.landlord_id)}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-green-200"
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-green-200 mt-2"
                 >
-                  <CheckCircle size={16} /> Approve
+                  <CheckCircle size={16} /> Approve Landlord
                 </button>
               </div>
             </div>

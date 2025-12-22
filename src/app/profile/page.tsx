@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppContext } from '@/lib/context';
-import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, FileText, Loader2, CheckCircle } from 'lucide-react';
+import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, FileText, Loader2, CheckCircle, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -9,9 +9,12 @@ import { supabase } from '@/lib/supabase';
 export default function ProfilePage() {
   const { user, role, logout } = useAppContext();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'none' | 'pending' | 'verified'>('none');
+  const [selectedFiles, setSelectedFiles] = useState<{ id: File | null; selfie: File | null }>({
+    id: null,
+    selfie: null
+  });
 
   useEffect(() => {
     if (user) {
@@ -56,48 +59,59 @@ export default function ProfilePage() {
     router.push('/');
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'id' | 'selfie') => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      setSelectedFiles(prev => ({ ...prev, [type]: file }));
+    }
+  };
+
+  const handleSubmitVerification = async () => {
+    if (!selectedFiles.id || !selectedFiles.selfie) return;
 
     setUploading(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/verification-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
+      // 1. Upload ID
+      const idExt = selectedFiles.id.name.split('.').pop();
+      const idPath = `${user.id}/id-${Math.random().toString(36).substring(2)}.${idExt}`;
+      const { error: idError } = await supabase.storage
         .from('secure-docs')
-        .upload(filePath, file);
+        .upload(idPath, selectedFiles.id);
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      if (idError) throw idError;
 
-      // Record the document in the database for admin review
+      // 2. Upload Selfie
+      const selfieExt = selectedFiles.selfie.name.split('.').pop();
+      const selfiePath = `${user.id}/selfie-${Math.random().toString(36).substring(2)}.${selfieExt}`;
+      const { error: selfieError } = await supabase.storage
+        .from('secure-docs')
+        .upload(selfiePath, selectedFiles.selfie);
+
+      if (selfieError) throw selfieError;
+
+      // 3. Record in DB
       const { error: dbError } = await supabase
         .from('verification_docs')
         .insert({
           landlord_id: user.id,
-          id_card_path: filePath,
+          id_card_path: idPath,
+          selfie_path: selfiePath,
           status: 'pending'
         });
 
       if (dbError) {
-        console.error('Error recording document in database:', dbError);
-        alert('File uploaded but failed to save request: ' + dbError.message);
-        return; 
+        throw dbError;
       }
 
       setVerificationStatus('pending');
-      alert('Document uploaded successfully! Our team will review it.');
-    } catch (error) {
-      console.error('Error uploading document:', error);
-      alert('Error uploading document. Please try again.');
+      alert('Documents uploaded successfully! We will review your submission shortly.');
+      setSelectedFiles({ id: null, selfie: null }); // Reset
+    } catch (error: any) {
+      console.error('Error uploading documents:', error);
+      alert('Error uploading documents: ' + error.message);
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -179,27 +193,76 @@ export default function ProfilePage() {
                 </p>
                 
                 {verificationStatus === 'none' && (
-                  <div className="mt-4">
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onChange={handleFileChange} 
-                      className="hidden" 
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Required Documents</p>
+                    
+                    {/* ID Card Upload */}
+                    <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                          <FileText size={16} />
+                        </div>
+                        <div className="text-xs">
+                          <p className="font-bold text-gray-700">1. Valid ID Card</p>
+                          <p className="text-gray-400">NIN, Voter's Card, or Driver's License</p>
+                        </div>
+                      </div>
+                      <input 
+                        type="file" 
+                        id="id-upload"
+                        className="hidden" 
+                        accept=".jpg,.jpeg,.png"
+                        onChange={(e) => handleFileSelect(e, 'id')}
+                      />
+                      <label 
+                        htmlFor="id-upload"
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                          selectedFiles.id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {selectedFiles.id ? 'Selected' : 'Select'}
+                      </label>
+                    </div>
+
+                    {/* Selfie Upload */}
+                    <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center">
+                          <User size={16} />
+                        </div>
+                        <div className="text-xs">
+                          <p className="font-bold text-gray-700">2. Selfie with ID</p>
+                          <p className="text-gray-400">Hold your ID next to your face</p>
+                        </div>
+                      </div>
+                      <input 
+                        type="file" 
+                        id="selfie-upload"
+                        className="hidden" 
+                        accept=".jpg,.jpeg,.png"
+                        onChange={(e) => handleFileSelect(e, 'selfie')}
+                      />
+                      <label 
+                        htmlFor="selfie-upload"
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                          selectedFiles.selfie ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {selectedFiles.selfie ? 'Selected' : 'Select'}
+                      </label>
+                    </div>
+
                     <button 
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                      className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-xl text-xs font-bold text-blue-600 shadow-sm border border-blue-50 active:scale-95 transition-all disabled:opacity-50"
+                      onClick={handleSubmitVerification}
+                      disabled={uploading || !selectedFiles.id || !selectedFiles.selfie}
+                      className="w-full flex items-center justify-center gap-2 mt-2 bg-blue-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
                     >
                       {uploading ? (
                         <>
-                          <Loader2 className="animate-spin" size={14} /> Uploading...
+                          <Loader2 className="animate-spin" size={16} /> Uploading...
                         </>
                       ) : (
-                        <>
-                          <FileText size={14} /> Upload ID Document
-                        </>
+                        'Submit for Verification'
                       )}
                     </button>
                   </div>
