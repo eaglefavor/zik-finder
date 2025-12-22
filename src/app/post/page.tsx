@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw } from 'lucide-react';
