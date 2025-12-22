@@ -122,13 +122,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) {
         const err = await res.json();
         console.error('Failed to delete lodge:', err);
-        // Revert optimistic update if needed, but for now we refresh
-        await refreshLodges();
         alert('Failed to delete lodge: ' + (err.error || 'Unknown error'));
+        await refreshLodges(); // Revert optimistic update
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting lodge:', error);
-      await refreshLodges();
+      alert('Error deleting lodge. Check console for details.');
+      await refreshLodges(); // Revert optimistic update
     }
   };
 

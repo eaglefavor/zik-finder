@@ -41,6 +41,12 @@ export default function Home() {
     ) : null
   );
 
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this listing permanently?')) {
+      await deleteLodge(id);
+    }
+  };
+
   const landlordLodges = lodges.filter(l => l.landlord_id === user.id);
 
   // Show Landlord View if user is a landlord OR (admin AND has lodges)
@@ -94,7 +100,7 @@ export default function Home() {
                     <div className="flex justify-between items-start">
                       <div className="font-bold text-gray-900 truncate pr-2">{lodge.title}</div>
                       <button 
-                        onClick={() => confirm('Delete this listing permanently?') && deleteLodge(lodge.id)}
+                        onClick={() => handleDelete(lodge.id)}
                         className="text-gray-300 hover:text-red-500 transition-colors"
                       >
                         <Trash2 size={16} />
