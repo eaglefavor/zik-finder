@@ -1,7 +1,7 @@
 'use client';
 
 import { useAppContext } from '@/lib/context';
-import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, FileText, Loader2, CheckCircle, User } from 'lucide-react';
+import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, FileText, Loader2, CheckCircle, User, AlertCircle, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -10,7 +10,8 @@ export default function ProfilePage() {
   const { user, role, logout } = useAppContext();
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<'none' | 'pending' | 'verified'>('none');
+  const [verificationStatus, setVerificationStatus] = useState<'none' | 'pending' | 'verified' | 'rejected'>('none');
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<{ id: File | null; selfie: File | null }>({
     id: null,
     selfie: null
@@ -31,12 +32,12 @@ export default function ProfilePage() {
       return;
     }
 
-    // Check for pending or approved docs
+    // Check for pending, approved or rejected docs
     const { data } = await supabase
       .from('verification_docs')
-      .select('status')
+      .select('status, rejection_reason')
       .eq('landlord_id', user.id)
-      .in('status', ['pending', 'approved'])
+      .in('status', ['pending', 'approved', 'rejected'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -44,6 +45,9 @@ export default function ProfilePage() {
     if (data) {
       if (data.status === 'approved') {
          setVerificationStatus('verified');
+      } else if (data.status === 'rejected') {
+         setVerificationStatus('rejected');
+         setRejectionReason(data.rejection_reason);
       } else {
          setVerificationStatus('pending');
       }
@@ -91,6 +95,11 @@ export default function ProfilePage() {
       if (selfieError) throw selfieError;
 
       // 3. Record in DB
+      // If re-submitting, we'll delete old rejected entries to keep DB clean
+      if (verificationStatus === 'rejected') {
+         await supabase.from('verification_docs').delete().eq('landlord_id', user.id).eq('status', 'rejected');
+      }
+
       const { error: dbError } = await supabase
         .from('verification_docs')
         .insert({
@@ -163,38 +172,52 @@ export default function ProfilePage() {
               ? 'bg-green-50 border-green-100' 
               : verificationStatus === 'pending'
                 ? 'bg-yellow-50 border-yellow-100'
-                : 'bg-blue-50 border-blue-100'
+                : verificationStatus === 'rejected'
+                  ? 'bg-red-50 border-red-100'
+                  : 'bg-blue-50 border-blue-100'
           }`}>
             <div className="flex items-start gap-3">
               {verificationStatus === 'verified' ? (
                 <CheckCircle className="text-green-500 shrink-0" size={24} />
               ) : verificationStatus === 'pending' ? (
                  <Loader2 className="text-yellow-600 shrink-0 animate-spin" size={24} />
+              ) : verificationStatus === 'rejected' ? (
+                 <AlertCircle className="text-red-500 shrink-0" size={24} />
               ) : (
                 <ShieldCheck className="text-blue-500 shrink-0" size={24} />
               )}
-              <div>
+              <div className="flex-1">
                 <p className={`font-bold text-sm ${
                   verificationStatus === 'verified' ? 'text-green-800' : 
-                  verificationStatus === 'pending' ? 'text-yellow-800' : 'text-blue-800'
+                  verificationStatus === 'pending' ? 'text-yellow-800' : 
+                  verificationStatus === 'rejected' ? 'text-red-800' : 'text-blue-800'
                 }`}>
                   {verificationStatus === 'verified' ? 'Account Verified' : 
-                   verificationStatus === 'pending' ? 'Verification Pending' : 'Identity Verification'}
+                   verificationStatus === 'pending' ? 'Verification Pending' : 
+                   verificationStatus === 'rejected' ? 'Verification Rejected' : 'Identity Verification'}
                 </p>
                 <p className={`text-xs ${
                   verificationStatus === 'verified' ? 'text-green-700' : 
-                  verificationStatus === 'pending' ? 'text-yellow-700' : 'text-blue-700'
+                  verificationStatus === 'pending' ? 'text-yellow-700' : 
+                  verificationStatus === 'rejected' ? 'text-red-700' : 'text-blue-700'
                 }`}>
                   {verificationStatus === 'verified' 
                     ? 'Your account is verified. You have full access to all landlord features.' 
                     : verificationStatus === 'pending'
                       ? 'We are reviewing your document. This usually takes 24 hours.'
-                      : 'Upload a valid ID (NIN, Drivers License, etc.) to get the verified badge.'}
+                      : verificationStatus === 'rejected'
+                        ? rejectionReason || 'Your documents were rejected. Please check the requirements and try again.'
+                        : 'Upload a valid ID (NIN, Drivers License, etc.) to get the verified badge.'}
                 </p>
                 
-                {verificationStatus === 'none' && (
+                {(verificationStatus === 'none' || verificationStatus === 'rejected') && (
                   <div className="mt-4 space-y-3">
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Required Documents</p>
+                    <div className="flex items-center justify-between mb-2">
+                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Documents</p>
+                       {verificationStatus === 'rejected' && (
+                         <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">Resubmission Required</span>
+                       )}
+                    </div>
                     
                     {/* ID Card Upload */}
                     <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
@@ -262,11 +285,15 @@ export default function ProfilePage() {
                           <Loader2 className="animate-spin" size={16} /> Uploading...
                         </>
                       ) : (
-                        'Submit for Verification'
+                        <>{verificationStatus === 'rejected' ? 'Resubmit Verification' : 'Submit for Verification'}</>
                       )}
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
               </div>
             </div>
           </div>

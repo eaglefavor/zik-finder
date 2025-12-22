@@ -11,7 +11,8 @@ interface VerificationDoc {
   landlord_id: string;
   id_card_path: string;
   selfie_path?: string;
-  status: 'pending' | 'approved';
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
   created_at: string;
   profiles: {
     name: string;
@@ -68,7 +69,6 @@ export default function AdminPage() {
     }
 
     // 2. Explicitly update the profile verification status
-    // (Backup in case the DB trigger fails)
     const { error: profileError } = await supabase
       .from('profiles')
       .update({ is_verified: true })
@@ -83,6 +83,30 @@ export default function AdminPage() {
 
     // Refresh list
     await fetchPendingDocs();
+  };
+
+  const handleReject = async (docId: string) => {
+    const reason = prompt('Please enter the reason for rejection (e.g. Image blurry, name mismatch):');
+    if (reason === null) return; // Cancelled
+    if (!reason.trim()) {
+      alert('A reason is required to reject verification.');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('verification_docs')
+      .update({ 
+        status: 'rejected',
+        rejection_reason: reason 
+      })
+      .eq('id', docId);
+
+    if (error) {
+      alert('Error rejecting document: ' + error.message);
+    } else {
+      alert('Verification rejected.');
+      await fetchPendingDocs();
+    }
   };
 
   const getSignedUrl = async (path: string) => {
@@ -157,12 +181,21 @@ export default function AdminPage() {
                         </button>
                     )}
                 </div>
-                <button 
-                  onClick={() => handleApprove(doc.id, doc.landlord_id)}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-green-200 mt-2"
-                >
-                  <CheckCircle size={16} /> Approve Landlord
-                </button>
+                
+                <div className="flex gap-2 mt-2">
+                    <button 
+                    onClick={() => handleReject(doc.id)}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-red-100 text-red-600 rounded-xl text-sm font-bold active:scale-95 transition-transform"
+                    >
+                    <XCircle size={16} /> Reject
+                    </button>
+                    <button 
+                    onClick={() => handleApprove(doc.id, doc.landlord_id)}
+                    className="flex-[2] flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-green-200"
+                    >
+                    <CheckCircle size={16} /> Approve Landlord
+                    </button>
+                </div>
               </div>
             </div>
           ))
