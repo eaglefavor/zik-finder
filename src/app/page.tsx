@@ -41,9 +41,16 @@ export default function Home() {
     ) : null
   );
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (confirm('Are you sure you want to delete this listing permanently?')) {
-      await deleteLodge(id);
+      try {
+        await deleteLodge(id);
+      } catch (err) {
+        alert('Delete failed from UI: ' + err);
+      }
     }
   };
 
@@ -100,8 +107,8 @@ export default function Home() {
                     <div className="flex justify-between items-start">
                       <div className="font-bold text-gray-900 truncate pr-2">{lodge.title}</div>
                       <button 
-                        onClick={() => handleDelete(lodge.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors"
+                        onClick={(e) => handleDelete(e, lodge.id)}
+                        className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
                       >
                         <Trash2 size={16} />
                       </button>
