@@ -73,13 +73,13 @@ export async function GET(request: Request) {
     // ability to potentially see files if RLS allows Admins (which our init.sql usually does).
     
     const { data: files, error: storageError } = await supabase
-      .from('objects') // accessing storage.objects is tricky via standard client sometimes
+      .from('objects')
       .select('metadata')
-      .schema('storage'); // Must specify schema
+      .schema('storage');
 
     let supabaseSize = 0;
     if (!storageError && files) {
-      supabaseSize = files.reduce((acc: number, file: any) => {
+      supabaseSize = (files as any[]).reduce((acc: number, file: any) => {
         return acc + (file.metadata?.size || 0);
       }, 0);
     } else {
