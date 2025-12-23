@@ -72,14 +72,17 @@ export async function GET(request: Request) {
     // Since we don't have the Service Role Key hardcoded or guaranteed, we will rely on the Admin User's
     // ability to potentially see files if RLS allows Admins (which our init.sql usually does).
     
-    const { data: files, error: storageError } = await supabase
+    const storageResponse = await supabase
       .from('objects')
       .select('metadata')
       .schema('storage');
 
+    const files = storageResponse.data;
+    const storageError = storageResponse.error;
+
     let supabaseSize = 0;
-    if (!storageError && files) {
-      supabaseSize = (files as any[]).reduce((acc: number, file: any) => {
+    if (!storageError && files && Array.isArray(files)) {
+      supabaseSize = files.reduce((acc: number, file: any) => {
         return acc + (file.metadata?.size || 0);
       }, 0);
     } else {
