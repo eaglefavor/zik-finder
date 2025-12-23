@@ -13,7 +13,7 @@ interface DataContextType {
   refreshLodges: () => Promise<void>;
   refreshRequests: () => Promise<void>;
   toggleFavorite: (lodgeId: string) => Promise<void>;
-  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
+  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => Promise<{ success: boolean; error?: string }>;
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken') => Promise<void>;
   addUnit: (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => Promise<void>;
@@ -96,7 +96,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, [user]);
 
-  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>) => {
+  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     // 1. Insert Lodge
@@ -111,20 +111,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (lodgeError) return { success: false, error: lodgeError.message };
 
-    // 2. Insert Default Unit (Backward Compatibility)
+    // 2. Insert Units
     if (newLodge) {
-      const { error: unitError } = await supabase
-        .from('lodge_units')
-        .insert({
-          lodge_id: newLodge.id,
-          name: 'Standard Room',
-          price: lodgeData.price,
-          total_units: 1,
-          available_units: 1,
-          image_urls: lodgeData.image_urls
-        });
-        
-      if (unitError) console.error('Error creating default unit:', unitError);
+      if (units && units.length > 0) {
+        // Bulk insert provided units
+        const unitsToInsert = units.map(u => ({
+          ...u,
+          lodge_id: newLodge.id
+        }));
+        const { error: unitError } = await supabase.from('lodge_units').insert(unitsToInsert);
+        if (unitError) console.error('Error adding units:', unitError);
+      } else {
+        // Fallback: Default Unit
+        const { error: unitError } = await supabase
+          .from('lodge_units')
+          .insert({
+            lodge_id: newLodge.id,
+            name: 'Standard Room',
+            price: lodgeData.price,
+            total_units: 1,
+            available_units: 1,
+            image_urls: lodgeData.image_urls
+          });
+          
+        if (unitError) console.error('Error creating default unit:', unitError);
+      }
     }
     
     await refreshLodges();

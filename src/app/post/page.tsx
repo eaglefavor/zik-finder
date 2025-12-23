@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
@@ -32,6 +32,13 @@ export default function PostLodge() {
     description: '',
     amenities: [] as string[],
     image_urls: [] as string[]
+  });
+
+  const [units, setUnits] = useState<{ name: string; price: number; total_units: number; available_units: number; image_urls: string[] }[]>([]);
+  const [newUnit, setNewUnit] = useState({
+    name: '',
+    price: '',
+    total_units: '1'
   });
 
   const handleRefresh = async () => {
@@ -160,8 +167,28 @@ export default function PostLodge() {
   };
 
 
+  const handleAddUnit = () => {
+    if (!newUnit.name || !newUnit.price) return;
+    setUnits([...units, {
+      name: newUnit.name,
+      price: parseInt(newUnit.price),
+      total_units: parseInt(newUnit.total_units),
+      available_units: parseInt(newUnit.total_units),
+      image_urls: []
+    }]);
+    setNewUnit({ name: '', price: '', total_units: '1' });
+  };
+
+  const handleDeleteUnit = (index: number) => {
+    setUnits(units.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
+    
+    // If no units added, warn or force default
+    // We'll proceed, assuming addLodge handles fallback if units array is empty, 
+    // but better UX is to encourage adding units.
     
     const { success, error } = await addLodge({
       title: formData.title,
@@ -173,7 +200,7 @@ export default function PostLodge() {
         : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'], // Placeholder
       amenities: formData.amenities,
       status: 'available',
-    });
+    }, units);
 
     if (success) {
       router.push('/');
@@ -193,7 +220,7 @@ export default function PostLodge() {
 
       {/* Progress Stepper */}
       <div className="flex gap-2 mb-8">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div 
             key={i} 
             className={`h-1.5 flex-1 rounded-full transition-colors ${
@@ -268,7 +295,7 @@ export default function PostLodge() {
             </select>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700">Price (Per Year)</label>
+            <label className="text-sm font-bold text-gray-700">Starting Price (Per Year)</label>
             <div className="relative">
               <span className="absolute left-4 top-4 font-bold text-gray-400">₦</span>
               <input 
@@ -336,13 +363,91 @@ export default function PostLodge() {
               onClick={handleNext}
               className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200"
             >
-              Almost Done
+              Add Room Types
             </button>
           </div>
         </div>
       )}
 
       {step === 3 && (
+        <div className="space-y-6">
+          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4">
+            <p className="text-sm text-blue-700">
+              Does this lodge have different types of rooms? Add them below (e.g. Self-con, Single Room).
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {units.map((unit, idx) => (
+              <div key={idx} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-gray-900">{unit.name}</h3>
+                  <div className="text-sm text-gray-500">
+                    ₦{unit.price.toLocaleString()} • {unit.total_units} units
+                  </div>
+                </div>
+                <button 
+                  onClick={() => handleDeleteUnit(idx)}
+                  className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 rounded-full"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
+            <h3 className="text-sm font-bold text-gray-700">Add Room Type</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <input 
+                type="text" 
+                placeholder="e.g. Standard Self-con"
+                value={newUnit.name}
+                onChange={e => setNewUnit({...newUnit, name: e.target.value})}
+                className="col-span-2 p-3 bg-white border border-gray-200 rounded-xl text-sm"
+              />
+              <input 
+                type="number" 
+                placeholder="Price"
+                value={newUnit.price}
+                onChange={e => setNewUnit({...newUnit, price: e.target.value})}
+                className="p-3 bg-white border border-gray-200 rounded-xl text-sm"
+              />
+              <input 
+                type="number" 
+                placeholder="Qty"
+                value={newUnit.total_units}
+                onChange={e => setNewUnit({...newUnit, total_units: e.target.value})}
+                className="p-3 bg-white border border-gray-200 rounded-xl text-sm"
+              />
+            </div>
+            <button 
+              onClick={handleAddUnit}
+              disabled={!newUnit.name || !newUnit.price}
+              className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Plus size={16} /> Add Unit
+            </button>
+          </div>
+
+          <div className="flex gap-4 pt-4">
+            <button 
+              onClick={handleBack}
+              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold"
+            >
+              Back
+            </button>
+            <button 
+              onClick={handleNext}
+              className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200"
+            >
+              Review
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
             <CheckCircle2 size={48} />
@@ -362,11 +467,8 @@ export default function PostLodge() {
               onClick={handleBack}
               className="w-full py-4 bg-white text-gray-500 font-bold"
             >
-              Edit Details
+              Back to Details
             </button>
           </div>
         </div>
       )}
-    </div>
-  );
-}
