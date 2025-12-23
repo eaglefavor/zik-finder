@@ -122,6 +122,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLodges(prev => prev.filter(l => l.id !== id));
 
     try {
+      // 1. Delete images via API (Server-side)
       const res = await fetch('/api/lodges/delete', {
         method: 'POST',
         headers: { 
@@ -132,14 +133,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        console.error('Failed to delete lodge:', err);
-        alert('Failed to delete lodge: ' + (err.error || 'Unknown error'));
-        await refreshLodges(); // Revert optimistic update
+        console.warn('Image deletion API warning:', await res.json());
+        // We continue to delete the lodge record even if image deletion fails (orphan images are better than stuck listings)
       }
+
+      // 2. Delete Lodge Record (Client-side, uses active session for RLS)
+      const { error } = await supabase
+        .from('lodges')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      await refreshLodges();
+
     } catch (error: any) {
       console.error('Error deleting lodge:', error);
-      alert('Error deleting lodge. Check console for details.');
+      alert('Error deleting lodge: ' + error.message);
       await refreshLodges(); // Revert optimistic update
     }
   };

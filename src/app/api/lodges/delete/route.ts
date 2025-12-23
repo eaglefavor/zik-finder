@@ -87,20 +87,10 @@ export async function POST(request: Request) {
     console.log('Auth Header:', authHeader ? authHeader.substring(0, 20) + '...' : 'Missing');
 
     // 3. Delete Lodge from Supabase
-    const { error: deleteError, count } = await supabase
-      .from('lodges')
-      .delete({ count: 'exact' }) // Request count of deleted rows
-      .eq('id', lodgeId);
-
-    if (deleteError) {
-      return NextResponse.json({ error: deleteError.message }, { status: 500 });
-    }
-
-    if (count === 0) {
-        console.error('Delete failed: RLS policy blocked deletion or lodge not found.');
-        return NextResponse.json({ error: 'Deletion failed (RLS or Not Found)' }, { status: 403 });
-    }
-
+    // We SKIP this step here. The Client will handle DB deletion.
+    // This solves the RLS/Auth context issue on the server.
+    // We return success so the client knows images are gone (or attempted).
+    
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
