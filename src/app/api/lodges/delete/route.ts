@@ -16,6 +16,11 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
         global: {
           headers: {
             Authorization: authHeader,
@@ -34,7 +39,10 @@ export async function POST(request: Request) {
 
     if (fetchError || !lodge) {
       console.error('Fetch error:', fetchError);
-      return NextResponse.json({ error: 'Lodge not found or permission denied' }, { status: 404 });
+      return NextResponse.json({ 
+        error: `Fetch failed: ${fetchError?.message || 'Lodge not found'}`, 
+        details: fetchError 
+      }, { status: 404 });
     }
 
     // Verify ownership explicitly (though RLS likely handles this)
