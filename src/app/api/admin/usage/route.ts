@@ -55,10 +55,14 @@ export async function GET(request: Request) {
       console.error('Cloudinary Usage Error:', err);
     }
 
-    const { data: files, error: storageError } = await supabase
+    const storageQuery = supabase
       .from('objects')
       .select('metadata')
       .schema('storage');
+      
+    const storageResponse = await storageQuery;
+    const files = storageResponse.data;
+    const storageError = storageResponse.error;
 
     let supabaseSize = 0;
     if (!storageError && files && Array.isArray(files)) {
