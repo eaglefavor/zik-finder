@@ -124,12 +124,12 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex gap-2 border-t border-gray-50 pt-4">
-                  <button 
-                    onClick={() => alert('Edit feature coming soon!')}
+                  <Link 
+                    href={`/edit-lodge/${lodge.id}`}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gray-50 text-gray-700 rounded-xl text-sm font-bold active:scale-95 transition-transform"
                   >
                     <Edit3 size={16} /> Edit
-                  </button>
+                  </Link>
                   <button 
                     onClick={() => updateLodgeStatus(lodge.id, lodge.status === 'available' ? 'taken' : 'available')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-transform ${

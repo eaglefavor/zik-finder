@@ -14,6 +14,7 @@ interface DataContextType {
   refreshRequests: () => Promise<void>;
   toggleFavorite: (lodgeId: string) => Promise<void>;
   addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
+  updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken') => Promise<void>;
   deleteLodge: (id: string) => Promise<void>;
   addRequest: (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
@@ -100,6 +101,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         ...lodgeData,
         landlord_id: user.id
       });
+
+    if (error) return { success: false, error: error.message };
+    
+    await refreshLodges();
+    return { success: true };
+  };
+
+  const updateLodge = async (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => {
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    const { error } = await supabase
+      .from('lodges')
+      .update(lodgeData)
+      .eq('id', id)
+      .eq('landlord_id', user.id); // Ensure ownership
 
     if (error) return { success: false, error: error.message };
     
@@ -233,6 +249,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       refreshRequests,
       toggleFavorite,
       addLodge,
+      updateLodge,
       updateLodgeStatus,
       deleteLodge,
       addRequest,
