@@ -9,12 +9,22 @@ export interface Profile {
   email?: string; // Metadata from Auth
 }
 
+export interface LodgeUnit {
+  id: string;
+  lodge_id: string;
+  name: string;
+  price: number;
+  total_units: number;
+  available_units: number;
+  image_urls: string[];
+}
+
 export interface Lodge {
   id: string;
   landlord_id: string;
   title: string;
   description: string;
-  price: number;
+  price: number; // Kept for display/sorting (min price)
   location: string;
   amenities: string[];
   image_urls: string[];
@@ -25,6 +35,7 @@ export interface Lodge {
     phone_number: string;
     is_verified: boolean;
   };
+  units?: LodgeUnit[]; // New: List of room types
 }
 
 export interface LodgeRequest {

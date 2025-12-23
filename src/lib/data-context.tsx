@@ -16,6 +16,8 @@ interface DataContextType {
   addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken') => Promise<void>;
+  addUnit: (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => Promise<void>;
+  deleteUnit: (id: string) => Promise<void>;
   deleteLodge: (id: string) => Promise<void>;
   addRequest: (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
   deleteRequest: (id: string) => Promise<void>;
@@ -32,15 +34,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const refreshLodges = async () => {
     // Explicitly use the 'lodges_landlord_id_fkey' constraint we enforced in SQL
+    // Also fetch the related units
     const { data, error } = await supabase
       .from('lodges')
-      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified)')
+      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
       .order('created_at', { ascending: false });
 
     if (!error && data) {
       const formatted = (data as any[]).map(l => ({
         ...l,
-        profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles
+        profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles,
+        units: l.lodge_units // Assign the fetched units
       }));
       setLodges(formatted as Lodge[]);
     }
@@ -92,17 +96,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loadData();
   }, [user]);
 
-  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>) => {
+  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    const { error } = await supabase
+    // 1. Insert Lodge
+    const { data: newLodge, error: lodgeError } = await supabase
       .from('lodges')
       .insert({
         ...lodgeData,
         landlord_id: user.id
-      });
+      })
+      .select()
+      .single();
 
-    if (error) return { success: false, error: error.message };
+    if (lodgeError) return { success: false, error: lodgeError.message };
+
+    // 2. Insert Default Unit (Backward Compatibility)
+    if (newLodge) {
+      const { error: unitError } = await supabase
+        .from('lodge_units')
+        .insert({
+          lodge_id: newLodge.id,
+          name: 'Standard Room',
+          price: lodgeData.price,
+          total_units: 1,
+          available_units: 1,
+          image_urls: lodgeData.image_urls
+        });
+        
+      if (unitError) console.error('Error creating default unit:', unitError);
+    }
     
     await refreshLodges();
     return { success: true };
@@ -130,6 +153,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .eq('id', id);
 
     if (!error) await refreshLodges();
+  };
+
+  const addUnit = async (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => {
+    const { error } = await supabase
+      .from('lodge_units')
+      .insert(unitData);
+      
+    if (error) console.error('Error adding unit:', error);
+    await refreshLodges();
+  };
+
+  const deleteUnit = async (id: string) => {
+    const { error } = await supabase
+      .from('lodge_units')
+      .delete()
+      .eq('id', id);
+      
+    if (error) console.error('Error deleting unit:', error);
+    await refreshLodges();
   };
 
   const deleteLodge = async (id: string) => {
@@ -251,6 +293,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addLodge,
       updateLodge,
       updateLodgeStatus,
+      addUnit,
+      deleteUnit,
       deleteLodge,
       addRequest,
       deleteRequest
