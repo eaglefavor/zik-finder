@@ -26,6 +26,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [usage, setUsage] = useState<{ cloudinary: { used: number, limit: number }, supabase: { used: number, limit: number } } | null>(null);
+
   useEffect(() => {
     if (!authLoading) {
       if (!user || role !== 'admin') {
@@ -33,8 +35,25 @@ export default function AdminPage() {
         return;
       }
       fetchPendingDocs();
+      fetchUsage();
     }
   }, [user, role, authLoading, router]);
+
+  const fetchUsage = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    try {
+      const res = await fetch('/api/admin/usage', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      });
+      if (res.ok) {
+        setUsage(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to fetch usage stats', err);
+    }
+  };
 
   const fetchPendingDocs = async () => {
     setLoading(true);
@@ -51,7 +70,26 @@ export default function AdminPage() {
     } else if (data) {
       setDocs(data as unknown as VerificationDoc[]);
     }
+    
+    // Also refresh usage stats when refreshing the list
+    await fetchUsage();
     setLoading(false);
+  };
+
+  // Helper to format bytes
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Helper for progress bar color
+  const getProgressColor = (percent: number) => {
+    if (percent > 90) return 'bg-red-500';
+    if (percent > 70) return 'bg-yellow-500';
+    return 'bg-blue-600';
   };
 
   const handleApprove = async (docId: string, landlordId: string) => {
@@ -148,6 +186,81 @@ export default function AdminPage() {
       </div>
       
       <div className="space-y-6">
+        {/* Usage Monitor Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {/* Cloudinary Card */}
+          <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-gray-900">Cloudinary Media</h3>
+              <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase">Storage</span>
+            </div>
+            
+            {!usage ? (
+              <div className="h-20 flex items-center justify-center">
+                <Loader2 className="animate-spin text-gray-300" size={20} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <div className="text-2xl font-black text-gray-900">
+                    {formatBytes(usage.cloudinary.used)}
+                  </div>
+                  <div className="text-xs font-bold text-gray-400 uppercase">
+                    of {formatBytes(usage.cloudinary.limit)}
+                  </div>
+                </div>
+                
+                <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`absolute top-0 left-0 h-full transition-all duration-1000 ${getProgressColor((usage.cloudinary.used / usage.cloudinary.limit) * 100)}`}
+                    style={{ width: `${Math.min(100, (usage.cloudinary.used / usage.cloudinary.limit) * 100)}%` }}
+                  />
+                </div>
+                
+                <div className="text-[10px] font-bold text-gray-400">
+                  {((usage.cloudinary.used / usage.cloudinary.limit) * 100).toFixed(1)}% Capacity Used
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Supabase Card */}
+          <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-gray-900">Supabase Storage</h3>
+              <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg uppercase">DB & Docs</span>
+            </div>
+            
+            {!usage ? (
+              <div className="h-20 flex items-center justify-center">
+                <Loader2 className="animate-spin text-gray-300" size={20} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <div className="text-2xl font-black text-gray-900">
+                    {formatBytes(usage.supabase.used)}
+                  </div>
+                  <div className="text-xs font-bold text-gray-400 uppercase">
+                    of {formatBytes(usage.supabase.limit)}
+                  </div>
+                </div>
+                
+                <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`absolute top-0 left-0 h-full transition-all duration-1000 ${getProgressColor((usage.supabase.used / usage.supabase.limit) * 100)}`}
+                    style={{ width: `${Math.min(100, (usage.supabase.used / usage.supabase.limit) * 100)}%` }}
+                  />
+                </div>
+                
+                <div className="text-[10px] font-bold text-gray-400">
+                  {((usage.supabase.used / usage.supabase.limit) * 100).toFixed(1)}% Capacity Used
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <h2 className="text-lg font-bold text-gray-700">Pending Verifications</h2>
         
         {error && (
