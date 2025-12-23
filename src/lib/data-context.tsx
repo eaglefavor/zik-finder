@@ -72,14 +72,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshFavorites = async () => {
+    if (!user) {
+      setFavorites([]);
+      return;
+    }
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('lodge_id')
+      .eq('user_id', user.id);
+
+    if (!error && data) {
+      setFavorites(data.map(f => f.lodge_id));
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([refreshLodges(), refreshRequests()]);
+      await Promise.all([refreshLodges(), refreshRequests(), refreshFavorites()]);
       setIsLoading(false);
     };
     loadData();
-  }, []);
+  }, [user]);
 
   const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>) => {
     if (!user) return { success: false, error: 'Not authenticated' };
@@ -178,9 +193,39 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleFavorite = async (lodgeId: string) => {
+    if (!user) {
+      alert('Please log in to save favorites');
+      return;
+    }
+
+    const isFav = favorites.includes(lodgeId);
+    
+    // Optimistic Update
     setFavorites(prev => 
-      prev.includes(lodgeId) ? prev.filter(id => id !== lodgeId) : [...prev, lodgeId]
+      isFav ? prev.filter(id => id !== lodgeId) : [...prev, lodgeId]
     );
+
+    try {
+      if (isFav) {
+        // Remove from DB
+        const { error } = await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('lodge_id', lodgeId);
+        if (error) throw error;
+      } else {
+        // Add to DB
+        const { error } = await supabase
+          .from('favorites')
+          .insert({ user_id: user.id, lodge_id: lodgeId });
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Revert on error
+      await refreshFavorites();
+    }
   };
 
   return (
