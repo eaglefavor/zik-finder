@@ -138,15 +138,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       // 2. Delete Lodge Record (Client-side, uses active session for RLS)
-      const { error } = await supabase
+      console.log('Attempting to delete lodge:', id, 'User:', user.id);
+      
+      const { error, count } = await supabase
         .from('lodges')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('id', id);
 
       if (error) {
         throw error;
       }
 
+      if (count === 0) {
+        throw new Error(`Deletion matched 0 rows. RLS mismatch? User: ${user.id}, Lodge: ${id}`);
+      }
+
+      console.log('Successfully deleted lodge rows:', count);
       await refreshLodges();
 
     } catch (error: any) {
