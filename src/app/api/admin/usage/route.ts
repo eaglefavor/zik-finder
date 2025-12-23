@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     // 3. Fetch Supabase Usage
     try {
       console.log('Fetching Supabase storage metadata...');
-      const storageQuery = supabase
+      const storageQuery = (supabase as any)
         .from('objects')
         .select('metadata')
         .schema('storage');
