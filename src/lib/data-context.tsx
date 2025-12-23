@@ -109,13 +109,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const deleteLodge = async (id: string) => {
     if (!user) return;
 
+    // Get current session token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      alert('Authentication error. Please log in again.');
+      return;
+    }
+
     // Optimistic update
     setLodges(prev => prev.filter(l => l.id !== id));
 
     try {
       const res = await fetch('/api/lodges/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ lodgeId: id, userId: user.id })
       });
 
