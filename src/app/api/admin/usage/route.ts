@@ -42,33 +42,47 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
     }
 
+    // Initialize defaults
     let storage_usage = 0;
     let plan_limit = 25 * 1024 * 1024 * 1024;
+    let supabaseSize = 0;
 
+    // 2. Fetch Cloudinary Usage
     try {
+      console.log('Fetching Cloudinary usage...');
       const result = await cloudinary.api.usage();
       if (result) {
         storage_usage = result.storage?.usage || 0;
         if (result.storage?.limit) plan_limit = result.storage.limit;
+        console.log('Cloudinary usage fetched:', storage_usage);
       }
-    } catch (err) {
-      console.error('Cloudinary Usage Error:', err);
+    } catch (err: any) {
+      console.error('Cloudinary Usage Error:', err.message || err);
+      // Don't fail, just keep 0
     }
 
-    const storageQuery = (supabase as any)
-      .from('objects')
-      .select('metadata')
-      .schema('storage');
-      
-    const storageResponse = await storageQuery;
-    const files = storageResponse.data;
-    const storageError = storageResponse.error;
+    // 3. Fetch Supabase Usage
+    try {
+      console.log('Fetching Supabase storage metadata...');
+      const storageQuery = supabase
+        .from('objects')
+        .select('metadata')
+        .schema('storage');
+        
+      const storageResponse = await storageQuery;
+      const files = storageResponse.data;
+      const storageError = storageResponse.error;
 
-    let supabaseSize = 0;
-    if (!storageError && files && Array.isArray(files)) {
-      supabaseSize = files.reduce((acc: number, file: any) => {
-        return acc + (file.metadata?.size || 0);
-      }, 0);
+      if (!storageError && files && Array.isArray(files)) {
+        supabaseSize = files.reduce((acc: number, file: any) => {
+          return acc + (file.metadata?.size || 0);
+        }, 0);
+        console.log('Supabase usage calculated:', supabaseSize);
+      } else {
+        console.error('Supabase Storage Query Error:', storageError);
+      }
+    } catch (err: any) {
+      console.error('Supabase Usage Calculation Error:', err.message || err);
     }
 
     return NextResponse.json({
