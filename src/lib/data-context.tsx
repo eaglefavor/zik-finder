@@ -36,11 +36,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified)')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('CRITICAL ERROR fetching lodges:', error.message, error.details, error.hint);
-      alert('Error fetching lodges: ' + error.message);
-    } else if (data) {
-      console.log('Fetched Lodges:', data);
+    if (!error && data) {
       const formatted = (data as any[]).map(l => ({
         ...l,
         profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles
@@ -56,12 +52,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .select('*, profiles!requests_student_id_fkey(phone_number, name)')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching requests:', error.message, error.details, error.hint);
-      return;
-    }
-
-    if (data) {
+    if (!error && data) {
       const formatted = (data as any[]).map(r => ({
         id: r.id,
         student_id: r.student_id,
