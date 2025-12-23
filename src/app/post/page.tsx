@@ -146,7 +146,7 @@ export default function PostLodge() {
           const compressedFile = await compressImage(file);
           return uploadToCloudinary(compressedFile);
         } catch (err) {
-          console.error('Compression failed for one image, uploading original:', err);
+          console.error('Compression failed:', err);
           return uploadToCloudinary(file);
         }
       });
@@ -158,14 +158,13 @@ export default function PostLodge() {
         image_urls: [...prev.image_urls, ...urls].slice(0, 6)
       }));
     } catch (err) {
-      alert('Error uploading images to Cloudinary. Check your Cloud Name and Preset.');
+      alert('Error uploading images');
       console.error(err);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
-
 
   const handleAddUnit = () => {
     if (!newUnit.name || !newUnit.price) return;
@@ -185,10 +184,6 @@ export default function PostLodge() {
 
   const handleSubmit = async () => {
     if (!user) return;
-    
-    // If no units added, warn or force default
-    // We'll proceed, assuming addLodge handles fallback if units array is empty, 
-    // but better UX is to encourage adding units.
     
     const { success, error } = await addLodge({
       title: formData.title,
@@ -472,3 +467,6 @@ export default function PostLodge() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
