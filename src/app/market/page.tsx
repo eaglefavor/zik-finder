@@ -2,6 +2,7 @@
 
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
+import { RequestSkeleton } from '@/components/Skeleton';
 import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -9,7 +10,21 @@ export default function MarketRequests() {
   const { role, user, isLoading } = useAppContext();
   const { requests, deleteRequest } = useData();
 
-  if (isLoading) return <div className="p-8 text-center text-gray-500">Loading marketplace...</div>;
+  if (isLoading) {
+    return (
+      <div className="px-4 py-6 pb-24">
+        <div className="space-y-4 mb-8">
+          <div className="h-8 w-40 bg-gray-200 rounded-lg animate-shimmer" />
+          <div className="h-4 w-56 bg-gray-100 rounded-lg animate-shimmer" />
+        </div>
+        <div className="space-y-4">
+          <RequestSkeleton />
+          <RequestSkeleton />
+          <RequestSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-6 pb-24">

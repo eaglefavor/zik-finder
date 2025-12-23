@@ -3,6 +3,7 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import AuthScreen from '@/components/AuthScreen';
+import { LodgeSkeleton } from '@/components/Skeleton';
 import { MapPin, Phone, MessageCircle, Heart, Eye, Users, CheckCircle, PlusCircle, Edit3, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -12,10 +13,21 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-medium animate-pulse">Loading Zik-Lodge...</p>
+      <div className="px-4 py-6">
+        <header className="flex justify-between items-center mb-6">
+          <div className="space-y-2">
+            <div className="h-8 w-48 bg-gray-200 rounded-lg animate-shimmer" />
+            <div className="h-4 w-32 bg-gray-100 rounded-lg animate-shimmer" />
+          </div>
+          <div className="w-10 h-10 bg-gray-200 rounded-full animate-shimmer" />
+        </header>
+        
+        <div className="mb-6 h-14 bg-gray-100 rounded-2xl animate-shimmer" />
+
+        <div className="space-y-6">
+          <LodgeSkeleton />
+          <LodgeSkeleton />
+          <LodgeSkeleton />
         </div>
       </div>
     );
