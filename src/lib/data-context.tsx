@@ -134,22 +134,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       if (!res.ok) {
         console.warn('Image deletion API warning:', await res.json());
-        // We continue to delete the lodge record even if image deletion fails (orphan images are better than stuck listings)
       }
 
       // 2. Delete Lodge Record (Client-side, via RPC to bypass RLS quirks)
-      console.log('Attempting to delete lodge via RPC:', id, 'User:', user.id);
-      
       const { error } = await supabase.rpc('delete_lodge', { lodge_id: id });
 
       if (error) {
         throw error;
       }
 
-      // We can't check count easily with RPC void return, but if no error, we assume success.
-      // If the lodge persists, it means the logic inside RPC (auth.uid check) failed.
-      
-      console.log('RPC delete call successful');
       await refreshLodges();
 
     } catch (error: any) {
