@@ -104,7 +104,16 @@ export default function LodgeDetail() {
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">{lodge.title}</h1>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-black text-blue-600">₦{lodge.price.toLocaleString()}</div>
+            <div className="text-2xl font-black text-blue-600">
+              {lodge.units && lodge.units.length > 1 ? (
+                <>
+                  <span className="text-sm font-bold text-gray-400 block">From</span>
+                  ₦{Math.min(...lodge.units.map(u => u.price)).toLocaleString()}
+                </>
+              ) : (
+                `₦${lodge.price.toLocaleString()}`
+              )}
+            </div>
             <div className="text-[10px] text-gray-400 font-bold uppercase">Per Year</div>
           </div>
         </div>
@@ -113,6 +122,32 @@ export default function LodgeDetail() {
           <MapPin size={18} className="text-blue-500" />
           <span className="text-sm">{lodge.location}, near UNIZIK School Gate</span>
         </div>
+
+        {/* Room Types Section */}
+        {lodge.units && lodge.units.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-lg font-bold mb-4">Available Rooms</h2>
+            <div className="space-y-3">
+              {lodge.units.map((unit) => (
+                <div key={unit.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold text-gray-900">{unit.name}</h3>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {unit.available_units > 0 ? (
+                        <span className="text-green-600 font-bold">{unit.available_units} left</span>
+                      ) : (
+                        <span className="text-red-500 font-bold">Fully Booked</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-black text-blue-600">₦{unit.price.toLocaleString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="mb-8">
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
