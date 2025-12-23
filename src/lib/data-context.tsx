@@ -35,9 +35,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .select('*, profiles(phone_number, is_verified)')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      console.log('Fetched Lodges with Profiles:', data);
-      // Normalize profiles data (handle array vs object return from Supabase)
+    if (error) {
+      console.error('CRITICAL ERROR fetching lodges:', error.message, error.details, error.hint);
+      alert('Error fetching lodges: ' + error.message);
+    } else if (data) {
+      console.log('Fetched Lodges:', data);
       const formatted = (data as any[]).map(l => ({
         ...l,
         profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles
