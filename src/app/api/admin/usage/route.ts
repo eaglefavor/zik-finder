@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       console.error('Cloudinary Usage Error:', err);
     }
 
-    const storageQuery = supabase
+    const storageQuery = (supabase as any)
       .from('objects')
       .select('metadata')
       .schema('storage');
