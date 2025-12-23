@@ -33,6 +33,14 @@ export async function POST(request: Request) {
       }
     );
 
+    // DEBUG: Check if we are authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        console.error('API Route Auth Error:', authError);
+        return NextResponse.json({ error: 'Unauthorized: Invalid token', details: authError }, { status: 401 });
+    }
+    console.log('Authenticated as:', user.id);
+
     // 1. Fetch Lodge to get image URLs and verify ownership
     // Now RLS will pass because we are authenticated as the user who owns the lodge
     const { data: lodge, error: fetchError } = await supabase
