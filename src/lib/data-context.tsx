@@ -30,9 +30,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshLodges = async () => {
+    // Explicitly use the 'lodges_landlord_id_fkey' constraint we enforced in SQL
     const { data, error } = await supabase
       .from('lodges')
-      .select('*, profiles(phone_number, is_verified)')
+      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified)')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -49,9 +50,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshRequests = async () => {
+    // Explicitly use 'requests_student_id_fkey' just in case
     const { data, error } = await supabase
       .from('requests')
-      .select('*, profiles(phone_number, name)')
+      .select('*, profiles!requests_student_id_fkey(phone_number, name)')
       .order('created_at', { ascending: false });
 
     if (error) {
