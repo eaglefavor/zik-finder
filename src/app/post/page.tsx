@@ -41,12 +41,16 @@ export default function PostLodge() {
   };
 
   const compressImage = (file: File): Promise<File> => {
+    console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
     return new Promise((resolve, reject) => {
       new Compressor(file, {
         quality: 0.6,
         maxWidth: 1200,
         success(result) {
-          resolve(result as File);
+          const compressed = result as File;
+          console.log(`Compressed size: ${(compressed.size / 1024 / 1024).toFixed(2)} MB`);
+          console.log(`Reduction: ${Math.round((1 - compressed.size / file.size) * 100)}%`);
+          resolve(compressed);
         },
         error(err) {
           reject(err);
