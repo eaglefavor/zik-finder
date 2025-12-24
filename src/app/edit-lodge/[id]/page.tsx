@@ -176,6 +176,7 @@ export default function EditLodge() {
     });
 
     setNewUnit({ name: '', price: '', total_units: '1' });
+    setShowCustomType(false);
   };
 
   const handleDeleteUnit = async (unitId: string) => {
@@ -458,14 +459,14 @@ export default function EditLodge() {
                 placeholder="Price"
                 value={newUnit.price}
                 onChange={e => setNewUnit({...newUnit, price: e.target.value})}
-                className="p-3 bg-white border border-gray-200 rounded-xl text-sm"
+                className="p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
               />
               <input 
                 type="number" 
                 placeholder="Qty"
                 value={newUnit.total_units}
                 onChange={e => setNewUnit({...newUnit, total_units: e.target.value})}
-                className="p-3 bg-white border border-gray-200 rounded-xl text-sm"
+                className="p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
               />
             </div>
             <button 
