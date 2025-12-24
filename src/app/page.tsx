@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 export default function Home() {
   const { user, role, isLoading } = useAppContext();
-  const { lodges, favorites, toggleFavorite, updateLodgeStatus, deleteLodge } = useData();
+  const { lodges, favorites, toggleFavorite, updateLodgeStatus, deleteLodge, updateUnitAvailability } = useData();
 
   if (isLoading) {
     return (
@@ -135,6 +135,45 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+
+                {/* Unit Inventory Management */}
+                {lodge.units && lodge.units.length > 0 && (
+                  <div className="bg-gray-50 rounded-2xl p-3 mb-4 space-y-3">
+                    <div className="flex justify-between items-center px-1">
+                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Unit Inventory</h4>
+                      <span className="text-[10px] font-bold text-gray-400">Available / Total</span>
+                    </div>
+                    {lodge.units.map((unit) => (
+                      <div key={unit.id} className="flex justify-between items-center bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                        <div>
+                          <p className="text-xs font-bold text-gray-700">{unit.name}</p>
+                          <p className="text-[10px] text-blue-600 font-bold">₦{unit.price.toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => updateUnitAvailability(unit.id, Math.max(0, unit.available_units - 1))}
+                            className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-lg text-gray-600 active:bg-red-100 active:text-red-600"
+                          >
+                            -
+                          </button>
+                          <div className="text-center min-w-[40px]">
+                            <span className={`text-xs font-black ${unit.available_units === 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                              {unit.available_units}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-bold"> / {unit.total_units}</span>
+                          </div>
+                          <button 
+                            onClick={() => updateUnitAvailability(unit.id, Math.min(unit.total_units, unit.available_units + 1))}
+                            className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-lg text-gray-600 active:bg-green-100 active:text-green-600"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex gap-2 border-t border-gray-50 pt-4">
                   <Link 
                     href={`/edit-lodge/${lodge.id}`}

@@ -17,6 +17,7 @@ interface DataContextType {
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken') => Promise<void>;
   addUnit: (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => Promise<void>;
+  updateUnitAvailability: (id: string, available_units: number) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
   deleteLodge: (id: string) => Promise<void>;
   addRequest: (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
@@ -173,6 +174,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       
     if (error) console.error('Error adding unit:', error);
     await refreshLodges();
+  };
+
+  const updateUnitAvailability = async (id: string, available_units: number) => {
+    const { error } = await supabase
+      .from('lodge_units')
+      .update({ available_units })
+      .eq('id', id);
+
+    if (!error) await refreshLodges();
   };
 
   const deleteUnit = async (id: string) => {
