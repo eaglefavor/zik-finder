@@ -51,6 +51,8 @@ export default function EditLodge() {
     price: '',
     total_units: '1'
   });
+  
+  const [showCustomType, setShowCustomType] = useState(false);
 
   useEffect(() => {
     if (id && lodges.length > 0) {
