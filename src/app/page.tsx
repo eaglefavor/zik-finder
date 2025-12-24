@@ -4,7 +4,7 @@ import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import AuthScreen from '@/components/AuthScreen';
 import { LodgeSkeleton } from '@/components/Skeleton';
-import { MapPin, Phone, MessageCircle, Heart, Eye, Users, CheckCircle, PlusCircle, Edit3, Trash2 } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, Heart, Eye, Users, CheckCircle, PlusCircle, Edit3, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Home() {
