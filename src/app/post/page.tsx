@@ -12,6 +12,10 @@ import Compressor from 'compressorjs';
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
 
+if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
+  throw new Error('Missing Cloudinary environment variables');
+}
+
 const ROOM_TYPE_PRESETS = [
   'Standard Self-con',
   'Executive Self-con',
@@ -24,6 +28,14 @@ const ROOM_TYPE_PRESETS = [
   'Penthouse',
   'Basement Room'
 ];
+
+const AREA_LANDMARKS: { [key: string]: string[] } = {
+  'Ifite': ['School Gate', 'First Gate', 'Second Gate', 'Bookshop', 'Perm Site', 'Mgbakwu Junction', 'Miracle Junction'],
+  'Okpuno': ['UNIZIK Junction', 'Regina Caeli', 'Y-Junction', 'Stanel Mart', 'Abakaliki Street'],
+  'Aroma': ['Aroma Junction', 'Government House', 'Roban Stores', 'Ekwueme Square'],
+  'Amansea': ['Amansea Junction', 'Cattle Market', 'Unizik Back Gate'],
+  'Temp Site': ['Temp Site Junction', 'Kenneth Dike Library', 'Eke Awka Area']
+};
 
 export default function PostLodge() {
   const router = useRouter();
@@ -40,11 +52,21 @@ export default function PostLodge() {
   const [formData, setFormData] = useState({
     title: '',
     location: 'Ifite',
+    landmark: 'School Gate',
+    address: '',
     description: '',
     amenities: [] as string[]
   });
 
-  // Step 2: Units (Room Categories)
+  const handleAreaChange = (area: string) => {
+    setFormData({ 
+      ...formData, 
+      location: area, 
+      landmark: AREA_LANDMARKS[area][0] 
+    });
+  };
+
+  // Step 2 & 3: Room Types & Media
   interface TempUnit {
     tempId: string;
     name: string;
@@ -68,12 +90,20 @@ export default function PostLodge() {
   };
 
   const compressImage = (file: File): Promise<File> => {
+    console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
     return new Promise((resolve, reject) => {
       new Compressor(file, {
         quality: 0.6,
         maxWidth: 1200,
-        success(result) { resolve(result as File); },
-        error(err) { reject(err); },
+        success(result) {
+          const compressed = result as File;
+          console.log(`Compressed size: ${(compressed.size / 1024 / 1024).toFixed(2)} MB`);
+          console.log(`Reduction: ${Math.round((1 - compressed.size / file.size) * 100)}%`);
+          resolve(compressed);
+        },
+        error(err) {
+          reject(err);
+        },
       });
     });
   };
@@ -82,10 +112,15 @@ export default function PostLodge() {
     const data = new FormData();
     data.append('file', file);
     data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: 'POST',
-      body: data,
-    });
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: data,
+      }
+    );
+
     const json = await res.json();
     if (json.error) throw new Error(json.error.message);
     return json.secure_url;
@@ -94,6 +129,7 @@ export default function PostLodge() {
   const handleGeneralImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
     setUploading(true);
     try {
       const urls = await Promise.all(Array.from(files).map(async (file) => {
@@ -105,19 +141,29 @@ export default function PostLodge() {
       alert('Upload failed');
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const handleUnitImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, tempId: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
     setUploading(true);
     try {
       const urls = await Promise.all(Array.from(files).map(async (file) => {
-        const compressed = await compressImage(file);
-        return uploadToCloudinary(compressed);
+        try {
+          const compressed = await compressImage(file);
+          return uploadToCloudinary(compressed);
+        } catch (err) {
+          console.error('Compression failed:', err);
+          return uploadToCloudinary(file);
+        }
       }));
-      setUnits(prev => prev.map(u => u.tempId === tempId ? { ...u, image_urls: [...u.image_urls, ...urls] } : u));
+      
+      setUnits(prev => prev.map(u => 
+        u.tempId === tempId ? { ...u, image_urls: [...u.image_urls, ...urls] } : u
+      ));
     } catch (err) {
       alert('Upload failed');
     } finally {
@@ -150,6 +196,8 @@ export default function PostLodge() {
 
   const handleSubmit = async () => {
     if (!user) return;
+    
+    // Prepare units for DB
     const finalUnits = units.map(u => ({
       name: u.name,
       price: u.price,
@@ -157,17 +205,27 @@ export default function PostLodge() {
       available_units: 1,
       image_urls: u.image_urls
     }));
+
     const minPrice = units.length > 0 ? Math.min(...units.map(u => u.price)) : 0;
+    
+    // Combine landmark and address into description
+    const fullDescription = `Landmark: ${formData.landmark}\nAddress: ${formData.address}\n\n${formData.description}`;
+
     const { success, error } = await addLodge({
       title: formData.title,
       price: minPrice,
-      location: formData.location,
-      description: formData.description || 'No description provided.',
+      location: formData.location, // Area
+      description: fullDescription,
       image_urls: generalImages.length > 0 ? generalImages : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'],
       amenities: formData.amenities,
       status: 'available',
     }, finalUnits);
-    if (success) router.push('/'); else alert('Error: ' + error);
+
+    if (success) {
+      router.push('/');
+    } else {
+      alert('Error saving lodge: ' + error);
+    }
   };
 
   if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
@@ -191,37 +249,97 @@ export default function PostLodge() {
     <div className="px-4 py-6 pb-32 max-w-2xl mx-auto">
       <header className="flex items-center gap-4 mb-8">
         <Link href="/" className="p-2 bg-white rounded-full shadow-sm border border-gray-100"><ChevronLeft size={20} /></Link>
-        <div><h1 className="text-2xl font-bold">Post a Lodge</h1><p className="text-xs text-gray-500 font-medium text-blue-600 uppercase tracking-widest">Step {step} of 3</p></div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Post a Lodge</h1>
+          <p className="text-xs text-gray-500 font-medium text-blue-600 uppercase tracking-widest">Step {step} of 3</p>
+        </div>
       </header>
 
-      <div className="mb-10 flex gap-2">
-        {[1, 2, 3].map(i => <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? 'bg-blue-600 shadow-sm shadow-blue-100' : 'bg-gray-100'}`} />)}
+      {/* Progress Bar */}
+      <div className="mb-10">
+        <div className="flex justify-between mb-2">
+          {['Info', 'Rooms', 'Media'].map((label, i) => (
+            <span key={label} className={`text-[10px] font-black uppercase tracking-widest ${i + 1 <= step ? 'text-blue-600' : 'text-gray-300'}`}>{label}</span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? 'bg-blue-600 shadow-sm shadow-blue-100' : 'bg-gray-100'}`} />
+          ))}
+        </div>
       </div>
 
       {step === 1 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
-          <div><label className="block text-sm font-bold text-gray-700 mb-2">Lodge Name</label><input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="e.g. Divine Grace Lodge" className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" /></div>
-          <div><label className="block text-sm font-bold text-gray-700 mb-2">Location</label><select value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"><option value="Ifite">Ifite</option><option value="Amansea">Amansea</option><option value="Temp Site">Temp Site</option><option value="Okpuno">Okpuno</option></select></div>
-          <div><label className="block text-sm font-bold text-gray-700 mb-2">Description</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Landmarks, neighborhood details..." className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" rows={3} /></div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">General Amenities</label>
-            <div className="grid grid-cols-2 gap-3">
-              {['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'].map(item => (
-                <div key={item} onClick={() => toggleAmenity(item)} className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-colors ${formData.amenities.includes(item) ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100'}`}>
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center ${formData.amenities.includes(item) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>{formData.amenities.includes(item) && <CheckCircle2 size={14} className="text-white" />}</div>
-                  <span className="text-sm text-gray-600">{item}</span>
-                </div>
-              ))}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2 px-1">Lodge Name</label>
+              <input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="e.g. Divine Grace Lodge" className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 px-1">Area</label>
+                <select 
+                  value={formData.location} 
+                  onChange={e => handleAreaChange(e.target.value)} 
+                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm appearance-none"
+                >
+                  {Object.keys(AREA_LANDMARKS).map(area => (
+                    <option key={area} value={area}>{area}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 px-1">Landmark</label>
+                <select 
+                  value={formData.landmark} 
+                  onChange={e => setFormData({...formData, landmark: e.target.value})} 
+                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm appearance-none"
+                >
+                  {AREA_LANDMARKS[formData.location].map(landmark => (
+                    <option key={landmark} value={landmark}>{landmark}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2 px-1">Detailed Address / Street</label>
+              <input 
+                type="text" 
+                value={formData.address} 
+                onChange={e => setFormData({...formData, address: e.target.value})} 
+                placeholder="e.g. No 15, Amoka Street" 
+                className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" 
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2 px-1">Description</label>
+              <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Tell students more about the neighborhood..." className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm" rows={3} />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2 px-1">Amenities</label>
+              <div className="grid grid-cols-2 gap-3">
+                {['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'].map(item => (
+                  <div key={item} onClick={() => toggleAmenity(item)} className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-colors ${formData.amenities.includes(item) ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100'}`}>
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${formData.amenities.includes(item) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>{formData.amenities.includes(item) && <CheckCircle2 size={14} className="text-white" />}</div>
+                    <span className="text-sm text-gray-600">{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-          <button onClick={() => setStep(2)} disabled={!formData.title} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200">Next: Rooms</button>
+          <button onClick={() => setStep(2)} disabled={!formData.title} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform">Next: Rooms</button>
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
           <div className="space-y-4">
-            {units.map(unit => (
+            {units.map((unit) => (
               <div key={unit.tempId} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                   <div><h3 className="font-bold text-lg">{unit.name}</h3><p className="text-blue-600 font-black">₦{unit.price.toLocaleString()}</p></div>
@@ -232,14 +350,7 @@ export default function PostLodge() {
                   {unit.image_urls.length < 4 && (
                     <div onClick={() => unitFileInputRefs.current[unit.tempId]?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors">
                       {uploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
-                      <input 
-                        type="file" 
-                        multiple 
-                        accept="image/*" 
-                        className="hidden" 
-                        ref={(el) => { unitFileInputRefs.current[unit.tempId] = el; }} 
-                        onChange={(e) => handleUnitImageUpload(e, unit.tempId)} 
-                      />
+                      <input type="file" multiple accept="image/*" className="hidden" ref={(el) => { unitFileInputRefs.current[unit.tempId] = el; }} onChange={(e) => handleUnitImageUpload(e, unit.tempId)} />
                     </div>
                   )}
                 </div>
@@ -249,7 +360,6 @@ export default function PostLodge() {
 
           <div className="bg-gray-50 p-5 rounded-[32px] space-y-4 border border-blue-50">
             <h3 className="text-sm font-black text-blue-900 uppercase tracking-widest px-1">Add a Vacancy</h3>
-            
             <div className="space-y-3">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Room Category</label>
@@ -278,40 +388,17 @@ export default function PostLodge() {
               {showCustomType && (
                 <div className="animate-in slide-in-from-top-2 duration-300">
                   <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Custom Description</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Shop-as-Room with Balcony" 
-                    value={newUnit.name} 
-                    onChange={e => setNewUnit({...newUnit, name: e.target.value})} 
-                    className="w-full p-4 bg-white border border-blue-200 rounded-2xl text-sm outline-none shadow-sm"
-                    autoFocus
-                  />
+                  <input type="text" placeholder="e.g. Shop-as-Room with Balcony" value={newUnit.name} onChange={e => setNewUnit({...newUnit, name: e.target.value})} className="w-full p-4 bg-white border border-blue-200 rounded-2xl text-sm outline-none shadow-sm" autoFocus />
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Price (₦)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3.5 text-gray-400 text-sm">₦</span>
-                    <input 
-                      type="number" 
-                      placeholder="per year" 
-                      value={newUnit.price} 
-                      onChange={e => setNewUnit({...newUnit, price: e.target.value})} 
-                      className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm" 
-                    />
-                  </div>
+                  <div className="relative"><span className="absolute left-3 top-3.5 text-gray-400 text-sm">₦</span><input type="number" placeholder="per year" value={newUnit.price} onChange={e => setNewUnit({...newUnit, price: e.target.value})} className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm" /></div>
                 </div>
                 <div className="flex items-end">
-                  <button 
-                    type="button"
-                    onClick={handleAddUnit} 
-                    disabled={!newUnit.name || !newUnit.price} 
-                    className="w-full py-4 bg-blue-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-100 disabled:opacity-50 active:scale-95 transition-transform"
-                  >
-                    <Plus size={20} /> Add Room
-                  </button>
+                  <button type="button" onClick={handleAddUnit} disabled={!newUnit.name || !newUnit.price} className="w-full py-4 bg-blue-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-100 disabled:opacity-50 active:scale-95 transition-transform"><Plus size={20} /> Add Room</button>
                 </div>
               </div>
             </div>
