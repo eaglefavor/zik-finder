@@ -315,6 +315,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       updateLodge,
       updateLodgeStatus,
       addUnit,
+      updateUnitAvailability,
       deleteUnit,
       deleteLodge,
       addRequest,
