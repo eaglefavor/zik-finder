@@ -11,6 +11,7 @@ export default function SearchPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     location: '',
+    roomType: '',
     minPrice: '',
     maxPrice: '',
     amenities: [] as string[],
@@ -27,11 +28,16 @@ export default function SearchPage() {
     ) : true;
 
     const matchesLocation = filters.location ? l.location === filters.location : true;
+    
+    const matchesRoomType = filters.roomType 
+      ? l.units?.some(u => u.name.toLowerCase().includes(filters.roomType.toLowerCase())) 
+      : true;
+
     const matchesMinPrice = filters.minPrice ? l.price >= parseInt(filters.minPrice) : true;
     const matchesMaxPrice = filters.maxPrice ? l.price <= parseInt(filters.maxPrice) : true;
     const matchesAmenities = filters.amenities.every(a => l.amenities.includes(a));
 
-    return matchesQuery && matchesLocation && matchesMinPrice && matchesMaxPrice && matchesAmenities;
+    return matchesQuery && matchesLocation && matchesRoomType && matchesMinPrice && matchesMaxPrice && matchesAmenities;
   }).sort((a, b) => {
     if (filters.sortBy === 'price_low') return a.price - b.price;
     if (filters.sortBy === 'price_high') return b.price - a.price;
@@ -120,6 +126,26 @@ export default function SearchPage() {
                 </div>
               </div>
 
+              {/* Room Type */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-3">Room Type</label>
+                <div className="flex flex-wrap gap-2">
+                  {['', 'Self-con', 'Single Room', 'Shared', 'Flat'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setFilters({...filters, roomType: type})}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                        filters.roomType === type 
+                          ? 'bg-blue-600 border-blue-600 text-white' 
+                          : 'bg-white border-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {type || 'Any'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Price Range */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-3">Price Range (₦)</label>
@@ -189,7 +215,7 @@ export default function SearchPage() {
               </button>
               
               <button 
-                onClick={() => setFilters({location: '', minPrice: '', maxPrice: '', amenities: [], sortBy: 'newest'})}
+                onClick={() => setFilters({location: '', roomType: '', minPrice: '', maxPrice: '', amenities: [], sortBy: 'newest'})}
                 className="w-full py-2 text-gray-400 text-sm font-medium"
               >
                 Reset All
@@ -207,7 +233,7 @@ export default function SearchPage() {
               <button 
                 onClick={() => {
                   setQuery('');
-                  setFilters({location: '', minPrice: '', maxPrice: '', amenities: [], sortBy: 'newest'});
+                  setFilters({location: '', roomType: '', minPrice: '', maxPrice: '', amenities: [], sortBy: 'newest'});
                 }}
                 className="text-[10px] font-bold text-blue-600 uppercase"
               >
