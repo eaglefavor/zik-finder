@@ -414,68 +414,78 @@ export default function EditLodge() {
           <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
             <h3 className="text-sm font-bold text-gray-700">Add New Room Type</h3>
             
-            {/* Presets Grid */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {ROOM_TYPE_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => { setNewUnit({ ...newUnit, name: preset }); setShowCustomType(false); }}
-                  className={`p-2 rounded-xl text-xs font-bold border transition-all ${
-                    newUnit.name === preset 
-                      ? 'bg-blue-600 text-white border-blue-600' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
-                  }`}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Room Category</label>
+                <select 
+                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 appearance-none shadow-sm"
+                  value={showCustomType ? 'custom' : newUnit.name}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'custom') {
+                      setShowCustomType(true);
+                      setNewUnit({ ...newUnit, name: '' });
+                    } else {
+                      setShowCustomType(false);
+                      setNewUnit({ ...newUnit, name: val });
+                    }
+                  }}
                 >
-                  {preset}
-                </button>
-              ))}
-              <button
-                onClick={() => { setNewUnit({ ...newUnit, name: '' }); setShowCustomType(true); }}
-                className={`p-2 rounded-xl text-xs font-bold border transition-all ${
-                  showCustomType 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
-                }`}
+                  <option value="" disabled>Select Room Type...</option>
+                  {ROOM_TYPE_PRESETS.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                  <option value="custom">Describe your Own / Other</option>
+                </select>
+              </div>
+
+              {showCustomType && (
+                <div className="animate-in slide-in-from-top-2 duration-300">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Custom Description</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Shop-as-Room with Balcony" 
+                    value={newUnit.name} 
+                    onChange={e => setNewUnit({...newUnit, name: e.target.value})} 
+                    className="w-full p-4 bg-white border border-blue-200 rounded-2xl text-sm outline-none shadow-sm"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Price (₦)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3.5 text-gray-400 text-sm">₦</span>
+                    <input 
+                      type="number" 
+                      placeholder="per year" 
+                      value={newUnit.price} 
+                      onChange={e => setNewUnit({...newUnit, price: e.target.value})} 
+                      className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm" 
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Quantity</label>
+                  <input 
+                    type="number" 
+                    placeholder="Qty"
+                    value={newUnit.total_units}
+                    onChange={e => setNewUnit({...newUnit, total_units: e.target.value})}
+                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm"
+                  />
+                </div>
+              </div>
+              <button 
+                onClick={handleAddUnit}
+                disabled={!newUnit.name || !newUnit.price}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-transform"
               >
-                Other / Custom
+                <Plus size={16} /> Add Unit
               </button>
             </div>
-
-            {/* Custom Name Input */}
-            {showCustomType && (
-              <input 
-                type="text" 
-                placeholder="e.g. Shop-as-Room"
-                value={newUnit.name}
-                onChange={e => setNewUnit({...newUnit, name: e.target.value})}
-                className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 mb-2"
-                autoFocus
-              />
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <input 
-                type="number" 
-                placeholder="Price"
-                value={newUnit.price}
-                onChange={e => setNewUnit({...newUnit, price: e.target.value})}
-                className="p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
-              />
-              <input 
-                type="number" 
-                placeholder="Qty"
-                value={newUnit.total_units}
-                onChange={e => setNewUnit({...newUnit, total_units: e.target.value})}
-                className="p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
-              />
-            </div>
-            <button 
-              onClick={handleAddUnit}
-              disabled={!newUnit.name || !newUnit.price}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Plus size={16} /> Add Unit
-            </button>
           </div>
 
           <div className="flex gap-4 pt-4">

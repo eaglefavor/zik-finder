@@ -249,22 +249,72 @@ export default function PostLodge() {
 
           <div className="bg-gray-50 p-5 rounded-[32px] space-y-4 border border-blue-50">
             <h3 className="text-sm font-black text-blue-900 uppercase tracking-widest px-1">Add a Vacancy</h3>
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {ROOM_TYPE_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => { setNewUnit({...newUnit, name: preset}); setShowCustomType(false); }}
-                  className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${newUnit.name === preset ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Room Category</label>
+                <select 
+                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 appearance-none shadow-sm"
+                  value={showCustomType ? 'custom' : newUnit.name}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'custom') {
+                      setShowCustomType(true);
+                      setNewUnit({ ...newUnit, name: '' });
+                    } else {
+                      setShowCustomType(false);
+                      setNewUnit({ ...newUnit, name: val });
+                    }
+                  }}
                 >
-                  {preset}
-                </button>
-              ))}
-              <button type="button" onClick={() => { setNewUnit({...newUnit, name: ''}); setShowCustomType(true); }} className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${showCustomType ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}>Other</button>
+                  <option value="" disabled>Select Room Type...</option>
+                  {ROOM_TYPE_PRESETS.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                  <option value="custom">Describe your Own / Other</option>
+                </select>
+              </div>
+
+              {showCustomType && (
+                <div className="animate-in slide-in-from-top-2 duration-300">
+                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Custom Description</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Shop-as-Room with Balcony" 
+                    value={newUnit.name} 
+                    onChange={e => setNewUnit({...newUnit, name: e.target.value})} 
+                    className="w-full p-4 bg-white border border-blue-200 rounded-2xl text-sm outline-none shadow-sm"
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Price (₦)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3.5 text-gray-400 text-sm">₦</span>
+                    <input 
+                      type="number" 
+                      placeholder="per year" 
+                      value={newUnit.price} 
+                      onChange={e => setNewUnit({...newUnit, price: e.target.value})} 
+                      className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm" 
+                    />
+                  </div>
+                </div>
+                <div className="flex items-end">
+                  <button 
+                    type="button"
+                    onClick={handleAddUnit} 
+                    disabled={!newUnit.name || !newUnit.price} 
+                    className="w-full py-4 bg-blue-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-100 disabled:opacity-50 active:scale-95 transition-transform"
+                  >
+                    <Plus size={20} /> Add Room
+                  </button>
+                </div>
+              </div>
             </div>
-            {showCustomType && <input type="text" placeholder="Type name..." value={newUnit.name} onChange={e => setNewUnit({...newUnit, name: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none" />}
-            <div className="relative"><span className="absolute left-3 top-3.5 text-gray-400">₦</span><input type="number" placeholder="Price per year" value={newUnit.price} onChange={e => setNewUnit({...newUnit, price: e.target.value})} className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl focus:border-blue-500 outline-none" /></div>
-            <button onClick={handleAddUnit} disabled={!newUnit.name || !newUnit.price} className="w-full py-4 bg-blue-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2"><Plus size={20} /> Add this Room</button>
           </div>
 
           <div className="flex gap-4"><button onClick={() => setStep(1)} className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Back</button><button onClick={() => setStep(3)} disabled={units.length === 0} className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50">Next: Media</button></div>
