@@ -16,6 +16,19 @@ if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
   throw new Error('Missing Cloudinary environment variables');
 }
 
+const ROOM_TYPE_PRESETS = [
+  'Standard Self-con',
+  'Executive Self-con',
+  'Studio Apartment',
+  'Single Room',
+  'Face-Me-I-Face-You',
+  '1-Bedroom Flat',
+  '2-Bedroom Flat',
+  '3-Bedroom Flat',
+  'Penthouse',
+  'Basement Room'
+];
+
 export default function PostLodge() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null); // For general images
@@ -36,7 +49,6 @@ export default function PostLodge() {
   });
 
   // Step 2 & 3: Room Types & Media
-  // We use a temp ID to track units before they are saved to DB
   interface TempUnit {
     tempId: string;
     name: string;
@@ -53,6 +65,8 @@ export default function PostLodge() {
     price: '',
     total_units: '1'
   });
+
+  const [showCustomType, setShowCustomType] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -154,6 +168,7 @@ export default function PostLodge() {
       image_urls: []
     }]);
     setNewUnit({ name: '', price: '', total_units: '1' });
+    setShowCustomType(false);
   };
 
   const handleDeleteUnit = (tempId: string) => {
@@ -175,7 +190,6 @@ export default function PostLodge() {
   const handleSubmit = async () => {
     if (!user) return;
     
-    // Prepare units for DB (remove tempId, add available_units)
     const finalUnits = units.map(u => ({
       name: u.name,
       price: u.price,
@@ -184,7 +198,6 @@ export default function PostLodge() {
       image_urls: u.image_urls
     }));
 
-    // Find min price for the lodge record
     const minPrice = units.length > 0 
       ? Math.min(...units.map(u => u.price)) 
       : 0;
@@ -258,7 +271,6 @@ export default function PostLodge() {
         </div>
       </header>
 
-      {/* Progress Bar with Labels */}
       <div className="mb-10">
         <div className="flex justify-between mb-2">
           {['Info', 'Rooms', 'Media'].map((label, i) => (
@@ -317,7 +329,7 @@ export default function PostLodge() {
               <textarea 
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
-                placeholder="Describe the lodge... (e.g. Near the market, quiet environment)"
+                placeholder="Describe the lodge..."
                 className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"
                 rows={3}
               />
@@ -362,7 +374,7 @@ export default function PostLodge() {
         <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
           <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
             <p className="text-sm text-blue-700 font-medium">
-              Add the different types of rooms available in this lodge (e.g. Self-con, Single Room).
+              Add the different types of rooms available in this lodge.
             </p>
           </div>
 
@@ -388,13 +400,13 @@ export default function PostLodge() {
           <div className="bg-gray-50 p-4 rounded-2xl space-y-3 border border-gray-100">
             <h3 className="text-sm font-bold text-gray-700">Add Room Category</h3>
             
-            {/* Presets Grid */}
             <div className="grid grid-cols-2 gap-2 mb-3">
               {ROOM_TYPE_PRESETS.map((preset) => (
                 <button
                   key={preset}
+                  type="button"
                   onClick={() => { setNewUnit({ ...newUnit, name: preset }); setShowCustomType(false); }}
-                  className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                  className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${
                     newUnit.name === preset 
                       ? 'bg-blue-600 text-white border-blue-600' 
                       : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
@@ -404,8 +416,9 @@ export default function PostLodge() {
                 </button>
               ))}
               <button
+                type="button"
                 onClick={() => { setNewUnit({ ...newUnit, name: '' }); setShowCustomType(true); }}
-                className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${
                   showCustomType 
                     ? 'bg-blue-600 text-white border-blue-600' 
                     : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
@@ -415,7 +428,6 @@ export default function PostLodge() {
               </button>
             </div>
 
-            {/* Custom Name Input */}
             {showCustomType && (
               <input 
                 type="text" 
@@ -429,7 +441,7 @@ export default function PostLodge() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-400">₦</span>
+                <span className="absolute left-3 top-3 text-gray-400 text-sm">₦</span>
                 <input 
                   type="number" 
                   placeholder="Price"
@@ -447,6 +459,7 @@ export default function PostLodge() {
               />
             </div>
             <button 
+              type="button"
               onClick={handleAddUnit}
               disabled={!newUnit.name || !newUnit.price}
               className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-transform"
@@ -457,12 +470,14 @@ export default function PostLodge() {
 
           <div className="flex gap-4">
             <button 
+              type="button"
               onClick={handleBack}
               className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold"
             >
               Back
             </button>
             <button 
+              type="button"
               onClick={handleNext}
               disabled={units.length === 0}
               className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50"
@@ -475,8 +490,6 @@ export default function PostLodge() {
 
       {step === 3 && (
         <div className="space-y-8 animate-in fade-in slide-in-from-right duration-300">
-          
-          {/* General Lodge Photos */}
           <div>
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-bold text-gray-900">General Lodge Photos</h3>
@@ -497,6 +510,7 @@ export default function PostLodge() {
                 <div key={idx} className="relative h-24 rounded-xl overflow-hidden bg-gray-100">
                   <img src={img} className="w-full h-full object-cover" alt="" />
                   <button 
+                    type="button"
                     onClick={() => setGeneralImages(p => p.filter((_, i) => i !== idx))}
                     className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"
                   >
@@ -505,6 +519,7 @@ export default function PostLodge() {
                 </div>
               ))}
               <button 
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 className="h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 gap-1 active:bg-gray-50 transition-colors disabled:opacity-50"
@@ -517,10 +532,8 @@ export default function PostLodge() {
 
           <div className="h-px bg-gray-100" />
 
-          {/* Unit Specific Photos */}
           <div className="space-y-6">
             <h3 className="text-lg font-bold text-gray-900">Room Category Photos</h3>
-            
             {units.map((unit) => (
               <div key={unit.tempId} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <div className="flex justify-between items-center mb-3">
@@ -547,6 +560,7 @@ export default function PostLodge() {
                     <div key={idx} className="relative h-20 rounded-xl overflow-hidden bg-white border border-gray-200">
                       <img src={img} className="w-full h-full object-cover" alt="" />
                       <button 
+                        type="button"
                         onClick={() => setUnits(prev => prev.map(u => 
                           u.tempId === unit.tempId 
                             ? { ...u, image_urls: u.image_urls.filter((_, i) => i !== idx) } 
@@ -559,9 +573,10 @@ export default function PostLodge() {
                     </div>
                   ))}
                   <button 
+                    type="button"
                     onClick={() => unitFileInputRefs.current[unit.tempId]?.click()}
                     disabled={uploading}
-                    className="h-20 border-2 border-dashed border-gray-300 bg-white rounded-xl flex flex-col items-center justify-center text-gray-400 gap-1 active:bg-gray-50 transition-colors disabled:opacity-50"
+                    className="h-20 border-2 border-dashed border-gray-300 bg-white rounded-xl flex flex-center items-center justify-center text-gray-400 gap-1 active:bg-gray-50 transition-colors disabled:opacity-50"
                   >
                     {uploading ? <Loader2 className="animate-spin" size={20} /> : <ImageIcon size={20} />}
                   </button>
@@ -572,12 +587,14 @@ export default function PostLodge() {
 
           <div className="flex gap-4 pt-4">
             <button 
+              type="button"
               onClick={handleBack}
               className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold"
             >
               Back
             </button>
             <button 
+              type="button"
               onClick={handleSubmit}
               disabled={uploading}
               className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50"
