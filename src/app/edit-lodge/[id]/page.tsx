@@ -13,6 +13,19 @@ import { LodgeUnit } from '@/lib/types';
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
 
+const ROOM_TYPE_PRESETS = [
+  'Standard Self-con',
+  'Executive Self-con',
+  'Studio Apartment',
+  'Single Room',
+  'Face-Me-I-Face-You',
+  '1-Bedroom Flat',
+  '2-Bedroom Flat',
+  '3-Bedroom Flat',
+  'Penthouse',
+  'Basement Room'
+];
+
 export default function EditLodge() {
   const router = useRouter();
   const { id } = useParams();
