@@ -232,7 +232,14 @@ export default function PostLodge() {
                   {unit.image_urls.length < 4 && (
                     <div onClick={() => unitFileInputRefs.current[unit.tempId]?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors">
                       {uploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
-                      <input type="file" multiple accept="image/*" className="hidden" ref={el => unitFileInputRefs.current[unit.tempId] = el} onChange={e => handleUnitImageUpload(e, unit.tempId)} />
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*" 
+                        className="hidden" 
+                        ref={(el) => { unitFileInputRefs.current[unit.tempId] = el; }} 
+                        onChange={(e) => handleUnitImageUpload(e, unit.tempId)} 
+                      />
                     </div>
                   )}
                 </div>
