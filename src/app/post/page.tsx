@@ -12,10 +12,6 @@ import Compressor from 'compressorjs';
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
 
-if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
-  throw new Error('Missing Cloudinary environment variables');
-}
-
 const ROOM_TYPE_PRESETS = [
   'Standard Self-con',
   'Executive Self-con',
@@ -31,8 +27,8 @@ const ROOM_TYPE_PRESETS = [
 
 export default function PostLodge() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null); // For general images
-  const unitFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({}); // For unit images
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const unitFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const { addLodge } = useData();
   const { user, role, isLoading, refreshProfile } = useAppContext();
@@ -48,12 +44,11 @@ export default function PostLodge() {
     amenities: [] as string[]
   });
 
-  // Step 2 & 3: Room Types & Media
+  // Step 2: Units (Room Categories)
   interface TempUnit {
     tempId: string;
     name: string;
     price: number;
-    total_units: number;
     image_urls: string[];
   }
 
@@ -63,9 +58,7 @@ export default function PostLodge() {
   const [newUnit, setNewUnit] = useState({
     name: '',
     price: '',
-    total_units: '1'
   });
-
   const [showCustomType, setShowCustomType] = useState(false);
 
   const handleRefresh = async () => {
@@ -75,20 +68,12 @@ export default function PostLodge() {
   };
 
   const compressImage = (file: File): Promise<File> => {
-    console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
     return new Promise((resolve, reject) => {
       new Compressor(file, {
         quality: 0.6,
         maxWidth: 1200,
-        success(result) {
-          const compressed = result as File;
-          console.log(`Compressed size: ${(compressed.size / 1024 / 1024).toFixed(2)} MB`);
-          console.log(`Reduction: ${Math.round((1 - compressed.size / file.size) * 100)}%`);
-          resolve(compressed);
-        },
-        error(err) {
-          reject(err);
-        },
+        success(result) { resolve(result as File); },
+        error(err) { reject(err); },
       });
     });
   };
@@ -97,15 +82,10 @@ export default function PostLodge() {
     const data = new FormData();
     data.append('file', file);
     data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: data,
-      }
-    );
-
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: data,
+    });
     const json = await res.json();
     if (json.error) throw new Error(json.error.message);
     return json.secure_url;
@@ -114,47 +94,34 @@ export default function PostLodge() {
   const handleGeneralImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setUploading(true);
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
+      const urls = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
         return uploadToCloudinary(compressed);
-      });
-      const urls = await Promise.all(uploadPromises);
+      }));
       setGeneralImages(prev => [...prev, ...urls]);
     } catch (err) {
-      alert('Error uploading images');
-      console.error(err);
+      alert('Upload failed');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const handleUnitImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, tempId: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setUploading(true);
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
+      const urls = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
         return uploadToCloudinary(compressed);
-      });
-      const urls = await Promise.all(uploadPromises);
-      
-      setUnits(prev => prev.map(u => 
-        u.tempId === tempId ? { ...u, image_urls: [...u.image_urls, ...urls] } : u
-      ));
+      }));
+      setUnits(prev => prev.map(u => u.tempId === tempId ? { ...u, image_urls: [...u.image_urls, ...urls] } : u));
     } catch (err) {
-      alert('Error uploading unit images');
-      console.error(err);
+      alert('Upload failed');
     } finally {
       setUploading(false);
-      if (unitFileInputRefs.current[tempId]) {
-        unitFileInputRefs.current[tempId]!.value = '';
-      }
     }
   };
 
@@ -164,10 +131,9 @@ export default function PostLodge() {
       tempId: Date.now().toString(),
       name: newUnit.name,
       price: parseInt(newUnit.price),
-      total_units: parseInt(newUnit.total_units),
       image_urls: []
     }]);
-    setNewUnit({ name: '', price: '', total_units: '1' });
+    setNewUnit({ name: '', price: '' });
     setShowCustomType(false);
   };
 
@@ -178,430 +144,140 @@ export default function PostLodge() {
   const toggleAmenity = (item: string) => {
     setFormData(prev => ({
       ...prev,
-      amenities: prev.amenities.includes(item)
-        ? prev.amenities.filter(i => i !== item)
-        : [...prev.amenities, item]
+      amenities: prev.amenities.includes(item) ? prev.amenities.filter(i => i !== item) : [...prev.amenities, item]
     }));
   };
 
-  const handleNext = () => setStep(step + 1);
-  const handleBack = () => setStep(step - 1);
-
   const handleSubmit = async () => {
     if (!user) return;
-    
     const finalUnits = units.map(u => ({
       name: u.name,
       price: u.price,
-      total_units: u.total_units,
-      available_units: u.total_units,
+      total_units: 1,
+      available_units: 1,
       image_urls: u.image_urls
     }));
-
-    const minPrice = units.length > 0 
-      ? Math.min(...units.map(u => u.price)) 
-      : 0;
-
+    const minPrice = units.length > 0 ? Math.min(...units.map(u => u.price)) : 0;
     const { success, error } = await addLodge({
       title: formData.title,
       price: minPrice,
       location: formData.location,
       description: formData.description || 'No description provided.',
-      image_urls: generalImages.length > 0 
-        ? generalImages 
-        : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'], // Placeholder
+      image_urls: generalImages.length > 0 ? generalImages : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'],
       amenities: formData.amenities,
       status: 'available',
     }, finalUnits);
-
-    if (success) {
-      router.push('/');
-    } else {
-      alert('Error saving lodge: ' + error);
-    }
+    if (success) router.push('/'); else alert('Error: ' + error);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
-    );
-  }
+  if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
 
   if (!user?.is_verified && role !== 'admin') {
     return (
       <div className="px-4 py-6 flex flex-col items-center justify-center h-[80vh] text-center">
-        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6 text-red-500">
-          <ShieldAlert size={40} />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Verification Required</h1>
-        <p className="text-gray-600 mb-8 max-w-xs mx-auto">
-          To ensure student safety, only verified landlords can post listings. Please upload your ID to get verified.
-        </p>
+        <ShieldAlert className="text-red-500 mb-6" size={40} />
+        <h1 className="text-2xl font-bold mb-3">Verification Required</h1>
         <div className="space-y-3 w-full max-w-xs">
-          <button 
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center justify-center gap-2 w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all"
-          >
-            {refreshing ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />}
-            Check Verification Status
+          <button onClick={handleRefresh} disabled={refreshing} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2">
+            {refreshing ? <Loader2 className="animate-spin" size={20} /> : <RefreshCw size={20} />} Check Status
           </button>
-          <Link href="/profile" className="block w-full py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold">
-            Go to Profile
-          </Link>
-          <Link href="/" className="block w-full py-4 bg-white text-gray-500 font-bold">
-            Back to Home
-          </Link>
+          <Link href="/profile" className="block w-full py-4 bg-blue-50 text-blue-600 rounded-2xl font-bold text-center">Profile</Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-6 pb-32">
+    <div className="px-4 py-6 pb-32 max-w-2xl mx-auto">
       <header className="flex items-center gap-4 mb-8">
-        <Link href="/" className="p-2 bg-white rounded-full shadow-sm border border-gray-100">
-          <ChevronLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Post a Lodge</h1>
-          <p className="text-xs text-gray-500 font-medium">Step {step} of 3</p>
-        </div>
+        <Link href="/" className="p-2 bg-white rounded-full shadow-sm border border-gray-100"><ChevronLeft size={20} /></Link>
+        <div><h1 className="text-2xl font-bold">Post a Lodge</h1><p className="text-xs text-gray-500 font-medium text-blue-600 uppercase tracking-widest">Step {step} of 3</p></div>
       </header>
 
-      <div className="mb-10">
-        <div className="flex justify-between mb-2">
-          {['Info', 'Rooms', 'Media'].map((label, i) => (
-            <span 
-              key={label} 
-              className={`text-[10px] font-black uppercase tracking-widest ${
-                i + 1 <= step ? 'text-blue-600' : 'text-gray-300'
-              }`}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          {[1, 2, 3].map((i) => (
-            <div 
-              key={i} 
-              className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                i <= step ? 'bg-blue-600 shadow-sm shadow-blue-100' : 'bg-gray-100'
-              }`}
-            />
-          ))}
-        </div>
+      <div className="mb-10 flex gap-2">
+        {[1, 2, 3].map(i => <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${i <= step ? 'bg-blue-600 shadow-sm shadow-blue-100' : 'bg-gray-100'}`} />)}
       </div>
 
       {step === 1 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Lodge Name</label>
-              <input 
-                type="text" 
-                value={formData.title}
-                onChange={e => setFormData({...formData, title: e.target.value})}
-                placeholder="e.g. Divine Grace Lodge"
-                className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Location</label>
-              <select 
-                value={formData.location}
-                onChange={e => setFormData({...formData, location: e.target.value})}
-                className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-              >
-                <option value="Ifite">Ifite (School Gate)</option>
-                <option value="Amansea">Amansea</option>
-                <option value="Temp Site">Temp Site</option>
-                <option value="Okpuno">Okpuno</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Description & Landmarks</label>
-              <textarea 
-                value={formData.description}
-                onChange={e => setFormData({...formData, description: e.target.value})}
-                placeholder="Describe the lodge..."
-                className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">General Amenities</label>
-              <div className="grid grid-cols-2 gap-3">
-                {['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'].map((item) => (
-                  <div 
-                    key={item} 
-                    onClick={() => toggleAmenity(item)}
-                    className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-colors ${
-                      formData.amenities.includes(item) 
-                        ? 'bg-blue-50 border-blue-500' 
-                        : 'bg-white border-gray-100'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${
-                      formData.amenities.includes(item) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
-                    }`}>
-                      {formData.amenities.includes(item) && <CheckCircle2 size={14} className="text-white" />}
-                    </div>
-                    <span className="text-sm text-gray-600">{item}</span>
-                  </div>
-                ))}
-              </div>
+          <div><label className="block text-sm font-bold text-gray-700 mb-2">Lodge Name</label><input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="e.g. Divine Grace Lodge" className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" /></div>
+          <div><label className="block text-sm font-bold text-gray-700 mb-2">Location</label><select value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"><option value="Ifite">Ifite</option><option value="Amansea">Amansea</option><option value="Temp Site">Temp Site</option><option value="Okpuno">Okpuno</option></select></div>
+          <div><label className="block text-sm font-bold text-gray-700 mb-2">Description</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Landmarks, neighborhood details..." className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" rows={3} /></div>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">General Amenities</label>
+            <div className="grid grid-cols-2 gap-3">
+              {['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'].map(item => (
+                <div key={item} onClick={() => toggleAmenity(item)} className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-colors ${formData.amenities.includes(item) ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100'}`}>
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center ${formData.amenities.includes(item) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>{formData.amenities.includes(item) && <CheckCircle2 size={14} className="text-white" />}</div>
+                  <span className="text-sm text-gray-600">{item}</span>
+                </div>
+              ))}
             </div>
           </div>
-
-          <button 
-            onClick={handleNext}
-            disabled={!formData.title || !formData.description}
-            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 mt-4 disabled:opacity-50"
-          >
-            Next: Room Types
-          </button>
+          <button onClick={() => setStep(2)} disabled={!formData.title} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200">Next: Rooms</button>
         </div>
       )}
 
       {step === 2 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-right duration-300">
-          <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-            <p className="text-sm text-blue-700 font-medium">
-              Add the different types of rooms available in this lodge.
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            {units.map((unit) => (
-              <div key={unit.tempId} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold text-gray-900">{unit.name}</h3>
-                  <div className="text-sm text-gray-500">
-                    ₦{unit.price.toLocaleString()} • {unit.total_units} units
-                  </div>
+          <div className="space-y-4">
+            {units.map(unit => (
+              <div key={unit.tempId} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div><h3 className="font-bold text-lg">{unit.name}</h3><p className="text-blue-600 font-black">₦{unit.price.toLocaleString()}</p></div>
+                  <button onClick={() => handleDeleteUnit(unit.tempId)} className="p-2 text-red-400 bg-red-50 rounded-full hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>
                 </div>
-                <button 
-                  onClick={() => handleDeleteUnit(unit.tempId)}
-                  className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 rounded-full"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="grid grid-cols-4 gap-2">
+                  {unit.image_urls.map((img, i) => <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100"><img src={img} className="w-full h-full object-cover" alt="" /><button onClick={() => setUnits(prev => prev.map(u => u.tempId === unit.tempId ? {...u, image_urls: u.image_urls.filter((_, idx) => idx !== i)} : u))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><X size={10} /></button></div>)}
+                  {unit.image_urls.length < 4 && (
+                    <div onClick={() => unitFileInputRefs.current[unit.tempId]?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors">
+                      {uploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
+                      <input type="file" multiple accept="image/*" className="hidden" ref={el => unitFileInputRefs.current[unit.tempId] = el} onChange={e => handleUnitImageUpload(e, unit.tempId)} />
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-2xl space-y-3 border border-gray-100">
-            <h3 className="text-sm font-bold text-gray-700">Add Room Category</h3>
-            
+          <div className="bg-gray-50 p-5 rounded-[32px] space-y-4 border border-blue-50">
+            <h3 className="text-sm font-black text-blue-900 uppercase tracking-widest px-1">Add a Vacancy</h3>
             <div className="grid grid-cols-2 gap-2 mb-3">
               {ROOM_TYPE_PRESETS.map((preset) => (
                 <button
                   key={preset}
                   type="button"
-                  onClick={() => { setNewUnit({ ...newUnit, name: preset }); setShowCustomType(false); }}
-                  className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${
-                    newUnit.name === preset 
-                      ? 'bg-blue-600 text-white border-blue-600' 
-                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
-                  }`}
+                  onClick={() => { setNewUnit({...newUnit, name: preset}); setShowCustomType(false); }}
+                  className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${newUnit.name === preset ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}
                 >
                   {preset}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => { setNewUnit({ ...newUnit, name: '' }); setShowCustomType(true); }}
-                className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${
-                  showCustomType 
-                    ? 'bg-blue-600 text-white border-blue-600' 
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                Other / Custom
-              </button>
+              <button type="button" onClick={() => { setNewUnit({...newUnit, name: ''}); setShowCustomType(true); }} className={`p-2 rounded-xl text-[10px] font-bold border transition-all ${showCustomType ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200'}`}>Other</button>
             </div>
-
-            {showCustomType && (
-              <input 
-                type="text" 
-                placeholder="e.g. Shop-as-Room"
-                value={newUnit.name}
-                onChange={e => setNewUnit({...newUnit, name: e.target.value})}
-                className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 mb-2"
-                autoFocus
-              />
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-400 text-sm">₦</span>
-                <input 
-                  type="number" 
-                  placeholder="Price"
-                  value={newUnit.price}
-                  onChange={e => setNewUnit({...newUnit, price: e.target.value})}
-                  className="w-full p-3 pl-7 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
-                />
-              </div>
-              <input 
-                type="number" 
-                placeholder="Qty"
-                value={newUnit.total_units}
-                onChange={e => setNewUnit({...newUnit, total_units: e.target.value})}
-                className="p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
-              />
-            </div>
-            <button 
-              type="button"
-              onClick={handleAddUnit}
-              disabled={!newUnit.name || !newUnit.price}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-transform"
-            >
-              <Plus size={16} /> Add Category
-            </button>
+            {showCustomType && <input type="text" placeholder="Type name..." value={newUnit.name} onChange={e => setNewUnit({...newUnit, name: e.target.value})} className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none" />}
+            <div className="relative"><span className="absolute left-3 top-3.5 text-gray-400">₦</span><input type="number" placeholder="Price per year" value={newUnit.price} onChange={e => setNewUnit({...newUnit, price: e.target.value})} className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl focus:border-blue-500 outline-none" /></div>
+            <button onClick={handleAddUnit} disabled={!newUnit.name || !newUnit.price} className="w-full py-4 bg-blue-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2"><Plus size={20} /> Add this Room</button>
           </div>
 
-          <div className="flex gap-4">
-            <button 
-              type="button"
-              onClick={handleBack}
-              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold"
-            >
-              Back
-            </button>
-            <button 
-              type="button"
-              onClick={handleNext}
-              disabled={units.length === 0}
-              className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50"
-            >
-              Next: Upload Media
-            </button>
-          </div>
+          <div className="flex gap-4"><button onClick={() => setStep(1)} className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Back</button><button onClick={() => setStep(3)} disabled={units.length === 0} className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50">Next: Media</button></div>
         </div>
       )}
 
       {step === 3 && (
         <div className="space-y-8 animate-in fade-in slide-in-from-right duration-300">
-          <div>
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-lg font-bold text-gray-900">General Lodge Photos</h3>
-              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">Gate, Compound, etc.</span>
-            </div>
-            
-            <input 
-              type="file" 
-              multiple 
-              accept="image/*" 
-              className="hidden" 
-              ref={fileInputRef}
-              onChange={handleGeneralImageUpload}
-            />
-            
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-bold mb-4">Lodge Visuals</h3>
+            <p className="text-sm text-gray-500 mb-6">Upload general photos of the building like the Gate, Compound, or Hallway.</p>
             <div className="grid grid-cols-3 gap-2">
-              {generalImages.map((img, idx) => (
-                <div key={idx} className="relative h-24 rounded-xl overflow-hidden bg-gray-100">
-                  <img src={img} className="w-full h-full object-cover" alt="" />
-                  <button 
-                    type="button"
-                    onClick={() => setGeneralImages(p => p.filter((_, i) => i !== idx))}
-                    className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-              <button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 gap-1 active:bg-gray-50 transition-colors disabled:opacity-50"
-              >
+              {generalImages.map((img, i) => <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100"><img src={img} className="w-full h-full object-cover" alt="" /><button onClick={() => setGeneralImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><X size={10} /></button></div>)}
+              <div onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50">
                 {uploading ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
-                <span className="text-[10px] font-medium">Add Photo</span>
-              </button>
+                <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleGeneralImageUpload} />
+              </div>
             </div>
           </div>
-
-          <div className="h-px bg-gray-100" />
-
-          <div className="space-y-6">
-            <h3 className="text-lg font-bold text-gray-900">Room Category Photos</h3>
-            {units.map((unit) => (
-              <div key={unit.tempId} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <div className="flex justify-between items-center mb-3">
-                  <div>
-                    <h4 className="font-bold text-gray-800">{unit.name}</h4>
-                    <p className="text-xs text-gray-500">Upload photos specific to this room type</p>
-                  </div>
-                  <span className="text-xs font-bold bg-white border border-gray-200 px-2 py-1 rounded-lg">
-                    {unit.image_urls.length} photos
-                  </span>
-                </div>
-
-                <input 
-                  type="file" 
-                  multiple 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={(el) => { unitFileInputRefs.current[unit.tempId] = el; }}
-                  onChange={(e) => handleUnitImageUpload(e, unit.tempId)}
-                />
-
-                <div className="grid grid-cols-3 gap-2">
-                  {unit.image_urls.map((img, idx) => (
-                    <div key={idx} className="relative h-20 rounded-xl overflow-hidden bg-white border border-gray-200">
-                      <img src={img} className="w-full h-full object-cover" alt="" />
-                      <button 
-                        type="button"
-                        onClick={() => setUnits(prev => prev.map(u => 
-                          u.tempId === unit.tempId 
-                            ? { ...u, image_urls: u.image_urls.filter((_, i) => i !== idx) } 
-                            : u
-                        ))}
-                        className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                  <button 
-                    type="button"
-                    onClick={() => unitFileInputRefs.current[unit.tempId]?.click()}
-                    disabled={uploading}
-                    className="h-20 border-2 border-dashed border-gray-300 bg-white rounded-xl flex flex-center items-center justify-center text-gray-400 gap-1 active:bg-gray-50 transition-colors disabled:opacity-50"
-                  >
-                    {uploading ? <Loader2 className="animate-spin" size={20} /> : <ImageIcon size={20} />}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <button 
-              type="button"
-              onClick={handleBack}
-              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold"
-            >
-              Back
-            </button>
-            <button 
-              type="button"
-              onClick={handleSubmit}
-              disabled={uploading}
-              className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50"
-            >
-              {uploading ? 'Uploading...' : 'Publish Lodge'}
-            </button>
-          </div>
+          <div className="flex gap-4 pt-4"><button onClick={() => setStep(2)} className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Back</button><button onClick={handleSubmit} disabled={uploading} className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50">{uploading ? 'Finalizing...' : 'Publish Listing'}</button></div>
         </div>
       )}
     </div>
