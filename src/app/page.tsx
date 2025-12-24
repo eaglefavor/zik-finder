@@ -130,7 +130,7 @@ export default function Home() {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         lodge.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                       }`}>
-                        {lodge.status}
+                        {lodge.status === 'available' ? 'Visible' : 'Offline'}
                       </span>
                     </div>
                   </div>
@@ -183,13 +183,17 @@ export default function Home() {
                   </Link>
                   <button 
                     onClick={() => updateLodgeStatus(lodge.id, lodge.status === 'available' ? 'taken' : 'available')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-transform ${
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all ${
                       lodge.status === 'available' 
-                        ? 'bg-red-50 text-red-600' 
-                        : 'bg-green-50 text-green-600'
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100' 
+                        : 'bg-green-600 text-white shadow-lg shadow-green-100 hover:bg-green-700'
                     }`}
                   >
-                    <CheckCircle size={16} /> {lodge.status === 'available' ? 'Mark Taken' : 'Mark Available'}
+                    {lodge.status === 'available' ? (
+                      <><X size={16} /> Set Offline</>
+                    ) : (
+                      <><CheckCircle size={16} /> Set Online</>
+                    )}
                   </button>
                 </div>
               </div>

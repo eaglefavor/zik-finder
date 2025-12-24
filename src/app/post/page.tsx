@@ -258,16 +258,30 @@ export default function PostLodge() {
         </div>
       </header>
 
-      {/* Progress Bar */}
-      <div className="flex gap-2 mb-8">
-        {[1, 2, 3].map((i) => (
-          <div 
-            key={i} 
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              i <= step ? 'bg-blue-600' : 'bg-gray-200'
-            }`}
-          />
-        ))}
+      {/* Progress Bar with Labels */}
+      <div className="mb-10">
+        <div className="flex justify-between mb-2">
+          {['Info', 'Rooms', 'Media'].map((label, i) => (
+            <span 
+              key={label} 
+              className={`text-[10px] font-black uppercase tracking-widest ${
+                i + 1 <= step ? 'text-blue-600' : 'text-gray-300'
+              }`}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div 
+              key={i} 
+              className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                i <= step ? 'bg-blue-600 shadow-sm shadow-blue-100' : 'bg-gray-100'
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
       {step === 1 && (

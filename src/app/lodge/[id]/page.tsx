@@ -150,26 +150,40 @@ export default function LodgeDetail() {
                     setSelectedUnit(unit);
                     setActiveImage(0);
                   }}
-                  className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 flex justify-between items-center ${
+                  className={`w-full text-left p-5 rounded-[24px] border-2 transition-all duration-300 flex justify-between items-center group ${
                     selectedUnit?.id === unit.id 
-                      ? 'border-blue-500 bg-blue-50 shadow-md ring-1 ring-blue-500' 
-                      : 'border-gray-100 bg-white shadow-sm hover:border-blue-200'
+                      ? 'border-blue-600 bg-blue-50/50 shadow-md ring-4 ring-blue-50' 
+                      : 'border-gray-100 bg-white hover:border-gray-200'
                   }`}
                 >
-                  <div>
-                    <h3 className={`font-bold ${selectedUnit?.id === unit.id ? 'text-blue-900' : 'text-gray-900'}`}>
-                      {unit.name}
-                    </h3>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {unit.available_units > 0 ? (
-                        <span className="text-green-600 font-bold">{unit.available_units} left</span>
-                      ) : (
-                        <span className="text-red-500 font-bold">Fully Booked</span>
-                      )}
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
+                      selectedUnit?.id === unit.id ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-400'
+                    }`}>
+                      <CheckCircle2 size={24} className={selectedUnit?.id === unit.id ? 'opacity-100' : 'opacity-20'} />
+                    </div>
+                    <div>
+                      <h3 className={`font-bold text-base ${selectedUnit?.id === unit.id ? 'text-blue-900' : 'text-gray-900'}`}>
+                        {unit.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        {unit.available_units > 0 ? (
+                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                            selectedUnit?.id === unit.id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {unit.available_units} Available
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-red-50 text-red-500">
+                            Sold Out
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-black ${selectedUnit?.id === unit.id ? 'text-blue-600' : 'text-gray-900'}`}>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">Price</p>
+                    <div className={`font-black text-lg ${selectedUnit?.id === unit.id ? 'text-blue-600' : 'text-gray-900'}`}>
                       ₦{unit.price.toLocaleString()}
                     </div>
                   </div>
