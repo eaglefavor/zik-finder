@@ -279,10 +279,36 @@ export default function Home() {
                 <Link href={`/lodge/${lodge.id}`}>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg text-gray-900 leading-tight">{lodge.title}</h3>
-                    <span className="text-blue-600 font-black">₦{lodge.price.toLocaleString()}</span>
+                    <div className="text-right">
+                      <div className="text-blue-600 font-black text-sm">
+                        {lodge.units && lodge.units.length > 0 ? (
+                          (() => {
+                            const prices = lodge.units.map(u => u.price);
+                            const min = Math.min(...prices);
+                            const max = Math.max(...prices);
+                            return min === max 
+                              ? `₦${min.toLocaleString()}`
+                              : `From ₦${min.toLocaleString()} - ₦${max.toLocaleString()}`;
+                          })()
+                        ) : (
+                          `₦${lodge.price.toLocaleString()}`
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <p className="text-sm text-gray-500 mb-4 line-clamp-2">{lodge.description}</p>
                 </Link>
+                
+                {/* Room Type Badges */}
+                {lodge.units && lodge.units.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {Array.from(new Set(lodge.units.map(u => u.name))).map(name => (
+                      <span key={name} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-black uppercase tracking-tighter rounded-md border border-gray-200/50">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 
                 <div className="flex gap-2">
                   <button 

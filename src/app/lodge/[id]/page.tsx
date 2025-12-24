@@ -186,6 +186,17 @@ export default function LodgeDetail() {
                     <div className={`font-black text-lg ${selectedUnit?.id === unit.id ? 'text-blue-600' : 'text-gray-900'}`}>
                       ₦{unit.price.toLocaleString()}
                     </div>
+                    {selectedUnit?.id === unit.id && unit.image_urls && unit.image_urls.length > 0 && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="mt-2 flex items-center gap-1 text-[10px] font-black text-blue-600 uppercase bg-white px-2 py-1 rounded-lg border border-blue-100 shadow-sm"
+                      >
+                        <Camera size={12} /> View Photos
+                      </button>
+                    )}
                   </div>
                 </button>
               ))}

@@ -231,7 +231,30 @@ export default function SearchPage() {
                     <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                       <MapPin size={12} className="text-blue-500" /> {lodge.location}
                     </div>
-                    <div className="text-sm font-black text-blue-600 mt-1">₦{lodge.price.toLocaleString()}</div>
+                    <div className="text-sm font-black text-blue-600 mt-1">
+                      {lodge.units && lodge.units.length > 0 ? (
+                        (() => {
+                          const prices = lodge.units.map(u => u.price);
+                          const min = Math.min(...prices);
+                          const max = Math.max(...prices);
+                          return min === max 
+                            ? `₦${min.toLocaleString()}`
+                            : `From ₦${min.toLocaleString()} - ₦${max.toLocaleString()}`;
+                        })()
+                      ) : (
+                        `₦${lodge.price.toLocaleString()}`
+                      )}
+                    </div>
+                    {/* Room Type Badges */}
+                    {lodge.units && lodge.units.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {Array.from(new Set(lodge.units.map(u => u.name))).map(name => (
+                          <span key={name} className="px-1.5 py-0.5 bg-gray-50 text-gray-500 text-[8px] font-black uppercase tracking-tighter rounded border border-gray-100">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <ChevronRight size={18} className="text-gray-300" />
                 </Link>
