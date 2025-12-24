@@ -136,7 +136,7 @@ export default function OnboardingPage() {
 
           <button 
             type="submit"
-            disabled={loading || !formData.phone || (user && !user.name && !formData.name)}
+            disabled={loading || !formData.phone || !!(user && !user.name && !formData.name)}
             className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:active:scale-100 mt-8"
           >
             {loading ? (
