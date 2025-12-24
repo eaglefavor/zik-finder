@@ -249,8 +249,28 @@ export default function SearchPage() {
                   key={lodge.id}
                   className="flex items-center gap-4 p-3 bg-white border border-gray-100 rounded-2xl shadow-sm active:bg-gray-50 transition-colors"
                 >
-                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0 relative">
                     <img src={lodge.image_urls[0]} className="w-full h-full object-cover" alt="" />
+                    
+                    {/* Low Occupancy Alert */}
+                    {(() => {
+                      const totalAvailable = lodge.units?.reduce((acc, u) => acc + u.available_units, 0) || 0;
+                      if (totalAvailable > 0 && totalAvailable <= 2) {
+                        return (
+                          <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-red-600/90 backdrop-blur text-white text-[7px] font-black rounded-md uppercase animate-pulse">
+                            {totalAvailable} left!
+                          </div>
+                        );
+                      }
+                      if (totalAvailable === 0 && lodge.units && lodge.units.length > 0) {
+                        return (
+                          <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-gray-900/90 backdrop-blur text-white text-[7px] font-black rounded-md uppercase">
+                            Full
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="flex-1">
                     <div className="font-bold text-gray-900 line-clamp-1">{lodge.title}</div>

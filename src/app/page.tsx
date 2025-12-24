@@ -250,15 +250,37 @@ export default function Home() {
                     alt={lodge.title}
                     className="w-full h-full object-cover group-active:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute bottom-4 left-4 flex gap-2">
-                    <div className="px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                      {lodge.location}
-                    </div>
-                    {isVerified && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-green-500/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm">
-                        <CheckCircle size={12} /> Verified
+                  <div className="absolute bottom-4 left-4 flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <div className="px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                        {lodge.location}
                       </div>
-                    )}
+                      {isVerified && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-green-500/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm">
+                          <CheckCircle size={12} /> Verified
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Low Occupancy Alert */}
+                    {(() => {
+                      const totalAvailable = lodge.units?.reduce((acc, u) => acc + u.available_units, 0) || 0;
+                      if (totalAvailable > 0 && totalAvailable <= 2) {
+                        return (
+                          <div className="px-3 py-1 bg-red-600/90 backdrop-blur text-white text-[10px] font-black rounded-lg uppercase tracking-wider animate-pulse">
+                            Only {totalAvailable} room{totalAvailable > 1 ? 's' : ''} left!
+                          </div>
+                        );
+                      }
+                      if (totalAvailable === 0 && lodge.units && lodge.units.length > 0) {
+                        return (
+                          <div className="px-3 py-1 bg-gray-900/90 backdrop-blur text-white text-[10px] font-black rounded-lg uppercase tracking-wider">
+                            Fully Booked
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
               </Link>
