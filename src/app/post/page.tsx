@@ -387,14 +387,47 @@ export default function PostLodge() {
 
           <div className="bg-gray-50 p-4 rounded-2xl space-y-3 border border-gray-100">
             <h3 className="text-sm font-bold text-gray-700">Add Room Category</h3>
-            <div className="grid grid-cols-2 gap-3">
+            
+            {/* Presets Grid */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {ROOM_TYPE_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => { setNewUnit({ ...newUnit, name: preset }); setShowCustomType(false); }}
+                  className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                    newUnit.name === preset 
+                      ? 'bg-blue-600 text-white border-blue-600' 
+                      : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+              <button
+                onClick={() => { setNewUnit({ ...newUnit, name: '' }); setShowCustomType(true); }}
+                className={`p-2 rounded-xl text-xs font-bold border transition-all ${
+                  showCustomType 
+                    ? 'bg-blue-600 text-white border-blue-600' 
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                Other / Custom
+              </button>
+            </div>
+
+            {/* Custom Name Input */}
+            {showCustomType && (
               <input 
                 type="text" 
-                placeholder="Type (e.g. Self-con)"
+                placeholder="e.g. Shop-as-Room"
                 value={newUnit.name}
                 onChange={e => setNewUnit({...newUnit, name: e.target.value})}
-                className="col-span-2 p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500"
+                className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 mb-2"
+                autoFocus
               />
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
               <div className="relative">
                 <span className="absolute left-3 top-3 text-gray-400">₦</span>
                 <input 
