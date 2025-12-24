@@ -12,12 +12,13 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    name: user?.name || '',
     phone: '',
     role: 'student' as UserRole
   });
 
-  // If user is already fully set up (has phone), redirect home
-  if (user && user.phone_number) {
+  // If user is already fully set up (has phone and name), redirect home
+  if (user && user.phone_number && user.name) {
     router.replace('/');
     return null;
   }
@@ -32,6 +33,7 @@ export default function OnboardingPage() {
       const { error } = await supabase
         .from('profiles')
         .update({
+          name: formData.name,
           phone_number: formData.phone,
           role: formData.role
         })
@@ -63,6 +65,25 @@ export default function OnboardingPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {!user?.name && (
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <User className="absolute left-4 top-4 text-gray-400" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Enter your full name"
+                  required
+                  value={formData.name}
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  className="w-full p-4 pl-12 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all"
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
               Phone Number <span className="text-red-500">*</span>
@@ -115,7 +136,7 @@ export default function OnboardingPage() {
 
           <button 
             type="submit"
-            disabled={loading || !formData.phone}
+            disabled={loading || !formData.phone || (user && !user.name && !formData.name)}
             className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70 disabled:active:scale-100 mt-8"
           >
             {loading ? (

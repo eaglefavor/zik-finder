@@ -141,9 +141,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Redirect to onboarding if phone number is missing
+  // Redirect to onboarding if profile is incomplete
   useEffect(() => {
-    if (!isLoading && user && !user.phone_number && pathname !== '/onboarding') {
+    const isProfileIncomplete = user && (!user.name || !user.phone_number);
+    if (!isLoading && isProfileIncomplete && pathname !== '/onboarding') {
       router.push('/onboarding');
     }
   }, [user, isLoading, pathname, router]);
