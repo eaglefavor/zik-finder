@@ -4,15 +4,25 @@ import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { LodgeUnit } from '@/lib/types';
 
 export default function LodgeDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { lodges, favorites, toggleFavorite } = useData();
   const [activeImage, setActiveImage] = useState(0);
+  const [selectedUnit, setSelectedUnit] = useState<LodgeUnit | null>(null);
   
   const lodge = lodges.find(l => l.id === id);
+
+  useEffect(() => {
+    // If lodge has units, select the first available one by default
+    if (lodge?.units && lodge.units.length > 0) {
+      const firstAvailable = lodge.units.find(u => u.available_units > 0);
+      if (firstAvailable) setSelectedUnit(firstAvailable);
+    }
+  }, [lodge]);
 
   if (!lodge) {
     return (
@@ -24,13 +34,18 @@ export default function LodgeDetail() {
   }
 
   const isFavorite = favorites.includes(lodge.id);
+  const displayImages = (selectedUnit && selectedUnit.image_urls && selectedUnit.image_urls.length > 0) 
+    ? selectedUnit.image_urls 
+    : lodge.image_urls;
+
+  const displayPrice = selectedUnit ? selectedUnit.price : lodge.price;
 
   return (
     <div className="pb-32">
       {/* Header Image Area / Gallery */}
       <div className="relative h-[45vh] bg-gray-200 overflow-hidden">
         <div className="flex w-full h-full transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${activeImage * 100}%)` }}>
-          {lodge.image_urls.map((img, idx) => (
+          {displayImages.map((img, idx) => (
             <img 
               key={idx}
               src={img} 
@@ -59,9 +74,9 @@ export default function LodgeDetail() {
         </button>
 
         {/* Gallery Dots */}
-        {lodge.image_urls.length > 1 && (
+        {displayImages.length > 1 && (
           <div className="absolute bottom-12 left-0 right-0 flex justify-center gap-1.5 z-20">
-            {lodge.image_urls.map((_, idx) => (
+            {displayImages.map((_, idx) => (
               <button 
                 key={idx}
                 onClick={() => setActiveImage(idx)}
@@ -105,13 +120,13 @@ export default function LodgeDetail() {
           </div>
           <div className="text-right">
             <div className="text-2xl font-black text-blue-600">
-              {lodge.units && lodge.units.length > 1 ? (
+              {!selectedUnit && lodge.units && lodge.units.length > 1 ? (
                 <>
                   <span className="text-sm font-bold text-gray-400 block">From</span>
                   ₦{Math.min(...lodge.units.map(u => u.price)).toLocaleString()}
                 </>
               ) : (
-                `₦${lodge.price.toLocaleString()}`
+                `₦${displayPrice.toLocaleString()}`
               )}
             </div>
             <div className="text-[10px] text-gray-400 font-bold uppercase">Per Year</div>
@@ -126,12 +141,25 @@ export default function LodgeDetail() {
         {/* Room Types Section */}
         {lodge.units && lodge.units.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-lg font-bold mb-4">Available Rooms</h2>
+            <h2 className="text-lg font-bold mb-4">Select Room Type</h2>
             <div className="space-y-3">
               {lodge.units.map((unit) => (
-                <div key={unit.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
+                <button
+                  key={unit.id}
+                  onClick={() => {
+                    setSelectedUnit(unit);
+                    setActiveImage(0);
+                  }}
+                  className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 flex justify-between items-center ${
+                    selectedUnit?.id === unit.id 
+                      ? 'border-blue-500 bg-blue-50 shadow-md ring-1 ring-blue-500' 
+                      : 'border-gray-100 bg-white shadow-sm hover:border-blue-200'
+                  }`}
+                >
                   <div>
-                    <h3 className="font-bold text-gray-900">{unit.name}</h3>
+                    <h3 className={`font-bold ${selectedUnit?.id === unit.id ? 'text-blue-900' : 'text-gray-900'}`}>
+                      {unit.name}
+                    </h3>
                     <div className="text-xs text-gray-500 mt-1">
                       {unit.available_units > 0 ? (
                         <span className="text-green-600 font-bold">{unit.available_units} left</span>
@@ -141,9 +169,11 @@ export default function LodgeDetail() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-black text-blue-600">₦{unit.price.toLocaleString()}</div>
+                    <div className={`font-black ${selectedUnit?.id === unit.id ? 'text-blue-600' : 'text-gray-900'}`}>
+                      ₦{unit.price.toLocaleString()}
+                    </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>
@@ -181,7 +211,12 @@ export default function LodgeDetail() {
         </button>
         <button 
           className="flex-1 flex items-center justify-center gap-3 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
-          onClick={() => window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=I am interested in ${lodge.title}`)}
+          onClick={() => {
+            const message = selectedUnit 
+              ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`
+              : `I am interested in ${lodge.title}`;
+            window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=${encodeURIComponent(message)}`);
+          }}
         >
           <MessageCircle size={20} /> WhatsApp
         </button>
