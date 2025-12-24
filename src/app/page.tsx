@@ -125,7 +125,20 @@ export default function Home() {
                         <Trash2 size={16} />
                       </button>
                     </div>
-                    <div className="text-sm text-blue-600 font-black">₦{lodge.price.toLocaleString()}</div>
+                    <div className="text-sm text-blue-600 font-black">
+                      {lodge.units && lodge.units.length > 0 ? (
+                        (() => {
+                          const prices = lodge.units.map(u => u.price);
+                          const min = Math.min(...prices);
+                          const max = Math.max(...prices);
+                          return min === max 
+                            ? `₦${min.toLocaleString()}`
+                            : `From ₦${min.toLocaleString()} - ₦${max.toLocaleString()}`;
+                        })()
+                      ) : (
+                        `₦${lodge.price.toLocaleString()}`
+                      )}
+                    </div>
                     <div className="mt-1">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         lodge.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
