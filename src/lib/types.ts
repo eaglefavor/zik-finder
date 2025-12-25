@@ -30,7 +30,6 @@ export interface Lodge {
   amenities: string[];
   image_urls: string[];
   status: 'available' | 'taken';
-  views?: number;
   created_at: string;
   // Joined data
   profiles?: {
