@@ -10,6 +10,15 @@ export default function ChangePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [strength, setStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
+
+  const checkStrength = (pass: string) => {
+    if (pass.length === 0) return setStrength(null);
+    if (pass.length < 6) return setStrength('weak');
+    if (pass.length < 10) return setStrength('medium');
+    if (/[A-Z]/.test(pass) && /[0-9]/.test(pass) && /[^A-Za-z0-9]/.test(pass)) return setStrength('strong');
+    return setStrength('medium');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,11 +72,30 @@ export default function ChangePasswordPage() {
                 type="password" 
                 required
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  checkStrength(e.target.value);
+                }}
                 placeholder="Minimum 6 characters"
                 className="w-full p-4 pl-12 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all"
               />
             </div>
+            {/* Strength Indicator */}
+            {password.length > 0 && (
+              <div className="mt-2 ml-1 flex items-center gap-2">
+                <div className="flex gap-1">
+                  <div className={`h-1 w-6 rounded-full ${strength === 'weak' || strength === 'medium' || strength === 'strong' ? 'bg-red-500' : 'bg-gray-200'}`} />
+                  <div className={`h-1 w-6 rounded-full ${strength === 'medium' || strength === 'strong' ? 'bg-yellow-500' : 'bg-gray-200'}`} />
+                  <div className={`h-1 w-6 rounded-full ${strength === 'strong' ? 'bg-green-500' : 'bg-gray-200'}`} />
+                </div>
+                <span className={`text-[10px] font-bold uppercase ${
+                  strength === 'weak' ? 'text-red-500' : 
+                  strength === 'medium' ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {strength}
+                </span>
+              </div>
+            )}
           </div>
 
           <div>

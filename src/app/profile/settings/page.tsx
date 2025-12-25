@@ -79,6 +79,14 @@ export default function AccountSettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Phone Validation
+    const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
+    if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+      alert('Please enter a valid Nigerian phone number (e.g., 08012345678 or +2348012345678)');
+      return;
+    }
+
     setLoading(true);
 
     try {
