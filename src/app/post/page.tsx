@@ -6,6 +6,7 @@ import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, Ref
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
+import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 
 import { ROOM_TYPE_PRESETS, AREA_LANDMARKS } from '@/lib/constants';
@@ -203,6 +204,15 @@ export default function PostLodge() {
     }, finalUnits);
 
     if (success) {
+      // Notify the landlord
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        title: 'Lodge Published',
+        message: `Your lodge "${formData.title}" is now live and visible to students.`,
+        type: 'success',
+        link: '/profile' // Or link to the lodge page if we had the ID, but redirecting to profile/home is fine
+      });
+      
       router.push('/');
     } else {
       alert('Error saving lodge: ' + error);
