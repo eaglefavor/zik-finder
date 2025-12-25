@@ -4,6 +4,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
+import { useAppContext } from '@/lib/context';
+import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { LodgeUnit } from '@/lib/types';
 
@@ -16,6 +18,9 @@ export default function LodgeDetail() {
   
   const lodge = lodges.find(l => l.id === id);
 
+  const { user } = useAppContext();
+  // ... (previous imports and hooks)
+  
   useEffect(() => {
     // If lodge has units, select the first available one by default
     if (lodge?.units && lodge.units.length > 0) {
@@ -23,6 +28,35 @@ export default function LodgeDetail() {
       if (firstAvailable) setSelectedUnit(firstAvailable);
     }
   }, [lodge]);
+
+  useEffect(() => {
+    const notifyLandlord = async () => {
+      if (!lodge || !user || user.id === lodge.landlord_id) return;
+      
+      // Prevent duplicate notifications in same session if needed, 
+      // but for now simple view tracking is fine.
+      // Ideally check if a notification was recently sent in DB or local storage.
+      const viewedKey = `viewed_${lodge.id}_${user.id}`;
+      if (sessionStorage.getItem(viewedKey)) return;
+
+      try {
+        await supabase.from('notifications').insert({
+          user_id: lodge.landlord_id,
+          title: 'New Lodge View',
+          message: `${user.name || 'A student'} just viewed your lodge: ${lodge.title}`,
+          type: 'info',
+          link: `/lodge/${lodge.id}`
+        });
+        sessionStorage.setItem(viewedKey, 'true');
+      } catch (err) {
+        console.error('Error sending view notification:', err);
+      }
+    };
+
+    if (lodge && user) {
+      notifyLandlord();
+    }
+  }, [lodge, user]);
 
   if (!lodge) {
     return (
