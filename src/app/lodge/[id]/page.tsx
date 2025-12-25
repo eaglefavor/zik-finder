@@ -22,6 +22,42 @@ export default function LodgeDetail() {
   // ... (previous imports and hooks)
   
   useEffect(() => {
+    if (id) {
+      const incrementAndViewCheck = async () => {
+        // 1. Increment view count
+        await supabase.rpc('increment_lodge_view', { p_lodge_id: id });
+
+        // 2. Fetch the updated lodge data to get the new view count
+        const { data: updatedLodge, error } = await supabase
+          .from('lodges')
+          .select('views, landlord_id, title')
+          .eq('id', id)
+          .single();
+
+        if (error || !updatedLodge) return;
+
+        const { views, landlord_id, title } = updatedLodge;
+        const milestones = [10, 50, 100, 250, 500, 1000];
+
+        // 3. Check if the new view count is a milestone
+        if (milestones.includes(views)) {
+          // 4. Insert notification directly from the client
+          // This is secure because of the RLS policy on the notifications table
+          await supabase.from('notifications').insert({
+            user_id: landlord_id,
+            title: '🎉 Lodge View Milestone!',
+            message: `Your lodge "${title}" has reached ${views} views! Keep up the good work.`,
+            type: 'success',
+            link: `/lodge/${id}`
+          });
+        }
+      };
+
+      incrementAndViewCheck();
+    }
+  }, [id]);
+
+  useEffect(() => {
     // If lodge has units, select the first available one by default
     if (lodge?.units && lodge.units.length > 0) {
       const firstAvailable = lodge.units.find(u => u.available_units > 0);
