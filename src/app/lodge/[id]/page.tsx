@@ -39,17 +39,18 @@ export default function LodgeDetail() {
       const viewedKey = `viewed_${lodge.id}_${user.id}`;
       if (sessionStorage.getItem(viewedKey)) return;
 
-      try {
-        await supabase.from('notifications').insert({
-          user_id: lodge.landlord_id,
-          title: 'New Lodge View',
-          message: `${user.name || 'A student'} just viewed your lodge: ${lodge.title}`,
-          type: 'info',
-          link: `/lodge/${lodge.id}`
-        });
+      const { error } = await supabase.from('notifications').insert({
+        user_id: lodge.landlord_id,
+        title: 'New Lodge View',
+        message: `${user.name || 'A student'} just viewed your lodge: ${lodge.title}`,
+        type: 'info',
+        link: `/lodge/${lodge.id}`
+      });
+
+      if (error) {
+        console.error('Error sending view notification:', error);
+      } else {
         sessionStorage.setItem(viewedKey, 'true');
-      } catch (err) {
-        console.error('Error sending view notification:', err);
       }
     };
 

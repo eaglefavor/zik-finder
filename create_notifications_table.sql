@@ -22,8 +22,8 @@ CREATE POLICY "Users can update their own notifications"
 ON public.notifications FOR UPDATE 
 USING (auth.uid() = user_id);
 
--- Allow system/admin/triggers to insert (or users for self-actions if needed)
--- For now, allowing authenticated users to insert for flexibility (e.g. creating notification on action)
-CREATE POLICY "Users can insert notifications" 
+-- Allow any authenticated user to insert notifications (e.g. Student notifying Landlord)
+CREATE POLICY "Any authenticated user can insert notifications" 
 ON public.notifications FOR INSERT 
-WITH CHECK (auth.uid() = user_id OR (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin');
+TO authenticated
+WITH CHECK (true);
