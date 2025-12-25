@@ -122,7 +122,7 @@ export default function AuthScreen() {
     <div className="min-h-screen bg-gray-50 flex flex-col px-6 py-12">
         <div className="mb-8">
           <div className="flex justify-center mb-6">
-             <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center shadow-lg shadow-blue-200 rotate-3">
+             <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center shadow-lg shadow-blue-200">
                <span className="text-4xl">🏠</span>
              </div>
           </div>

@@ -10,6 +10,19 @@ export default function MarketRequests() {
   const { role, user, isLoading } = useAppContext();
   const { requests, deleteRequest } = useData();
 
+  const formatTime = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
   if (isLoading) {
     return (
       <div className="px-4 py-6 pb-24">
@@ -68,7 +81,7 @@ export default function MarketRequests() {
                       {isOwnRequest && <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full uppercase">You</span>}
                     </div>
                     <div className="text-xs text-gray-400 flex items-center gap-1">
-                      <Clock size={12} /> Just now
+                      <Clock size={12} /> {formatTime(request.created_at)}
                     </div>
                   </div>
                 </div>
