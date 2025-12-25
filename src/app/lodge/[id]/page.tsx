@@ -9,6 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { LodgeUnit } from '@/lib/types';
 
+import { useLodgeViewTracker } from '@/lib/useLodgeViewTracker';
+
 export default function LodgeDetail() {
   const { id } = useParams();
   const router = useRouter();
@@ -18,44 +20,8 @@ export default function LodgeDetail() {
   
   const lodge = lodges.find(l => l.id === id);
 
-  const { user } = useAppContext();
-  // ... (previous imports and hooks)
-  
-  useEffect(() => {
-    if (id) {
-      const incrementAndViewCheck = async () => {
-        // 1. Increment view count
-        await supabase.rpc('increment_lodge_view', { p_lodge_id: id });
-
-        // 2. Fetch the updated lodge data to get the new view count
-        const { data: updatedLodge, error } = await supabase
-          .from('lodges')
-          .select('views, landlord_id, title')
-          .eq('id', id)
-          .single();
-
-        if (error || !updatedLodge) return;
-
-        const { views, landlord_id, title } = updatedLodge;
-        const milestones = [10, 50, 100, 250, 500, 1000];
-
-        // 3. Check if the new view count is a milestone
-        if (milestones.includes(views)) {
-          // 4. Insert notification directly from the client
-          // This is secure because of the RLS policy on the notifications table
-          await supabase.from('notifications').insert({
-            user_id: landlord_id,
-            title: '🎉 Lodge View Milestone!',
-            message: `Your lodge "${title}" has reached ${views} views! Keep up the good work.`,
-            type: 'success',
-            link: `/lodge/${id}`
-          });
-        }
-      };
-
-      incrementAndViewCheck();
-    }
-  }, [id]);
+  // Use the new custom hook for view tracking and notifications
+  useLodgeViewTracker(id as string);
 
   useEffect(() => {
     // If lodge has units, select the first available one by default
