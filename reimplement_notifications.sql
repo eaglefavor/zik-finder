@@ -7,6 +7,7 @@ ALTER TABLE public.lodges ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0;
 CREATE OR REPLACE FUNCTION increment_lodge_view(p_lodge_id UUID)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
     UPDATE public.lodges
