@@ -7,6 +7,10 @@ import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 
+// Cloudinary Configuration
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges';
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dbj0a6uor';
+
 export default function AccountSettingsPage() {
   const { user, refreshProfile } = useAppContext();
   const router = useRouter();
@@ -46,15 +50,16 @@ export default function AccountSettingsPage() {
         // Upload to Cloudinary
         const formData = new FormData();
         formData.append('file', compressedFile);
-        formData.append('upload_preset', 'zik_lodges'); // Using the same preset for now
+        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-        const response = await fetch(`https://api.cloudinary.com/v1_1/dbj0a6uor/image/upload`, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
           method: 'POST',
           body: formData,
         });
 
         if (!response.ok) {
-          throw new Error('Failed to upload image to Cloudinary');
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || 'Failed to upload image to Cloudinary');
         }
 
         const data = await response.json();
