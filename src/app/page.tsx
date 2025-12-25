@@ -261,6 +261,7 @@ export default function Home() {
         {lodges.map((lodge) => {
           const isFavorite = favorites.includes(lodge.id);
           const isVerified = lodge.profiles?.is_verified === true;
+          const hasPhone = !!lodge.profiles?.phone_number;
           
           return (
             <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
@@ -269,6 +270,7 @@ export default function Home() {
                   <img 
                     src={lodge.image_urls[0]} 
                     alt={lodge.title}
+                    loading="lazy"
                     className="w-full h-full object-cover group-active:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute bottom-4 left-4 flex flex-col gap-2">
@@ -345,32 +347,53 @@ export default function Home() {
                 {/* Room Type Badges */}
                 {lodge.units && lodge.units.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-4">
-                    {Array.from(new Set(lodge.units.map(u => u.name))).map(name => (
+                    {Array.from(new Set(lodge.units.map(u => u.name))).slice(0, 3).map(name => (
                       <span key={name} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-black uppercase tracking-tighter rounded-md border border-gray-200/50">
                         {name}
                       </span>
                     ))}
+                    {new Set(lodge.units.map(u => u.name)).size > 3 && (
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-tighter rounded-md border border-blue-100">
+                        +{new Set(lodge.units.map(u => u.name)).size - 3} More
+                      </span>
+                    )}
                   </div>
                 )}
                 
-                <div className="flex gap-2">
-                  <button 
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl font-medium active:scale-95 transition-transform"
-                    onClick={() => window.open(`tel:${lodge.profiles?.phone_number}`)}
-                  >
-                    <Phone size={18} /> Call
-                  </button>
-                  <button 
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-medium active:scale-95 transition-transform"
-                    onClick={() => window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`)}
-                  >
-                    <MessageCircle size={18} /> WhatsApp
-                  </button>
-                </div>
+                {hasPhone ? (
+                  <div className="flex gap-2">
+                    <button 
+                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl font-medium active:scale-95 transition-transform"
+                      onClick={() => window.open(`tel:${lodge.profiles?.phone_number}`)}
+                    >
+                      <Phone size={18} /> Call
+                    </button>
+                    <button 
+                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-medium active:scale-95 transition-transform"
+                      onClick={() => window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`)}
+                    >
+                      <MessageCircle size={18} /> WhatsApp
+                    </button>
+                  </div>
+                ) : (
+                  <div className="py-2 px-4 bg-gray-50 rounded-xl text-center text-xs text-gray-400 font-medium italic">
+                    Contact details not provided
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
+
+        {lodges.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-300">
+              <MapPin size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">No lodges available</h3>
+            <p className="text-gray-500 text-sm max-w-[200px] mt-2">We couldn't find any lodges at the moment. Please check back later.</p>
+          </div>
+        )}
       </div>
     </div>
   );
