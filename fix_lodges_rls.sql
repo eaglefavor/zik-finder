@@ -1,31 +1,25 @@
--- Fix RLS policies for lodges table
-
--- 1. Drop existing policies to be safe (names might vary, so we drop likely ones)
-DROP POLICY IF EXISTS "Lodges are viewable by everyone" ON public.lodges;
-DROP POLICY IF EXISTS "Landlords can insert their own lodges" ON public.lodges;
-DROP POLICY IF EXISTS "Landlords can update their own lodges" ON public.lodges;
-DROP POLICY IF EXISTS "Landlords can delete their own lodges" ON public.lodges;
-
--- 2. Re-enable RLS (just in case)
+-- Policies for lodges table
 ALTER TABLE public.lodges ENABLE ROW LEVEL SECURITY;
 
--- 3. Re-create policies
+-- Drop existing policies to be safe
+DROP POLICY IF EXISTS "Anyone can view lodges" ON public.lodges;
+DROP POLICY IF EXISTS "Landlords can manage their own lodges" ON public.lodges;
+DROP POLICY IF EXISTS "Service roles can bypass RLS" ON public.lodges;
 
--- READ: Everyone can see all lodges
-CREATE POLICY "Lodges are viewable by everyone" 
-ON public.lodges FOR SELECT USING (true);
+-- 1. Public can view all lodges
+CREATE POLICY "Anyone can view lodges"
+ON public.lodges FOR SELECT
+USING (true);
 
--- INSERT: Only verified landlords (optional check) or just logged-in landlords
--- We'll stick to the basic "is landlord" check for now to match previous logic
-CREATE POLICY "Landlords can insert their own lodges" 
-ON public.lodges FOR INSERT WITH CHECK (
-    auth.uid() = landlord_id
-);
+-- 2. Landlords can insert, update, and delete their own lodges
+CREATE POLICY "Landlords can manage their own lodges"
+ON public.lodges FOR ALL
+USING (auth.uid() = landlord_id)
+WITH CHECK (auth.uid() = landlord_id);
 
--- UPDATE: Only owner
-CREATE POLICY "Landlords can update their own lodges" 
-ON public.lodges FOR UPDATE USING (auth.uid() = landlord_id);
-
--- DELETE: Only owner
-CREATE POLICY "Landlords can delete their own lodges" 
-ON public.lodges FOR DELETE USING (auth.uid() = landlord_id);
+-- 3. Allow triggers (running as postgres) to read lodge data
+-- This is critical for the view milestone trigger to be able to read lodge.title etc.
+CREATE POLICY "Service roles can bypass RLS"
+ON public.lodges FOR SELECT
+TO postgres, service_role
+USING (true);
