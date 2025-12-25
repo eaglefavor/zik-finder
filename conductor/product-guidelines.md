@@ -1,4 +1,4 @@
-# Product Guidelines: Zik Lodge Finder
+# Product Guidelines: ZikLodge
 
 ## 1. Visual Identity
 *   **Style:** Clean, modern, and trustworthy. The design should feel approachable for students yet professional enough for landlords.

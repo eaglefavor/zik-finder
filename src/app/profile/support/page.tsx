@@ -13,7 +13,7 @@ export default function SupportPage() {
       a: "Go to your profile page. If you are a landlord, you will see a 'Verification' section. Upload a valid ID card (NIN, Driver's License) and a selfie holding the ID."
     },
     {
-      q: "Is Zik-Lodge Finder free?",
+      q: "Is ZikLodge free?",
       a: "Yes, searching for lodges is completely free for students. Landlords can also post listings for free."
     },
     {

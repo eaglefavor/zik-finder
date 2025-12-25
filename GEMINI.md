@@ -1,7 +1,7 @@
-# Zik Lodge Finder
+# ZikLodge
 
 ## Project Overview
-Zik Lodge Finder is a web-based platform designed to streamline the process of finding and managing off-campus accommodation. It connects tenants (primarily students) with landlords, offering a secure marketplace for listing, searching, and requesting properties.
+ZikLodge is a web-based platform designed to streamline the process of finding and managing off-campus accommodation. It connects tenants (primarily students) with landlords, offering a secure marketplace for listing, searching, and requesting properties.
 
 ## Tech Stack
 - **Framework:** Next.js 16.1.0 (App Router)

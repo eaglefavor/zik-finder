@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zik-Lodge Finder",
-  description: "Find your next lodge at UNIZIK easily",
+  title: "ZikLodge",
+  description: "Home Starts Here",
   manifest: "/manifest.json",
 };
 

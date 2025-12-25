@@ -54,13 +54,13 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-[32px] p-8 shadow-sm border border-gray-100">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-600">
-            <CheckCircle size={32} />
+        <div className="flex flex-col items-center mb-8 text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4 text-blue-600">
+            <User size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">One Last Step!</h1>
-          <p className="text-gray-500 mt-2">
-            Please complete your profile to start using Zik-Lodge Finder.
+          <h1 className="text-2xl font-bold text-gray-900">Complete Profile</h1>
+          <p className="text-gray-500 mt-2 text-sm max-w-[250px]">
+            Please complete your profile to start using ZikLodge.
           </p>
         </div>
 

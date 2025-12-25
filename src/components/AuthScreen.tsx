@@ -120,15 +120,15 @@ export default function AuthScreen() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col px-6 py-12">
-      <div className="flex flex-col items-center mb-10">
-        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-blue-100">
-          <Home className="text-white" size={32} />
+        <div className="mb-8">
+          <div className="flex justify-center mb-6">
+             <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center shadow-lg shadow-blue-200 rotate-3">
+               <span className="text-4xl">🏠</span>
+             </div>
+          </div>
+          <h1 className="text-2xl font-black text-gray-900">ZikLodge</h1>
+          <p className="text-gray-500 mt-2">Home Starts Here</p>
         </div>
-        <h1 className="text-2xl font-black text-gray-900">Zik-Lodge Finder</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          {mode === 'login' ? 'Welcome back, sign in to continue' : 'Join the UNIZIK lodge community'}
-        </p>
-      </div>
 
       <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
         <div className="relative">

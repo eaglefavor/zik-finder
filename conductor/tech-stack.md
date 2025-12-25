@@ -1,4 +1,4 @@
-# Tech Stack: Zik Lodge Finder
+# Tech Stack: ZikLodge
 
 ## 1. Core Technologies
 *   **Language:** TypeScript - For type-safe development and improved developer experience.
