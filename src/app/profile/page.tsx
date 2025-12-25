@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'none' | 'pending' | 'verified' | 'rejected'>('none');
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<{ id: File | null; selfie: File | null }>({
     id: null,
     selfie: null
@@ -23,8 +24,41 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       checkVerificationStatus();
+      fetchUnreadCount();
+
+      // Subscribe to notification changes to update badge
+      const channel = supabase
+        .channel('profile_notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen for INSERT (new) and UPDATE (read status)
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            fetchUnreadCount();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
+
+  const fetchUnreadCount = async () => {
+    if (!user) return;
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+    
+    setUnreadCount(count || 0);
+  };
 
   const checkVerificationStatus = async () => {
     if (!user) return;
@@ -225,7 +259,12 @@ export default function ProfilePage() {
 
       <div className="space-y-4">
         <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-          <MenuButton icon={Bell} label="Notifications" onClick={() => router.push('/profile/notifications')} />
+          <MenuButton 
+            icon={Bell} 
+            label="Notifications" 
+            onClick={() => router.push('/profile/notifications')} 
+            badge={unreadCount > 0 ? unreadCount : undefined}
+          />
           <MenuButton icon={Settings} label="Account Settings" onClick={() => router.push('/profile/settings')} />
           <MenuButton icon={Lock} label="Change Password" onClick={() => router.push('/profile/change-password')} />
           <MenuButton icon={HelpCircle} label="Help & Support" onClick={() => router.push('/profile/support')} />
@@ -380,15 +419,20 @@ export default function ProfilePage() {
   );
 }
 
-function MenuButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick?: () => void }) {
+function MenuButton({ icon: Icon, label, onClick, badge }: { icon: any; label: string; onClick?: () => void; badge?: number }) {
   return (
     <button 
       onClick={onClick}
       className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
     >
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
+        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 relative">
           <Icon size={20} />
+          {badge !== undefined && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
+              <span className="text-[9px] font-bold text-white">{badge > 9 ? '9+' : badge}</span>
+            </div>
+          )}
         </div>
         <span className="font-bold text-gray-700">{label}</span>
       </div>
