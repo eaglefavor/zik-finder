@@ -67,6 +67,7 @@ export default function Home() {
   };
 
   const landlordLodges = lodges.filter(l => l.landlord_id === user.id);
+  const totalViews = landlordLodges.reduce((sum, l) => sum + (l.views || 0), 0);
 
   // Show Landlord View if user is a landlord OR (admin AND has lodges)
   if (role === 'landlord' || (role === 'admin' && landlordLodges.length > 0)) {
@@ -92,15 +93,15 @@ export default function Home() {
             <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
               <Eye size={20} />
             </div>
-            <div className="text-2xl font-bold text-gray-900">1,240</div>
+            <div className="text-2xl font-bold text-gray-900">{totalViews.toLocaleString()}</div>
             <div className="text-xs text-gray-500 font-medium">Total Views</div>
           </div>
-          <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
+          <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm opacity-50">
             <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-3">
               <Users size={20} />
             </div>
-            <div className="text-2xl font-bold text-gray-900">48</div>
-            <div className="text-xs text-gray-500 font-medium">Inquiries</div>
+            <div className="text-2xl font-bold text-gray-900">--</div>
+            <div className="text-xs text-gray-500 font-medium">Inquiries (Coming Soon)</div>
           </div>
         </div>
 

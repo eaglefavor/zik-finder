@@ -22,6 +22,15 @@ export default function LodgeDetail() {
   // ... (previous imports and hooks)
   
   useEffect(() => {
+    if (id) {
+      // Increment views
+      supabase.rpc('increment_lodge_views', { lodge_id: id }).then(({ error }) => {
+        if (error) console.error('Error incrementing views:', error);
+      });
+    }
+  }, [id]);
+
+  useEffect(() => {
     // If lodge has units, select the first available one by default
     if (lodge?.units && lodge.units.length > 0) {
       const firstAvailable = lodge.units.find(u => u.available_units > 0);
