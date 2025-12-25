@@ -156,15 +156,15 @@ export default function NotificationsPage() {
                 }`}>
                   {getIcon(n.type)}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-8">
                   <div className="flex justify-between items-start mb-1">
                     <h3 className={`font-bold text-sm ${n.is_read ? 'text-gray-700' : 'text-gray-900'}`}>
                       {n.title}
                     </h3>
-                    <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap ml-2">
-                      {formatTime(n.created_at)}
-                    </span>
                   </div>
+                  <p className="text-xs text-gray-400 font-medium mb-1">
+                    {formatTime(n.created_at)}
+                  </p>
                   <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-2">
                     {n.message}
                   </p>
