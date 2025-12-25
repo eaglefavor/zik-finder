@@ -177,17 +177,18 @@ export default function NotificationsPage() {
                 </div>
               </div>
 
-              {/* Delete Action (visible on hover or swipe - simple implementation) */}
+              {/* Delete Action (Always visible) */}
               <button 
                 onClick={(e) => deleteNotification(n.id, e)}
-                className="absolute top-4 right-4 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                className="absolute top-3 right-3 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
+                aria-label="Delete notification"
               >
-                <Trash2 size={14} />
+                <Trash2 size={16} />
               </button>
 
               {/* Unread Indicator */}
               {!n.is_read && (
-                <div className="absolute top-4 right-4 w-2 h-2 bg-blue-500 rounded-full group-hover:opacity-0 transition-opacity" />
+                <div className="absolute top-5 right-12 w-2 h-2 bg-blue-500 rounded-full" />
               )}
             </div>
           ))}
