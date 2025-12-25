@@ -38,36 +38,6 @@ export default function LodgeDetail() {
     }
   }, [lodge]);
 
-  useEffect(() => {
-    const notifyLandlord = async () => {
-      if (!lodge || !user || user.id === lodge.landlord_id) return;
-      
-      // Prevent duplicate notifications in same session if needed, 
-      // but for now simple view tracking is fine.
-      // Ideally check if a notification was recently sent in DB or local storage.
-      const viewedKey = `viewed_${lodge.id}_${user.id}`;
-      if (sessionStorage.getItem(viewedKey)) return;
-
-      const { error } = await supabase.from('notifications').insert({
-        user_id: lodge.landlord_id,
-        title: 'New Lodge View',
-        message: `${user.name || 'A student'} just viewed your lodge: ${lodge.title}`,
-        type: 'info',
-        link: `/lodge/${lodge.id}`
-      });
-
-      if (error) {
-        console.error('Error sending view notification:', error);
-      } else {
-        sessionStorage.setItem(viewedKey, 'true');
-      }
-    };
-
-    if (lodge && user) {
-      notifyLandlord();
-    }
-  }, [lodge, user]);
-
   if (!lodge) {
     return (
       <div className="p-8 text-center">
