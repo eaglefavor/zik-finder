@@ -221,7 +221,7 @@ export default function ProfilePage() {
 
       <div className="space-y-4">
         <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-          <MenuButton icon={Bell} label="Notifications" onClick={() => alert('No new notifications')} />
+          <MenuButton icon={Bell} label="Notifications" onClick={() => router.push('/profile/notifications')} />
           <MenuButton icon={Settings} label="Account Settings" onClick={() => alert('Account settings coming soon')} />
           <MenuButton icon={Lock} label="Change Password" onClick={() => alert('Change password flow coming soon')} />
           <MenuButton icon={HelpCircle} label="Help & Support" onClick={() => alert('Contacting support...')} />
