@@ -8,6 +8,8 @@ import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import Compressor from 'compressorjs';
 
+import { ROOM_TYPE_PRESETS, AREA_LANDMARKS } from '@/lib/constants';
+
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
@@ -15,27 +17,6 @@ const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
 if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
   throw new Error('Missing Cloudinary environment variables');
 }
-
-const ROOM_TYPE_PRESETS = [
-  'Standard Self-con',
-  'Executive Self-con',
-  'Studio Apartment',
-  'Single Room',
-  'Face-Me-I-Face-You',
-  '1-Bedroom Flat',
-  '2-Bedroom Flat',
-  '3-Bedroom Flat',
-  'Penthouse',
-  'Basement Room'
-];
-
-const AREA_LANDMARKS: { [key: string]: string[] } = {
-  'Ifite': ['School Gate', 'First Gate', 'Second Gate', 'Bookshop', 'Perm Site', 'Mgbakwu Junction', 'Miracle Junction'],
-  'Okpuno': ['UNIZIK Junction', 'Regina Caeli', 'Y-Junction', 'Stanel Mart', 'Abakaliki Street'],
-  'Aroma': ['Aroma Junction', 'Government House', 'Roban Stores', 'Ekwueme Square'],
-  'Amansea': ['Amansea Junction', 'Cattle Market', 'Unizik Back Gate'],
-  'Temp Site': ['Temp Site Junction', 'Kenneth Dike Library', 'Eke Awka Area']
-};
 
 export default function PostLodge() {
   const router = useRouter();
