@@ -25,14 +25,22 @@ export default function NotificationsPage() {
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            console.log('New notification received:', payload);
-            setNotifications((prev) => [payload.new as Notification, ...prev]);
+            console.log('Notification update:', payload);
+            if (payload.eventType === 'INSERT') {
+              setNotifications((prev) => [payload.new as Notification, ...prev]);
+            } else if (payload.eventType === 'UPDATE') {
+              setNotifications((prev) => 
+                prev.map(n => n.id === payload.new.id ? { ...n, ...payload.new } as Notification : n)
+              );
+            } else if (payload.eventType === 'DELETE') {
+              setNotifications((prev) => prev.filter(n => n.id !== payload.old.id));
+            }
           }
         )
         .subscribe();
