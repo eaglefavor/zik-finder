@@ -78,8 +78,12 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-gray-900">Lodge Activity</h1>
             <p className="text-sm text-gray-500">Managing your properties</p>
           </div>
-          <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform">
-            <span className="font-bold text-gray-600">{(user.name || 'L')[0]}</span>
+          <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
+            {user.avatar_url ? (
+              <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-bold text-gray-600">{(user.name || 'L')[0]}</span>
+            )}
           </Link>
         </header>
 
@@ -231,8 +235,12 @@ export default function Home() {
           <h1 className="text-2xl font-bold text-gray-900">Find your Lodge</h1>
           <p className="text-sm text-gray-500">Awka, Anambra State</p>
         </div>
-        <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform">
-          <span className="font-bold text-gray-600">{(user.name || 'S')[0]}</span>
+        <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
+          {user.avatar_url ? (
+            <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-bold text-gray-600">{(user.name || 'S')[0]}</span>
+          )}
         </Link>
       </header>
 

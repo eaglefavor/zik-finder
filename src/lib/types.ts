@@ -5,6 +5,7 @@ export interface Profile {
   role: UserRole;
   phone_number: string | null;
   is_verified: boolean;
+  avatar_url?: string | null;
   name?: string; // Metadata from Auth
   email?: string; // Metadata from Auth
 }

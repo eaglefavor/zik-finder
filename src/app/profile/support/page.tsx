@@ -41,7 +41,7 @@ export default function SupportPage() {
           <h2 className="text-lg font-bold text-gray-900 mb-4">Contact Us</h2>
           <div className="space-y-4">
             <a 
-              href="mailto:support@ziklodgefinder.com" 
+              href="mailto:unizikampus@gmail.com" 
               className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
             >
               <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
@@ -49,12 +49,12 @@ export default function SupportPage() {
               </div>
               <div>
                 <div className="font-bold text-gray-900">Email Support</div>
-                <div className="text-xs text-gray-500">support@ziklodgefinder.com</div>
+                <div className="text-xs text-gray-500">unizikampus@gmail.com</div>
               </div>
             </a>
             
             <a 
-              href="https://wa.me/2348000000000" 
+              href="https://wa.me/234707701331" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
@@ -69,7 +69,7 @@ export default function SupportPage() {
             </a>
 
             <a 
-              href="tel:+2348000000000" 
+              href="tel:+2347016159288" 
               className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
             >
               <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">

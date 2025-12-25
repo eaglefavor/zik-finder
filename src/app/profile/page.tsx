@@ -206,8 +206,12 @@ export default function ProfilePage() {
     <div className="px-4 py-6">
       <header className="flex flex-col items-center py-8">
         <div className="relative mb-4">
-          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-sm">
-            {(user.name || 'U')[0]}
+          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-sm overflow-hidden">
+            {user.avatar_url ? (
+              <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+            ) : (
+              (user.name || 'U')[0]
+            )}
           </div>
           {role === 'landlord' && verificationStatus === 'verified' && (
             <div className="absolute bottom-0 right-0 bg-green-500 text-white p-1 rounded-full border-2 border-white">
