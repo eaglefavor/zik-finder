@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Globe, User } from 'lucide-react';
+import { Home, Search, Globe, User, Heart } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 
 export default function BottomNav() {
@@ -13,6 +13,7 @@ export default function BottomNav() {
 
   const studentTabs = [
     { label: 'Explore', icon: Search, path: '/' },
+    { label: 'Saved', icon: Heart, path: '/favorites' },
     { label: 'Market', icon: Globe, path: '/market' },
     { label: 'Profile', icon: User, path: '/profile' },
   ];
