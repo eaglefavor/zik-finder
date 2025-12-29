@@ -15,7 +15,10 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
 
+  console.log('NotificationsPage: RENDER. User:', user);
+
   useEffect(() => {
+    console.log('NotificationsPage: Effect triggered. User:', user);
     if (user) {
       fetchNotifications();
 

@@ -238,6 +238,7 @@ export default function LodgeDetail() {
         <button 
           className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
           onClick={() => {
+            alert('Debug: Call Now Clicked. User: ' + (user ? user.id : 'None'));
             if (user && lodge) {
               console.log('Attempting to send Call Lead notification...');
               supabase.from('notifications').insert({
