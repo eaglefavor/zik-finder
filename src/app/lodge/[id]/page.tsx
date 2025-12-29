@@ -44,9 +44,12 @@ export default function LodgeDetail() {
   }
 
   const isFavorite = favorites.includes(lodge.id);
-  const displayImages = (selectedUnit && selectedUnit.image_urls && selectedUnit.image_urls.length > 0) 
-    ? selectedUnit.image_urls 
-    : lodge.image_urls;
+  
+  // Combine building photos and selected unit photos for a complete gallery
+  const displayImages = [
+    ...lodge.image_urls,
+    ...(selectedUnit?.image_urls || [])
+  ].filter(Boolean);
 
   const displayPrice = selectedUnit ? selectedUnit.price : lodge.price;
 

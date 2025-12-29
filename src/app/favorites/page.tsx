@@ -84,30 +84,51 @@ export default function FavoritesPage() {
              const isVerified = lodge.profiles?.is_verified === true;
              const hasPhone = !!lodge.profiles?.phone_number;
 
+             // Combine images
+             const allCardImages = [
+               ...lodge.image_urls,
+               ...(lodge.units?.flatMap(u => u.image_urls || []).filter(Boolean) || [])
+             ].slice(0, 10);
+
              return (
               <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
-                <Link href={`/lodge/${lodge.id}`}>
-                  <div className="relative h-56 w-full bg-gray-100">
-                    <img 
-                      src={lodge.image_urls[0]} 
-                      alt={lodge.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-active:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute bottom-4 left-4 flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <div className="px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                          {lodge.location}
-                        </div>
-                        {isVerified && (
-                          <div className="flex items-center gap-1 px-2 py-1 bg-green-500/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm">
-                            <CheckCircle size={12} /> Verified
-                          </div>
-                        )}
+                <div className="relative h-56 w-full bg-gray-100 group">
+                  {/* Horizontal Image Scroll */}
+                  <div className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar">
+                    {allCardImages.map((img, idx) => (
+                      <div key={idx} className="w-full h-full shrink-0 snap-start">
+                        <Link href={`/lodge/${lodge.id}`}>
+                          <img 
+                            src={img} 
+                            alt={lodge.title}
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            className="w-full h-full object-cover group-active:scale-105 transition-transform duration-500"
+                          />
+                        </Link>
                       </div>
+                    ))}
+                  </div>
+
+                  <div className="absolute bottom-4 left-4 flex flex-col gap-2 pointer-events-none">
+                    <div className="flex gap-2">
+                      <div className="px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
+                        {lodge.location}
+                      </div>
+                      {isVerified && (
+                        <div className="flex items-center gap-1 px-2 py-1 bg-green-500/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm">
+                          <CheckCircle size={12} /> Verified
+                        </div>
+                      )}
                     </div>
                   </div>
-                </Link>
+
+                  {/* Photo Count Badge */}
+                  {allCardImages.length > 1 && (
+                    <div className="absolute top-4 left-4 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-white text-[9px] font-bold pointer-events-none">
+                      {allCardImages.length} Photos
+                    </div>
+                  )}
+                </div>
                 
                 <button 
                   onClick={(e) => {
