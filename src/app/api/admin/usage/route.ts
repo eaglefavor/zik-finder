@@ -66,7 +66,7 @@ export async function GET(request: Request) {
       console.log('Fetching Supabase storage metadata...');
       // Accessing the storage schema
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: files, error: storageError } = await (supabase as SupabaseClient<any, 'storage'>)
+      const { data: files, error: storageError } = await (supabase as unknown as SupabaseClient<any, 'storage'>)
         .from('objects')
         .select('metadata');
 
