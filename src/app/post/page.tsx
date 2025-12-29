@@ -63,11 +63,20 @@ export default function PostLodge() {
     if (savedDraft) {
       try {
         const { formData: dForm, generalImages: dImgs, units: dUnits } = JSON.parse(savedDraft);
-        if (confirm('You have an unfinished draft. Would you like to resume?')) {
-          setFormData(dForm);
-          setGeneralImages(dImgs);
-          setUnits(dUnits);
+        
+        // Only prompt if the draft has actual content (substantial)
+        const isSubstantial = dForm.title.trim() !== '' || dImgs.length > 0 || dUnits.length > 0;
+        
+        if (isSubstantial) {
+          if (confirm('You have an unfinished draft. Would you like to resume?')) {
+            setFormData(dForm);
+            setGeneralImages(dImgs);
+            setUnits(dUnits);
+          } else {
+            localStorage.removeItem(DRAFT_KEY);
+          }
         } else {
+          // Silent cleanup for empty drafts
           localStorage.removeItem(DRAFT_KEY);
         }
       } catch (err) {
@@ -77,10 +86,14 @@ export default function PostLodge() {
   }, []);
 
   useEffect(() => {
-    if (step < 4 && !isSubmitted) {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, generalImages, units }));
+    // Save draft periodically, but NOT if we are in the success state
+    if (!isSubmitted && newlyCreatedLodgeId === null) {
+      const isSubstantial = formData.title.trim() !== '' || generalImages.length > 0 || units.length > 0;
+      if (isSubstantial) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, generalImages, units }));
+      }
     }
-  }, [formData, generalImages, units, step, isSubmitted]);
+  }, [formData, generalImages, units, isSubmitted, newlyCreatedLodgeId]);
 
   const handleAreaChange = (area: string) => {
     setFormData({
