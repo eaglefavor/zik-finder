@@ -116,6 +116,14 @@ export default function AdminPage() {
       console.error('Error verifying profile:', profileError);
       alert('Document approved, but failed to verify user profile: ' + profileError.message);
     } else {
+      // 3. Notify the landlord
+      await supabase.from('notifications').insert({
+        user_id: landlordId,
+        title: 'Verification Approved! ✅',
+        message: 'Your identity has been verified. You can now post lodges and reach more students.',
+        type: 'success',
+        link: '/profile'
+      });
       alert('Landlord verified successfully!');
     }
 
@@ -123,7 +131,7 @@ export default function AdminPage() {
     await fetchPendingDocs();
   };
 
-  const handleReject = async (docId: string) => {
+  const handleReject = async (docId: string, landlordId: string) => {
     const reason = prompt('Please enter the reason for rejection (e.g. Image blurry, name mismatch):');
     if (reason === null) return; // Cancelled
     if (!reason.trim()) {
@@ -142,6 +150,14 @@ export default function AdminPage() {
     if (error) {
       alert('Error rejecting document: ' + error.message);
     } else {
+      // Notify the landlord
+      await supabase.from('notifications').insert({
+        user_id: landlordId,
+        title: 'Verification Rejected ❌',
+        message: `Your verification was not approved. Reason: ${reason}`,
+        type: 'error',
+        link: '/profile'
+      });
       alert('Verification rejected.');
       await fetchPendingDocs();
     }
@@ -306,7 +322,7 @@ export default function AdminPage() {
                 
                 <div className="flex gap-2 mt-2">
                     <button 
-                    onClick={() => handleReject(doc.id)}
+                    onClick={() => handleReject(doc.id, doc.landlord_id)}
                     className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-red-100 text-red-600 rounded-xl text-sm font-bold active:scale-95 transition-transform"
                     >
                     <XCircle size={16} /> Reject

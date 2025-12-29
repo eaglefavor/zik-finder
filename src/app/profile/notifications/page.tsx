@@ -18,6 +18,27 @@ export default function NotificationsPage() {
   useEffect(() => {
     if (user) {
       fetchNotifications();
+
+      // Subscribe to real-time notifications
+      const channel = supabase
+        .channel(`user-notifications-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            setNotifications(prev => [payload.new as Notification, ...prev]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 

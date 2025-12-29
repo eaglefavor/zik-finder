@@ -252,6 +252,37 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
 
     if (error) return { success: false, error: error.message };
+
+    // Notification Logic: Notify landlords in the area
+    try {
+      // Normalize location (e.g. "Ifite (School Gate Area)" -> "Ifite")
+      const normalizedLocation = requestData.location.split(' (')[0];
+      
+      let query = supabase.from('lodges').select('landlord_id');
+      
+      if (normalizedLocation !== 'Any Location') {
+        query = query.eq('location', normalizedLocation);
+      }
+
+      const { data: lodgesInArea } = await query;
+
+      if (lodgesInArea && lodgesInArea.length > 0) {
+        const landlordIds = Array.from(new Set(lodgesInArea.map(l => l.landlord_id)));
+        
+        const notifications = landlordIds.map(id => ({
+          user_id: id,
+          title: 'New Student Request! 🎯',
+          message: `A student is looking for a lodge in ${normalizedLocation}. Check the Market to see if you have a match!`,
+          type: 'info',
+          link: '/market'
+        }));
+
+        // Insert notifications in bulk
+        await supabase.from('notifications').insert(notifications);
+      }
+    } catch (err) {
+      console.error('Failed to send notifications for request:', err);
+    }
     
     await refreshRequests();
     return { success: true };

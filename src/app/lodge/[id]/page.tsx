@@ -15,6 +15,7 @@ export default function LodgeDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { lodges, favorites, toggleFavorite } = useData();
+  const { user } = useAppContext();
   const [activeImage, setActiveImage] = useState(0);
   const [selectedUnit, setSelectedUnit] = useState<LodgeUnit | null>(null);
   
@@ -233,17 +234,36 @@ export default function LodgeDetail() {
         </section>
       </div>
 
-      {/* Floating Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-100 z-50 flex gap-4">
         <button 
           className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
-          onClick={() => window.open(`tel:${lodge.profiles?.phone_number}`)}
+          onClick={() => {
+            if (user && lodge) {
+              supabase.from('notifications').insert({
+                user_id: lodge.landlord_id,
+                title: 'New Lead! 📞',
+                message: `A student just clicked to call you about your lodge "${lodge.title}".`,
+                type: 'info',
+                link: `/lodge/${lodge.id}`
+              }).then();
+            }
+            window.open(`tel:${lodge.profiles?.phone_number}`);
+          }}
         >
           <Phone size={20} /> Call Now
         </button>
         <button 
           className="flex-1 flex items-center justify-center gap-3 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
           onClick={() => {
+            if (user && lodge) {
+              supabase.from('notifications').insert({
+                user_id: lodge.landlord_id,
+                title: 'WhatsApp Inquiry! 💬',
+                message: `A student is messaging you about your lodge "${lodge.title}".`,
+                type: 'info',
+                link: `/lodge/${lodge.id}`
+              }).then();
+            }
             const message = selectedUnit 
               ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`
               : `I am interested in ${lodge.title}`;
