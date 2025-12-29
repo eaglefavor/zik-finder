@@ -270,7 +270,7 @@ export default function Home() {
           
           return (
             <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
-              <Link href={`/lodge/${lodge.id}`}>
+              <Link href={`/lodge/${lodge.id}?v=4`}>
                 <div className="relative h-56 w-full bg-gray-100">
                   <img 
                     src={lodge.image_urls[0]} 
@@ -326,7 +326,7 @@ export default function Home() {
               </button>
               
               <div className="p-5">
-                <Link href={`/lodge/${lodge.id}`}>
+                <Link href={`/lodge/${lodge.id}?v=4`}>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg text-gray-900 leading-tight">{lodge.title}</h3>
                     <div className="text-right">

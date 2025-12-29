@@ -27,12 +27,13 @@ export default function LodgeDetail() {
   useLodgeViewTracker(id as string);
 
   useEffect(() => {
+    console.log('LODGE PAGE V4 LOADED - ID:', id);
     // If lodge has units, select the first available one by default
     if (lodge?.units && lodge.units.length > 0) {
       const firstAvailable = lodge.units.find(u => u.available_units > 0);
       if (firstAvailable) setSelectedUnit(firstAvailable);
     }
-  }, [lodge]);
+  }, [lodge, id]);
 
   if (!lodge) {
     return (
@@ -126,7 +127,9 @@ export default function LodgeDetail() {
                 {lodge.location}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">{lodge.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 leading-tight">
+              {lodge.title} <span className="text-xs text-purple-500 font-normal opacity-50">(v4)</span>
+            </h1>
           </div>
           <div className="text-right">
             <div className="text-2xl font-black text-blue-600">
@@ -238,11 +241,12 @@ export default function LodgeDetail() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-100 z-50 flex gap-4">
         <button 
-          className="flex-1 flex items-center justify-center gap-3 py-4 bg-purple-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          className="flex-1 flex items-center justify-center gap-3 py-4 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          style={{ backgroundColor: '#7c3aed' }}
           disabled={isCalling}
           onClick={async () => {
             setIsCalling(true);
-            // Force a visible delay so user sees "Connecting..."
+            // Force a visible delay
             await new Promise(resolve => setTimeout(resolve, 800));
 
             if (user && lodge) {
@@ -259,7 +263,6 @@ export default function LodgeDetail() {
               }
             }
             window.location.href = `tel:${lodge.profiles?.phone_number}`;
-            // Reset state after a delay (since we might stay on page if user cancels)
             setTimeout(() => setIsCalling(false), 2000);
           }}
         >
