@@ -84,8 +84,7 @@ export default function AdminPage() {
       
       // Defer execution to avoid synchronous setState in effect
       setTimeout(() => {
-        fetchPendingDocs(true);
-        fetchUsage();
+        fetchPendingDocs().finally(() => setLoading(false));
       }, 0);
     }
   }, [user, role, authLoading, router, fetchPendingDocs, fetchUsage]);
