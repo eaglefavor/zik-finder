@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, User, Phone, Loader2, Save, Camera, Upload } from 'lucide-react';
+import { ArrowLeft, User, Phone, Loader2, Save, Camera, Upload, MessageCircle } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
@@ -176,6 +176,15 @@ export default function AccountSettingsPage() {
             <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
               Phone Number
             </label>
+
+            <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex gap-3 mb-3">
+              <MessageCircle className="text-blue-600 shrink-0" size={18} />
+              <p className="text-[11px] text-blue-700 leading-tight">
+                <span className="font-bold block mb-0.5">WhatsApp Required</span>
+                Please use a number that is active on WhatsApp. This is how you will be reached regarding lodge inquiries.
+              </p>
+            </div>
+
             <div className="relative">
               <Phone className="absolute left-4 top-4 text-gray-400" size={18} />
               <input 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
-import { Home, Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Home, Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw, MessageCircle } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
 export default function AuthScreen() {
@@ -205,6 +205,14 @@ export default function AuthScreen() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
             <>
+              <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex gap-3 mb-2">
+                <MessageCircle className="text-blue-600 shrink-0" size={18} />
+                <p className="text-[11px] text-blue-700 leading-tight">
+                  <span className="font-bold block mb-0.5">WhatsApp Required</span>
+                  Please use a number that is active on WhatsApp. Landlords will use this to contact you.
+                </p>
+              </div>
+
               <div className="relative">
                 <User className="absolute left-4 top-4 text-gray-400" size={18} />
                 <input 

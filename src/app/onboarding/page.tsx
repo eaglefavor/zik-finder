@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
-import { User, Phone, CheckCircle, Loader2 } from 'lucide-react';
+import { User, Phone, CheckCircle, Loader2, MessageCircle } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
 export default function OnboardingPage() {
@@ -88,6 +88,15 @@ export default function OnboardingPage() {
             <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
               Phone Number <span className="text-red-500">*</span>
             </label>
+            
+            <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex gap-3 mb-3">
+              <MessageCircle className="text-blue-600 shrink-0" size={18} />
+              <p className="text-[11px] text-blue-700 leading-tight">
+                <span className="font-bold block mb-0.5">WhatsApp Required</span>
+                Please use a number that is active on WhatsApp. This is how you will be reached regarding your lodge requests.
+              </p>
+            </div>
+
             <div className="relative">
               <Phone className="absolute left-4 top-4 text-gray-400" size={18} />
               <input 
