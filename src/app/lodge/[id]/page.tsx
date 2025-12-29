@@ -237,30 +237,17 @@ export default function LodgeDetail() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-100 z-50 flex gap-4">
         <button 
           className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
-          onClick={(e) => {
-            e.preventDefault(); // Stop default action temporarily
-            const debugMsg = 'Debug: Call Now Clicked. User: ' + (user ? user.id : 'None');
-            console.log(debugMsg); // Log to console as backup
-            
-            // Use confirm so user HAS to click OK before call starts
-            if (!confirm(debugMsg + '\n\nClick OK to proceed with call.')) return;
-
+          onClick={() => {
             if (user && lodge) {
-              console.log('Attempting to send Call Lead notification...');
               supabase.from('notifications').insert({
                 user_id: lodge.landlord_id,
                 title: 'New Lead! 📞',
                 message: `A student just clicked to call you about your lodge "${lodge.title}".`,
                 type: 'info',
                 link: `/lodge/${lodge.id}`
-              }).then(({ data, error }) => {
-                if (error) console.error('Call lead notification failed:', error);
-                else console.log('Call lead notification sent!', data);
-              });
-            } else {
-               console.log('Skipping notification: User not logged in or Lodge missing', { user: !!user, lodge: !!lodge });
+              }).then(); // Fire and forget
             }
-            window.open(`tel:${lodge.profiles?.phone_number}`);
+            window.location.href = `tel:${lodge.profiles?.phone_number}`;
           }}
         >
           <Phone size={20} /> Call Now
@@ -275,9 +262,7 @@ export default function LodgeDetail() {
                 message: `A student is messaging you about your lodge "${lodge.title}".`,
                 type: 'info',
                 link: `/lodge/${lodge.id}`
-              }).then(({ error }) => {
-                if (error) console.error('WhatsApp lead notification failed:', error);
-              });
+              }).then();
             }
             const message = selectedUnit 
               ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`

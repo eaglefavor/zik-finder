@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, Check, Trash2, Info, CheckCircle, AlertTriangle, XCircle, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Bell, Trash2, Info, CheckCircle, AlertTriangle, XCircle, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppContext } from '@/lib/context';
 import { Notification } from '@/lib/types';
@@ -15,10 +15,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
 
-  console.log('NotificationsPage: RENDER. User:', user);
-
   useEffect(() => {
-    console.log('NotificationsPage: Effect triggered. User:', user);
     if (user) {
       fetchNotifications();
 
@@ -34,19 +31,12 @@ export default function NotificationsPage() {
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            console.log('Realtime Notification Received:', payload);
             setNotifications(prev => [payload.new as Notification, ...prev]);
           }
         )
-        .subscribe((status) => {
-           console.log('Realtime Subscription Status:', status);
-           if (status === 'CHANNEL_ERROR') {
-             console.error('Realtime connection failed.');
-           }
-        });
+        .subscribe();
 
       return () => {
-        console.log('Cleaning up subscription...');
         supabase.removeChannel(channel);
       };
     }
@@ -54,7 +44,6 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      console.log('Fetching notifications for user:', user?.id);
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -62,7 +51,6 @@ export default function NotificationsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('Fetched notifications count:', data?.length);
       setNotifications(data || []);
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -151,18 +139,6 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  const sendTestNotification = async () => {
-    if (!user) return alert('Not logged in');
-    const { error } = await supabase.from('notifications').insert({
-      user_id: user.id,
-      title: 'Test Notification 🔔',
-      message: 'This is a test notification generated at ' + new Date().toLocaleTimeString(),
-      type: 'info'
-    });
-    if (error) alert('Error sending test: ' + error.message);
-    else alert('Test notification sent! Check if it appears below instantly.');
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-6">
       <header className="flex items-center justify-between mb-8 sticky top-0 bg-gray-50/95 backdrop-blur py-4 z-10">
@@ -172,7 +148,6 @@ export default function NotificationsPage() {
           </button>
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
         </div>
-        <button onClick={sendTestNotification} className="text-xs bg-gray-200 px-2 py-1 rounded">Test</button>
         {unreadCount > 0 && (
           <button 
             onClick={markAllAsRead}
