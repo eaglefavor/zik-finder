@@ -239,15 +239,19 @@ export default function LodgeDetail() {
           className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
           onClick={() => {
             if (user && lodge) {
+              console.log('Attempting to send Call Lead notification...');
               supabase.from('notifications').insert({
                 user_id: lodge.landlord_id,
                 title: 'New Lead! 📞',
                 message: `A student just clicked to call you about your lodge "${lodge.title}".`,
                 type: 'info',
                 link: `/lodge/${lodge.id}`
-              }).then(({ error }) => {
+              }).then(({ data, error }) => {
                 if (error) console.error('Call lead notification failed:', error);
+                else console.log('Call lead notification sent!', data);
               });
+            } else {
+               console.log('Skipping notification: User not logged in or Lodge missing', { user: !!user, lodge: !!lodge });
             }
             window.open(`tel:${lodge.profiles?.phone_number}`);
           }}

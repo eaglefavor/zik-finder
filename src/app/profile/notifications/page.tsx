@@ -31,12 +31,19 @@ export default function NotificationsPage() {
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
+            console.log('Realtime Notification Received:', payload);
             setNotifications(prev => [payload.new as Notification, ...prev]);
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+           console.log('Realtime Subscription Status:', status);
+           if (status === 'CHANNEL_ERROR') {
+             console.error('Realtime connection failed.');
+           }
+        });
 
       return () => {
+        console.log('Cleaning up subscription...');
         supabase.removeChannel(channel);
       };
     }
@@ -44,6 +51,7 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
+      console.log('Fetching notifications for user:', user?.id);
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -51,6 +59,7 @@ export default function NotificationsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('Fetched notifications count:', data?.length);
       setNotifications(data || []);
     } catch (err) {
       console.error('Error fetching notifications:', err);
