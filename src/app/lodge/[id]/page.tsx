@@ -238,10 +238,13 @@ export default function LodgeDetail() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-100 z-50 flex gap-4">
         <button 
-          className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          className="flex-1 flex items-center justify-center gap-3 py-4 bg-purple-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
           disabled={isCalling}
           onClick={async () => {
             setIsCalling(true);
+            // Force a visible delay so user sees "Connecting..."
+            await new Promise(resolve => setTimeout(resolve, 800));
+
             if (user && lodge) {
               try {
                 await supabase.from('notifications').insert({
@@ -266,7 +269,7 @@ export default function LodgeDetail() {
             </>
           ) : (
             <>
-              <Phone size={20} /> Call Now
+              <Phone size={20} /> Call Landlord
             </>
           )}
         </button>
