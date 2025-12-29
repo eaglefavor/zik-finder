@@ -27,13 +27,12 @@ export default function LodgeDetail() {
   useLodgeViewTracker(id as string);
 
   useEffect(() => {
-    console.log('LODGE PAGE V4 LOADED - ID:', id);
     // If lodge has units, select the first available one by default
     if (lodge?.units && lodge.units.length > 0) {
       const firstAvailable = lodge.units.find(u => u.available_units > 0);
       if (firstAvailable) setSelectedUnit(firstAvailable);
     }
-  }, [lodge, id]);
+  }, [lodge]);
 
   if (!lodge) {
     return (
@@ -128,7 +127,7 @@ export default function LodgeDetail() {
               </span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">
-              {lodge.title} <span className="text-xs text-purple-500 font-normal opacity-50">(v4)</span>
+              {lodge.title} <span className="text-xs text-purple-500 font-normal opacity-50">(v5)</span>
             </h1>
           </div>
           <div className="text-right">
@@ -241,42 +240,41 @@ export default function LodgeDetail() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-100 z-50 flex gap-4">
         <button 
-          className="flex-1 flex items-center justify-center gap-3 py-4 bg-red-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
-          style={{ backgroundColor: '#dc2626' }}
+          className="flex-1 flex items-center justify-center gap-3 py-4 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          style={{ backgroundColor: '#7c3aed' }}
           disabled={isCalling}
           onClick={async () => {
             setIsCalling(true);
             
             if (user && lodge) {
               try {
+                // Wait for notification to be sent
                 await supabase.from('notifications').insert({
                   user_id: lodge.landlord_id,
                   title: 'New Lead! 📞',
-                  message: `A student just clicked the TEST BUTTON for lodge "${lodge.title}".`,
+                  message: `A student just clicked to call you about your lodge "${lodge.title}".`,
                   type: 'info',
                   link: `/lodge/${lodge.id}`
                 });
-                alert('TEST NOTIFICATION SENT! (Call was disabled)');
-              } catch (err) {
+              } catch (err: any) {
                 console.error('Failed to notify landlord', err);
-                alert('Failed to send notification: ' + err.message);
               }
-            } else {
-              alert('You must be logged in to test this.');
             }
-            // REMOVED: window.location.href = ...
-            // The phone dialer should NOT open.
             
-            setTimeout(() => setIsCalling(false), 1000);
+            // Artificial delay to ensure UI updates and network request finishes
+            await new Promise(resolve => setTimeout(resolve, 600));
+            
+            window.location.href = `tel:${lodge.profiles?.phone_number}`;
+            setTimeout(() => setIsCalling(false), 2000);
           }}
         >
           {isCalling ? (
             <>
-              <Loader2 className="animate-spin" size={20} /> Sending...
+              <Loader2 className="animate-spin" size={20} /> Connecting...
             </>
           ) : (
             <>
-              <Phone size={20} /> NOTIFICATION TEST ONLY
+              <Phone size={20} /> Call Landlord
             </>
           )}
         </button>
@@ -294,10 +292,13 @@ export default function LodgeDetail() {
                   type: 'info',
                   link: `/lodge/${lodge.id}`
                 });
-              } catch (err) {
+              } catch (err: any) {
                 console.error('Failed to notify landlord', err);
               }
             }
+            
+            await new Promise(resolve => setTimeout(resolve, 600));
+            
             const message = selectedUnit 
               ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`
               : `I am interested in ${lodge.title}`;
