@@ -113,10 +113,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (lodgeError) return { success: false, error: lodgeError.message };
 
-    // 2. Insert Units and handle notifications
+    // 2. Insert Units
     if (newLodge) {
       if (units && units.length > 0) {
-        // Bulk insert provided units
         const unitsToInsert = units.map(u => ({
           ...u,
           lodge_id: newLodge.id
@@ -124,7 +123,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const { error: unitError } = await supabase.from('lodge_units').insert(unitsToInsert);
         if (unitError) console.error('Error adding units:', unitError);
       } else {
-        // Fallback: Default Unit
         const { error: unitError } = await supabase
           .from('lodge_units')
           .insert({
@@ -135,38 +133,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             available_units: 1,
             image_urls: lodgeData.image_urls
           });
-          
         if (unitError) console.error('Error creating default unit:', unitError);
-      }
-
-      // --- Student Notification: New Match Alerts ---
-      try {
-        const { data: matchingRequests } = await supabase
-          .from('requests')
-          .select('student_id, location');
-
-        if (matchingRequests && matchingRequests.length > 0) {
-          // Find students whose request location matches this lodge location
-          const targets = matchingRequests.filter(r => 
-            r.location === 'Any Location' || 
-            r.location.toLowerCase().includes(lodgeData.location.toLowerCase()) ||
-            lodgeData.location.toLowerCase().includes(r.location.split(' (')[0].toLowerCase())
-          );
-
-          if (targets.length > 0) {
-            const uniqueStudentIds = Array.from(new Set(targets.map(t => t.student_id)));
-            const matchNotifications = uniqueStudentIds.map(sid => ({
-              user_id: sid,
-              title: 'New Lodge Match! 🏠',
-              message: `A new lodge in ${lodgeData.location} was just posted that matches your request.`,
-              type: 'success',
-              link: `/lodge/${newLodge.id}`
-            }));
-            await supabase.from('notifications').insert(matchNotifications);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to send match notifications:', err);
       }
     }
     

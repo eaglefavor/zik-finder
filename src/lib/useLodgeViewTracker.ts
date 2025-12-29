@@ -39,22 +39,9 @@ export function useLodgeViewTracker(lodgeId: string) {
       
       if (selectError || !lodgeData) return;
 
-      const { views, landlord_id, title, location } = lodgeData;
+      const { landlord_id, location } = lodgeData;
 
-      // --- Logic A: Landlord Milestone Notifications ---
-      if (MILESTONES.includes(views)) {
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: landlord_id,
-            title: '🎉 Lodge View Milestone!',
-            message: `Your lodge "${title}" has reached ${views} views! Keep up the good work.`,
-            type: 'success',
-            link: `/lodge/${lodgeId}`,
-          });
-      }
-
-      // --- Logic B: Student Recommendations (Similar Lodges) ---
+      // --- Logic: Student Recommendations (Similar Lodges) ---
       // Only for logged-in students viewing other people's lodges
       if (user && user.id !== landlord_id) {
         try {
