@@ -2,51 +2,41 @@
 
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
-import AuthScreen from '@/components/AuthScreen';
-import { LodgeSkeleton } from '@/components/Skeleton';
-import { MapPin, Phone, MessageCircle, Heart, Eye, Users, CheckCircle, PlusCircle, Edit3, Trash2, X } from 'lucide-react';
+import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
 export default function Home() {
-  const { user, role, isLoading } = useAppContext();
-  const { lodges, favorites, toggleFavorite, updateLodgeStatus, deleteLodge, updateUnitAvailability } = useData();
+  const { user, role, logout } = useAppContext();
+  const { lodges, requests, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites } = useData();
+  const router = useRouter();
+  const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
+  const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
 
-  if (isLoading) {
-    return (
-      <div className="px-4 py-6">
-        <header className="flex justify-between items-center mb-6">
-          <div className="space-y-2">
-            <div className="h-8 w-48 bg-gray-200 rounded-lg animate-shimmer" />
-            <div className="h-4 w-32 bg-gray-100 rounded-lg animate-shimmer" />
-          </div>
-          <div className="w-10 h-10 bg-gray-200 rounded-full animate-shimmer" />
-        </header>
-        
-        <div className="mb-6 h-14 bg-gray-100 rounded-2xl animate-shimmer" />
+  if (!user) return null;
 
-        <div className="space-y-6">
-          <LodgeSkeleton />
-          <LodgeSkeleton />
-          <LodgeSkeleton />
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthScreen />;
-  }
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
 
   const AdminLink = () => (
     role === 'admin' ? (
       <Link href="/admin" className="block mb-6 bg-gray-900 text-white p-4 rounded-2xl shadow-lg shadow-gray-200">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-            <CheckCircle size={20} />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <div className="font-bold">Admin Dashboard</div>
+              <div className="text-[10px] text-white/60 uppercase font-black tracking-widest">System Control</div>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-lg">Admin Dashboard</h3>
-            <p className="text-gray-300 text-sm">Manage verifications & users</p>
+          <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+            <Edit3 size={16} />
           </div>
         </div>
       </Link>
@@ -55,35 +45,65 @@ export default function Home() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    e.stopPropagation();
-    
-    if (confirm('Are you sure you want to delete this listing permanently?')) {
-      try {
-        await deleteLodge(id);
-      } catch (err) {
-        alert('Delete failed from UI: ' + err);
-      }
+    if (confirm('Are you sure you want to delete this lodge?')) {
+      await deleteLodge(id);
     }
   };
 
-  const landlordLodges = lodges.filter(l => l.landlord_id === user.id);
-  const totalViews = landlordLodges.reduce((sum, l) => sum + (l.views || 0), 0);
+  const handleCall = async (lodge: any) => {
+    setLoadingCallId(lodge.id);
+    if (user) {
+      try {
+        await supabase.from('notifications').insert({
+          user_id: lodge.landlord_id,
+          title: 'New Lead! 📞',
+          message: `A student clicked to call you about "${lodge.title}" (Dashboard).`,
+          type: 'info',
+          link: `/lodge/${lodge.id}`
+        });
+      } catch (e) { console.error(e); }
+    }
+    // Artificial delay for visual feedback
+    await new Promise(r => setTimeout(r, 600));
+    window.location.href = `tel:${lodge.profiles?.phone_number}`;
+    setTimeout(() => setLoadingCallId(null), 2000);
+  };
 
-  // Show Landlord View if user is a landlord OR (admin AND has lodges)
-  if (role === 'landlord' || (role === 'admin' && landlordLodges.length > 0)) {
+  const handleWhatsApp = async (lodge: any) => {
+    setLoadingMsgId(lodge.id);
+    if (user) {
+      try {
+        await supabase.from('notifications').insert({
+          user_id: lodge.landlord_id,
+          title: 'WhatsApp Inquiry! 💬',
+          message: `A student clicked to message you about "${lodge.title}" (Dashboard).`,
+          type: 'info',
+          link: `/lodge/${lodge.id}`
+        });
+      } catch (e) { console.error(e); }
+    }
+    await new Promise(r => setTimeout(r, 600));
+    window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`);
+    setTimeout(() => setLoadingMsgId(null), 2000);
+  };
+
+  if (role === 'landlord') {
+    const landlordLodges = lodges.filter(l => l.landlord_id === user.id);
+    const totalViews = landlordLodges.reduce((acc, curr) => acc + (curr.views || 0), 0);
+
     return (
       <div className="px-4 py-6">
         <AdminLink />
         <header className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lodge Activity</h1>
-            <p className="text-sm text-gray-500">Managing your properties</p>
+            <p className="text-sm text-gray-500">Manage your listings</p>
           </div>
-          <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
+          <Link href="/profile" className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
             ) : (
-              <span className="font-bold text-gray-600">{(user.name || 'L')[0]}</span>
+              <span className="font-bold text-blue-600">{(user.name || 'L')[0]}</span>
             )}
           </Link>
         </header>
@@ -237,7 +257,7 @@ export default function Home() {
       <AdminLink />
       <header className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Find your Lodge</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Find your Lodge <span className="text-xs text-purple-500 font-normal opacity-50">(v5)</span></h1>
           <p className="text-sm text-gray-500">Awka, Anambra State</p>
         </div>
         <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
@@ -270,7 +290,7 @@ export default function Home() {
           
           return (
             <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
-              <Link href={`/lodge/${lodge.id}?v=4`}>
+              <Link href={`/lodge/${lodge.id}?v=5`}>
                 <div className="relative h-56 w-full bg-gray-100">
                   <img 
                     src={lodge.image_urls[0]} 
@@ -326,7 +346,7 @@ export default function Home() {
               </button>
               
               <div className="p-5">
-                <Link href={`/lodge/${lodge.id}?v=4`}>
+                <Link href={`/lodge/${lodge.id}?v=5`}>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg text-gray-900 leading-tight">{lodge.title}</h3>
                     <div className="text-right">
@@ -368,16 +388,30 @@ export default function Home() {
                 {hasPhone ? (
                   <div className="flex gap-2">
                     <button 
-                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl font-medium active:scale-95 transition-transform"
-                      onClick={() => window.open(`tel:${lodge.profiles?.phone_number}`)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
+                        loadingCallId === lodge.id ? 'bg-purple-100 text-purple-600' : 'bg-purple-600 text-white shadow-lg shadow-purple-100'
+                      }`}
+                      disabled={loadingCallId === lodge.id}
+                      onClick={() => handleCall(lodge)}
                     >
-                      <Phone size={18} /> Call
+                      {loadingCallId === lodge.id ? (
+                        <><Loader2 className="animate-spin" size={18} /> Connecting...</>
+                      ) : (
+                        <><Phone size={18} /> Call Landlord</>
+                      )}
                     </button>
                     <button 
-                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-medium active:scale-95 transition-transform"
-                      onClick={() => window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
+                        loadingMsgId === lodge.id ? 'bg-green-100 text-green-600' : 'bg-green-600 text-white shadow-lg shadow-green-100'
+                      }`}
+                      disabled={loadingMsgId === lodge.id}
+                      onClick={() => handleWhatsApp(lodge)}
                     >
-                      <MessageCircle size={18} /> WhatsApp
+                      {loadingMsgId === lodge.id ? (
+                        <><Loader2 className="animate-spin" size={18} /> Opening...</>
+                      ) : (
+                        <><MessageCircle size={18} /> WhatsApp</>
+                      )}
                     </button>
                   </div>
                 ) : (

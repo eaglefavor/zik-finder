@@ -3,14 +3,18 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { LodgeSkeleton } from '@/components/Skeleton';
-import { MapPin, Phone, MessageCircle, Heart, ChevronLeft, CheckCircle } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, Heart, ChevronLeft, CheckCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function FavoritesPage() {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useAppContext();
   const { lodges, favorites, toggleFavorite, isLoading: isDataLoading } = useData();
+  const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
+  const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
 
   if (isUserLoading || isDataLoading) {
     return (
@@ -26,6 +30,42 @@ export default function FavoritesPage() {
     );
   }
 
+  const handleCall = async (lodge: any) => {
+    setLoadingCallId(lodge.id);
+    if (user) {
+      try {
+        await supabase.from('notifications').insert({
+          user_id: lodge.landlord_id,
+          title: 'New Lead! 📞',
+          message: `A student clicked to call you about "${lodge.title}" (Favorites).`,
+          type: 'info',
+          link: `/lodge/${lodge.id}`
+        });
+      } catch (e) { console.error(e); }
+    }
+    await new Promise(r => setTimeout(r, 600));
+    window.location.href = `tel:${lodge.profiles?.phone_number}`;
+    setTimeout(() => setLoadingCallId(null), 2000);
+  };
+
+  const handleWhatsApp = async (lodge: any) => {
+    setLoadingMsgId(lodge.id);
+    if (user) {
+      try {
+        await supabase.from('notifications').insert({
+          user_id: lodge.landlord_id,
+          title: 'WhatsApp Inquiry! 💬',
+          message: `A student clicked to message you about "${lodge.title}" (Favorites).`,
+          type: 'info',
+          link: `/lodge/${lodge.id}`
+        });
+      } catch (e) { console.error(e); }
+    }
+    await new Promise(r => setTimeout(r, 600));
+    window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`);
+    setTimeout(() => setLoadingMsgId(null), 2000);
+  };
+
   // Filter lodges that are in the favorites list
   const favoriteLodges = lodges.filter(lodge => favorites.includes(lodge.id));
 
@@ -35,7 +75,7 @@ export default function FavoritesPage() {
         <button onClick={() => router.back()} className="p-2 bg-white rounded-full shadow-sm border border-gray-100 active:scale-90 transition-transform">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Saved Lodges</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Saved Lodges <span className="text-xs text-purple-500 font-normal opacity-50">(v5)</span></h1>
       </header>
 
       {favoriteLodges.length > 0 ? (
@@ -46,7 +86,7 @@ export default function FavoritesPage() {
 
              return (
               <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
-                <Link href={`/lodge/${lodge.id}`}>
+                <Link href={`/lodge/${lodge.id}?v=5`}>
                   <div className="relative h-56 w-full bg-gray-100">
                     <img 
                       src={lodge.image_urls[0]} 
@@ -80,7 +120,7 @@ export default function FavoritesPage() {
                 </button>
                 
                 <div className="p-5">
-                  <Link href={`/lodge/${lodge.id}`}>
+                  <Link href={`/lodge/${lodge.id}?v=5`}>
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-bold text-lg text-gray-900 leading-tight">{lodge.title}</h3>
                       <div className="text-right">
@@ -105,16 +145,30 @@ export default function FavoritesPage() {
                   {hasPhone ? (
                     <div className="flex gap-2 mt-4">
                       <button 
-                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl font-medium active:scale-95 transition-transform"
-                        onClick={() => window.open(`tel:${lodge.profiles?.phone_number}`)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
+                          loadingCallId === lodge.id ? 'bg-purple-100 text-purple-600' : 'bg-purple-600 text-white shadow-lg shadow-purple-100'
+                        }`}
+                        disabled={loadingCallId === lodge.id}
+                        onClick={() => handleCall(lodge)}
                       >
-                        <Phone size={18} /> Call
+                        {loadingCallId === lodge.id ? (
+                          <><Loader2 className="animate-spin" size={18} /> Connecting...</>
+                        ) : (
+                          <><Phone size={18} /> Call Landlord</>
+                        )}
                       </button>
                       <button 
-                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-medium active:scale-95 transition-transform"
-                        onClick={() => window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
+                          loadingMsgId === lodge.id ? 'bg-green-100 text-green-600' : 'bg-green-600 text-white shadow-lg shadow-green-100'
+                        }`}
+                        disabled={loadingMsgId === lodge.id}
+                        onClick={() => handleWhatsApp(lodge)}
                       >
-                        <MessageCircle size={18} /> WhatsApp
+                        {loadingMsgId === lodge.id ? (
+                          <><Loader2 className="animate-spin" size={18} /> Opening...</>
+                        ) : (
+                          <><MessageCircle size={18} /> WhatsApp</>
+                        )}
                       </button>
                     </div>
                   ) : (
