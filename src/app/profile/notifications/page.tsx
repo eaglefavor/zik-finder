@@ -151,6 +151,18 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  const sendTestNotification = async () => {
+    if (!user) return alert('Not logged in');
+    const { error } = await supabase.from('notifications').insert({
+      user_id: user.id,
+      title: 'Test Notification 🔔',
+      message: 'This is a test notification generated at ' + new Date().toLocaleTimeString(),
+      type: 'info'
+    });
+    if (error) alert('Error sending test: ' + error.message);
+    else alert('Test notification sent! Check if it appears below instantly.');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-6">
       <header className="flex items-center justify-between mb-8 sticky top-0 bg-gray-50/95 backdrop-blur py-4 z-10">
@@ -160,6 +172,7 @@ export default function NotificationsPage() {
           </button>
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
         </div>
+        <button onClick={sendTestNotification} className="text-xs bg-gray-200 px-2 py-1 rounded">Test</button>
         {unreadCount > 0 && (
           <button 
             onClick={markAllAsRead}
