@@ -162,7 +162,7 @@ export default function Home() {
                           const max = Math.max(...prices);
                           return min === max 
                             ? `₦${min.toLocaleString()}`
-                            : `From ₦${min.toLocaleString()} - ₦${max.toLocaleString()}`;
+                            : `From ₦${min.toLocaleString()}`;
                         })()
                       ) : (
                         `₦${lodge.price.toLocaleString()}`
@@ -362,7 +362,7 @@ export default function Home() {
                             const max = Math.max(...prices);
                             return min === max 
                               ? `₦${min.toLocaleString()}`
-                              : `From ₦${min.toLocaleString()} - ₦${max.toLocaleString()}`;
+                              : `From ₦${min.toLocaleString()}`;
                           })()
                         ) : (
                           `₦${lodge.price.toLocaleString()}`

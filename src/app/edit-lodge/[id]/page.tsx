@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, Save, Plus, Trash2, LayoutGrid, Info, Image as ImageIcon } from 'lucide-react';
+import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, Save, Plus, Trash2, LayoutGrid, Info, Image as ImageIcon, Check } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import Compressor from 'compressorjs';
@@ -16,12 +16,14 @@ export default function EditLodge() {
   const router = useRouter();
   const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { lodges, updateLodge, addUnit, deleteUnit } = useData();
+  const { lodges, updateLodge, addUnit, updateUnit, deleteUnit } = useData();
   const { user, role, isLoading } = useAppContext();
   
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loadingLodge, setLoadingLodge] = useState(true);
+  const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState('');
   
   const [formData, setFormData] = useState({
     title: '',
@@ -127,6 +129,26 @@ export default function EditLodge() {
     });
     setNewUnit({ name: '', price: '', total_units: '1' });
     setShowCustomType(false);
+  };
+
+  const handleUpdateUnitPrice = async (unitId: string) => {
+    const priceNum = parseInt(editPrice);
+    if (isNaN(priceNum) || !id) return;
+    
+    // 1. Update the unit price
+    await updateUnit(unitId, { price: priceNum });
+    
+    // 2. Recalculate and update the lodge's base price
+    // We fetch the latest prices from currentUnits (which are from the context)
+    // Note: currentUnits might not have the newest price yet if context hasn't refreshed
+    // So we calculate using the new price for the specific unit
+    const otherUnits = currentUnits.filter(u => u.id !== unitId);
+    const allPrices = [...otherUnits.map(u => u.price), priceNum];
+    const newMinPrice = Math.min(...allPrices);
+
+    await updateLodge(id as string, { price: newMinPrice });
+    
+    setEditingUnitId(null);
   };
 
   const handleSubmit = async () => {
@@ -299,11 +321,46 @@ export default function EditLodge() {
           <div className="space-y-3">
             {currentUnits.map((unit) => (
               <div key={unit.id} className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
-                <div>
+                <div className="flex-1 mr-4">
                   <h3 className="font-bold text-gray-900 text-sm">{unit.name}</h3>
-                  <p className="text-xs text-blue-600 font-bold">₦{unit.price.toLocaleString()} • {unit.available_units}/{unit.total_units} left</p>
+                  {editingUnitId === unit.id ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="relative flex-1 max-w-[120px]">
+                        <span className="absolute left-2 top-1.5 text-gray-400 text-xs font-bold">₦</span>
+                        <input 
+                          type="number"
+                          autoFocus
+                          value={editPrice}
+                          onChange={(e) => setEditPrice(e.target.value)}
+                          className="w-full p-1.5 pl-5 bg-white border border-blue-500 rounded-lg text-xs font-bold outline-none"
+                        />
+                      </div>
+                      <button 
+                        onClick={() => handleUpdateUnitPrice(unit.id)}
+                        className="p-1.5 bg-blue-600 text-white rounded-lg active:scale-90 transition-transform"
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button 
+                        onClick={() => setEditingUnitId(null)}
+                        className="p-1.5 bg-gray-200 text-gray-600 rounded-lg active:scale-90 transition-transform"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        setEditingUnitId(unit.id);
+                        setEditPrice(unit.price.toString());
+                      }}
+                      className="text-xs text-blue-600 font-bold hover:underline mt-1 block"
+                    >
+                      ₦{unit.price.toLocaleString()} • {unit.available_units}/{unit.total_units} left (Click to edit price)
+                    </button>
+                  )}
                 </div>
-                <button onClick={() => confirm('Delete this room type?') && deleteUnit(unit.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
+                <button onClick={() => confirm('Delete this room type?') && deleteUnit(unit.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors shrink-0">
                   <Trash2 size={18} />
                 </button>
               </div>

@@ -17,6 +17,7 @@ interface DataContextType {
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken') => Promise<void>;
   addUnit: (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => Promise<void>;
+  updateUnit: (id: string, unitData: Partial<{ name: string, price: number, total_units: number, available_units: number }>) => Promise<void>;
   updateUnitAvailability: (id: string, available_units: number) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
   deleteLodge: (id: string) => Promise<void>;
@@ -232,6 +233,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await refreshLodges();
   };
 
+  const updateUnit = async (id: string, unitData: Partial<{ name: string, price: number, total_units: number, available_units: number }>) => {
+    const { error } = await supabase
+      .from('lodge_units')
+      .update(unitData)
+      .eq('id', id);
+      
+    if (error) console.error('Error updating unit:', error);
+    await refreshLodges();
+  };
+
   const updateUnitAvailability = async (id: string, available_units: number) => {
     const { error } = await supabase
       .from('lodge_units')
@@ -441,6 +452,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       updateLodge,
       updateLodgeStatus,
       addUnit,
+      updateUnit,
       updateUnitAvailability,
       deleteUnit,
       deleteLodge,

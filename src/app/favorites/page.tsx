@@ -132,7 +132,7 @@ export default function FavoritesPage() {
                               const max = Math.max(...prices);
                               return min === max 
                                 ? `₦${min.toLocaleString()}`
-                                : `From ₦${min.toLocaleString()} - ₦${max.toLocaleString()}`;
+                                : `From ₦${min.toLocaleString()}`;
                             })()
                           ) : (
                             `₦${lodge.price.toLocaleString()}`
