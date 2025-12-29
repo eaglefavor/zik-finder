@@ -7,41 +7,45 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import AuthScreen from '@/components/AuthScreen';
+
+const AdminLink = ({ role }: { role: string }) => (
+  role === 'admin' ? (
+    <Link href="/admin" className="block mb-6 bg-gray-900 text-white p-4 rounded-2xl shadow-lg shadow-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+            <ShieldCheck size={20} />
+          </div>
+          <div>
+            <div className="font-bold">Admin Dashboard</div>
+            <div className="text-[10px] text-white/60 uppercase font-black tracking-widest">System Control</div>
+          </div>
+        </div>
+        <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+          <Edit3 size={16} />
+        </div>
+      </div>
+    </Link>
+  ) : null
+);
 
 export default function Home() {
-  const { user, role, logout } = useAppContext();
-  const { lodges, requests, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites } = useData();
+  const { user, role, logout, isLoading: authLoading } = useAppContext();
+  const { lodges, requests, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites, isLoading: dataLoading } = useData();
   const router = useRouter();
   const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
   const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
 
-  if (!user) return null;
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
 
-  const handleLogout = async () => {
-    await logout();
-    router.push('/');
-  };
-
-  const AdminLink = () => (
-    role === 'admin' ? (
-      <Link href="/admin" className="block mb-6 bg-gray-900 text-white p-4 rounded-2xl shadow-lg shadow-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-              <ShieldCheck size={20} />
-            </div>
-            <div>
-              <div className="font-bold">Admin Dashboard</div>
-              <div className="text-[10px] text-white/60 uppercase font-black tracking-widest">System Control</div>
-            </div>
-          </div>
-          <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-            <Edit3 size={16} />
-          </div>
-        </div>
-      </Link>
-    ) : null
-  );
+  if (!user) return <AuthScreen />;
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -93,7 +97,7 @@ export default function Home() {
 
     return (
       <div className="px-4 py-6">
-        <AdminLink />
+          <AdminLink role={role} />
         <header className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lodge Activity</h1>
@@ -254,7 +258,7 @@ export default function Home() {
   // Student/General View
   return (
     <div className="px-4 py-6">
-      <AdminLink />
+        <AdminLink role={role} />
       <header className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Find your Lodge <span className="text-xs text-purple-500 font-normal opacity-50">(v5)</span></h1>
