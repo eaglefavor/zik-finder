@@ -5,6 +5,7 @@ import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw, MessageCircle } from 'lucide-react';
 import { UserRole } from '@/lib/types';
+import { toast } from 'sonner';
 
 export default function AuthScreen() {
   const { login, signup } = useAppContext();
@@ -48,7 +49,7 @@ export default function AuthScreen() {
       });
       if (error) throw error;
     } catch (err: unknown) {
-      alert('Error connecting to Google: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Error connecting to Google: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Lock, Loader2, KeyRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -24,12 +25,12 @@ export default function ChangePasswordPage() {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+      toast.error("Passwords do not match!");
       return;
     }
     
     if (password.length < 6) {
-      alert("Password must be at least 6 characters long.");
+      toast.error("Password must be at least 6 characters long.");
       return;
     }
 
@@ -42,10 +43,10 @@ export default function ChangePasswordPage() {
 
       if (error) throw error;
 
-      alert('Password updated successfully!');
+      toast.success('Password updated successfully!');
       router.back();
     } catch (err: unknown) {
-      alert('Error updating password: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Error updating password: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }

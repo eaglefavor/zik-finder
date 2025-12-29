@@ -8,6 +8,7 @@ import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
+import { toast } from 'sonner';
 
 import { ROOM_TYPE_PRESETS, AREA_LANDMARKS } from '@/lib/constants';
 
@@ -68,13 +69,21 @@ export default function PostLodge() {
         const isSubstantial = dForm.title.trim() !== '' || dImgs.length > 0 || dUnits.length > 0;
         
         if (isSubstantial) {
-          if (confirm('You have an unfinished draft. Would you like to resume?')) {
-            setFormData(dForm);
-            setGeneralImages(dImgs);
-            setUnits(dUnits);
-          } else {
-            localStorage.removeItem(DRAFT_KEY);
-          }
+          toast.info('You have an unfinished draft', {
+            description: 'Would you like to resume where you left off?',
+            action: {
+              label: 'Resume',
+              onClick: () => {
+                setFormData(dForm);
+                setGeneralImages(dImgs);
+                setUnits(dUnits);
+              }
+            },
+            cancel: {
+              label: 'Discard',
+              onClick: () => localStorage.removeItem(DRAFT_KEY)
+            }
+          });
         } else {
           // Silent cleanup for empty drafts
           localStorage.removeItem(DRAFT_KEY);
@@ -149,7 +158,7 @@ export default function PostLodge() {
       }));
       setGeneralImages(prev => [...prev, ...urls]);
     } catch (err) {
-      alert('Upload failed');
+      toast.error('Upload failed');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -168,7 +177,7 @@ export default function PostLodge() {
       }));
       setUnits(prev => prev.map(u => u.tempId === tempId ? { ...u, image_urls: [...u.image_urls, ...urls] } : u));
     } catch (err) {
-      alert('Upload failed');
+      toast.error('Upload failed');
     } finally {
       setUploading(false);
     }
@@ -243,7 +252,7 @@ export default function PostLodge() {
       
       setIsSubmitted(true);
     } else {
-      alert('Error saving lodge: ' + error);
+      toast.error('Error saving lodge: ' + error);
     }
     setUploading(false);
   };

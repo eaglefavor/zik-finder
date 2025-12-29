@@ -1,9 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Lodge, Profile, LodgeRequest } from './types';
+import { Lodge, Profile, LodgeRequest, LodgeUnit } from './types';
 import { supabase } from './supabase';
 import { useAppContext } from './context';
+import { toast } from 'sonner';
 
 interface DataContextType {
   lodges: Lodge[];
@@ -43,7 +44,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      const formatted = data.map((l: { profiles: unknown; lodge_units: unknown }) => ({
+      const formatted = (data as unknown as {
+        profiles: { phone_number: string; is_verified: boolean } | { phone_number: string; is_verified: boolean }[];
+        lodge_units: LodgeUnit[];
+      }[]).map((l) => ({
         ...l,
         profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles,
         units: l.lodge_units // Assign the fetched units
@@ -60,7 +64,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      const formatted = data.map((r: { id: string; student_id: string; profiles: { name?: string; phone_number?: string } | null; budget_range: string; location: string; description: string; created_at: string }) => ({
+      const formatted = (data as unknown as {
+        id: string;
+        student_id: string;
+        profiles: { name?: string; phone_number?: string } | null;
+        budget_range: string;
+        location: string;
+        description: string;
+        created_at: string;
+      }[]).map((r) => ({
         id: r.id,
         student_id: r.student_id,
         student_name: r.profiles?.name || 'Student',
@@ -272,7 +284,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const token = session?.access_token;
 
     if (!token) {
-      alert('Authentication error. Please log in again.');
+      toast.error('Authentication error. Please log in again.');
       return;
     }
 
@@ -305,7 +317,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     } catch (error: unknown) {
       console.error('Error deleting lodge:', error);
-      alert('Error deleting lodge: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error deleting lodge: ' + (error instanceof Error ? error.message : 'Unknown error'));
       await refreshLodges(); // Revert optimistic update
     }
   };
@@ -374,7 +386,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const toggleFavorite = async (lodgeId: string) => {
     if (!user) {
-      alert('Please log in to save favorites');
+      toast.error('Please log in to save favorites');
       return;
     }
 

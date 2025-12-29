@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import AuthScreen from '@/components/AuthScreen';
 import { Lodge } from '@/lib/types';
+import { toast } from 'sonner';
 
 const AdminLink = ({ role }: { role: string }) => (
   role === 'admin' ? (
@@ -50,9 +51,16 @@ export default function Home() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    if (confirm('Are you sure you want to delete this lodge?')) {
-      await deleteLodge(id);
-    }
+    toast.error('Are you sure you want to delete this lodge?', {
+      description: 'This listing and its data will be removed forever.',
+      action: {
+        label: 'Delete Listing',
+        onClick: async () => {
+          await deleteLodge(id);
+          toast.success('Listing deleted');
+        }
+      }
+    });
   };
 
   const handleCall = async (lodge: Lodge) => {

@@ -6,6 +6,7 @@ import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock } from 'lucide-re
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import VerificationStatusCard from '@/components/profile/VerificationStatusCard';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const { user, role, logout } = useAppContext();
@@ -19,11 +20,7 @@ export default function ProfilePage() {
     router.push('/');
   };
 
-  const handleDeleteAccount = async () => {
-    if (!confirm('Are you sure you want to delete your account? This action is permanent and cannot be undone.')) {
-      return;
-    }
-
+  const executeDeleteAccount = async () => {
     try {
       // 1. Clean up Cloudinary images by deleting all lodges
       const userLodges = lodges.filter(l => l.landlord_id === user.id);
@@ -37,11 +34,22 @@ export default function ProfilePage() {
       if (error) throw error;
 
       await logout();
+      toast.success('Account deleted successfully');
       router.push('/');
     } catch (error: unknown) {
       console.error('Error deleting account:', error);
-      alert('Failed to delete account: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Failed to delete account: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
+  };
+
+  const handleDeleteAccount = () => {
+    toast.error('Are you sure you want to delete your account?', {
+      description: 'This action is permanent and cannot be undone.',
+      action: {
+        label: 'Delete Anyway',
+        onClick: executeDeleteAccount
+      }
+    });
   };
 
   return (

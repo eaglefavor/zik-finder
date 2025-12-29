@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface VerificationDoc {
   id: string;
@@ -106,52 +107,58 @@ export default function AdminPage() {
   };
 
   const handleApprove = async (docId: string, landlordId: string) => {
-    if (!confirm('Are you sure you want to approve this landlord?')) return;
+    toast.info('Approve this landlord?', {
+      description: 'This will verify their identity and allow them to post listings.',
+      action: {
+        label: 'Approve',
+        onClick: async () => {
+          // 1. Update verification_doc status
+          const { error: docError } = await supabase
+            .from('verification_docs')
+            .update({ status: 'approved' })
+            .eq('id', docId);
 
-    // 1. Update verification_doc status
-    const { error: docError } = await supabase
-      .from('verification_docs')
-      .update({ status: 'approved' })
-      .eq('id', docId);
+          if (docError) {
+            toast.error('Error updating document status: ' + docError.message);
+            return;
+          }
 
-    if (docError) {
-      alert('Error updating document status: ' + docError.message);
-      return;
-    }
+          // 2. Explicitly update the profile verification status
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ is_verified: true })
+            .eq('id', landlordId);
 
-    // 2. Explicitly update the profile verification status
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ is_verified: true })
-      .eq('id', landlordId);
+          if (profileError) {
+            console.error('Error verifying profile:', profileError);
+            toast.error('Document approved, but failed to verify user profile: ' + profileError.message);
+          } else {
+            // 3. Notify the landlord
+            const { error: notifyError } = await supabase.from('notifications').insert({
+              user_id: landlordId,
+              title: 'Verification Approved! ✅',
+              message: 'Your identity has been verified. You can now post lodges and reach more students.',
+              type: 'success',
+              link: '/profile'
+            });
 
-    if (profileError) {
-      console.error('Error verifying profile:', profileError);
-      alert('Document approved, but failed to verify user profile: ' + profileError.message);
-    } else {
-      // 3. Notify the landlord
-      const { error: notifyError } = await supabase.from('notifications').insert({
-        user_id: landlordId,
-        title: 'Verification Approved! ✅',
-        message: 'Your identity has been verified. You can now post lodges and reach more students.',
-        type: 'success',
-        link: '/profile'
-      });
+            if (notifyError) console.error('Failed to notify landlord:', notifyError);
 
-      if (notifyError) console.error('Failed to notify landlord:', notifyError);
+            toast.success('Landlord verified successfully!');
+          }
 
-      alert('Landlord verified successfully!');
-    }
-
-    // Refresh list
-    await fetchPendingDocs();
+          // Refresh list
+          await fetchPendingDocs();
+        }
+      }
+    });
   };
 
   const handleReject = async (docId: string, landlordId: string) => {
     const reason = prompt('Please enter the reason for rejection (e.g. Image blurry, name mismatch):');
     if (reason === null) return; // Cancelled
     if (!reason.trim()) {
-      alert('A reason is required to reject verification.');
+      toast.error('A reason is required to reject verification.');
       return;
     }
 
@@ -164,7 +171,7 @@ export default function AdminPage() {
       .eq('id', docId);
 
     if (error) {
-      alert('Error rejecting document: ' + error.message);
+      toast.error('Error rejecting document: ' + error.message);
     } else {
       // Notify the landlord
       const { error: notifyError } = await supabase.from('notifications').insert({
@@ -177,14 +184,14 @@ export default function AdminPage() {
 
       if (notifyError) console.error('Failed to notify landlord:', notifyError);
 
-      alert('Verification rejected.');
+      toast.success('Verification rejected.');
       await fetchPendingDocs();
     }
   };
 
   const getSignedUrl = async (path: string) => {
     if (!path) {
-        alert('File path is missing');
+        toast.error('File path is missing');
         return;
     }
     const { data, error: signedUrlError } = await supabase
@@ -194,25 +201,33 @@ export default function AdminPage() {
 
     if (signedUrlError) {
       console.error('Error generating signed URL:', signedUrlError);
-      alert('Error generating signed URL: ' + signedUrlError.message);
+      toast.error('Error generating signed URL: ' + signedUrlError.message);
       return;
     }
 
     if (data?.signedUrl) {
       window.open(data.signedUrl, '_blank');
     } else {
-      alert('Error: Signed URL not generated');
+      toast.error('Error: Signed URL not generated');
     }
   };
 
   const handleAdminLodgeDelete = async (lodgeId: string) => {
-    if (!confirm('ADMIN: Are you sure you want to PERMANENTLY DELETE this lodge? This cannot be undone.')) return;
-    await deleteLodge(lodgeId);
+    toast.error('PERMANENTLY DELETE this lodge?', {
+      description: 'This action cannot be undone.',
+      action: {
+        label: 'Delete Forever',
+        onClick: async () => {
+          await deleteLodge(lodgeId);
+          toast.success('Lodge deleted permanently');
+        }
+      }
+    });
   };
 
   const handleSendBroadcast = async () => {
     if (!broadcast.title || !broadcast.message) {
-      alert('Please provide both title and message.');
+      toast.error('Please provide both title and message.');
       return;
     }
 
@@ -227,10 +242,10 @@ export default function AdminPage() {
 
       if (error) throw error;
 
-      alert('Broadcast sent successfully!');
+      toast.success('Broadcast sent successfully!');
       setBroadcast({ ...broadcast, title: '', message: '' });
     } catch (err: unknown) {
-      alert('Error sending broadcast: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Error sending broadcast: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setSendingBroadcast(false);
     }

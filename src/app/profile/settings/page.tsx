@@ -6,6 +6,7 @@ import { ArrowLeft, User, Phone, Loader2, Save, Camera, Upload, MessageCircle } 
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
+import { toast } from 'sonner';
 
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges';
@@ -69,7 +70,7 @@ export default function AccountSettingsPage() {
         setFormData(prev => ({ ...prev, avatar_url: secureUrl }));
       } catch (err: unknown) {
         console.error('Error uploading avatar:', err);
-        alert('Failed to upload image: ' + (err instanceof Error ? err.message : 'Unknown error'));
+        toast.error('Failed to upload image: ' + (err instanceof Error ? err.message : 'Unknown error'));
       } finally {
         setUploading(false);
       }
@@ -83,7 +84,7 @@ export default function AccountSettingsPage() {
     // Phone Validation
     const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
     if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
-      alert('Please enter a valid Nigerian phone number (e.g., 08012345678 or +2348012345678)');
+      toast.error('Please enter a valid Nigerian phone number');
       return;
     }
 
@@ -102,10 +103,10 @@ export default function AccountSettingsPage() {
       if (error) throw error;
 
       await refreshProfile();
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
       router.back();
     } catch (err: unknown) {
-      alert('Error updating profile: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Error updating profile: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }

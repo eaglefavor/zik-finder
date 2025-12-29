@@ -6,6 +6,7 @@ import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { User, Phone, Loader2, MessageCircle } from 'lucide-react';
 import { UserRole } from '@/lib/types';
+import { toast } from 'sonner';
 
 export default function OnboardingPage() {
   const { user, role: currentRole } = useAppContext();
@@ -46,7 +47,7 @@ export default function OnboardingPage() {
       window.location.href = '/';
       
     } catch (err: unknown) {
-      alert('Error updating profile: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      toast.error('Error updating profile: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setLoading(false);
     }
   };

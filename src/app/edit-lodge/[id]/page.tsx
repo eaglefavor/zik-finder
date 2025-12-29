@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { useRouter, useParams } from 'next/navigation';
 import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, Save, Plus, Trash2, LayoutGrid, Info, Image as ImageIcon, Check } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import Compressor from 'compressorjs';
 import { ROOM_TYPE_PRESETS } from '@/lib/constants';
+import { toast } from 'sonner';
+import { useRouter, useParams } from 'next/navigation';
+import { useRef, useState, useMemo, useEffect } from 'react';
 
-// Cloudinary Configuration
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges';
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dhpvia1ae';
 
 export default function EditLodge() {
   const router = useRouter();
@@ -49,7 +49,7 @@ export default function EditLodge() {
       if (lodge) {
         // Verify ownership
         if (user && lodge.landlord_id !== user.id && role !== 'admin') {
-          alert('You do not have permission to edit this lodge.');
+          toast.error('You do not have permission to edit this lodge.');
           router.push('/');
           return;
         }
@@ -110,7 +110,7 @@ export default function EditLodge() {
         image_urls: [...prev.image_urls, ...urls].slice(0, 10)
       }));
     } catch (err) {
-      alert('Error uploading images');
+      toast.error('Error uploading images');
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -127,6 +127,7 @@ export default function EditLodge() {
       available_units: parseInt(newUnit.total_units),
       image_urls: []
     });
+    toast.success('Room type added');
     setNewUnit({ name: '', price: '', total_units: '1' });
     setShowCustomType(false);
   };
@@ -148,7 +149,21 @@ export default function EditLodge() {
 
     await updateLodge(id as string, { price: newMinPrice });
     
+    toast.success('Price updated');
     setEditingUnitId(null);
+  };
+
+  const handleDeleteUnitClick = (unitId: string) => {
+    toast.error('Delete this room type?', {
+      description: 'This will remove this vacancy from your lodge.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          await deleteUnit(unitId);
+          toast.success('Room type removed');
+        }
+      }
+    });
   };
 
   const handleSubmit = async () => {
@@ -167,10 +182,10 @@ export default function EditLodge() {
 
     setSaving(false);
     if (success) {
-      alert('Changes saved successfully!');
+      toast.success('Changes saved successfully!');
       router.push('/');
     } else {
-      alert('Error: ' + error);
+      toast.error('Error: ' + error);
     }
   };
 
@@ -360,7 +375,7 @@ export default function EditLodge() {
                     </button>
                   )}
                 </div>
-                <button onClick={() => confirm('Delete this room type?') && deleteUnit(unit.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                <button onClick={() => handleDeleteUnitClick(unit.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors shrink-0">
                   <Trash2 size={18} />
                 </button>
               </div>

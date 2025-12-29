@@ -5,6 +5,7 @@ import { useData } from '@/lib/data-context';
 import { RequestSkeleton } from '@/components/Skeleton';
 import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function MarketRequests() {
   const { role, user, isLoading } = useAppContext();
@@ -38,6 +39,19 @@ export default function MarketRequests() {
       </div>
     );
   }
+
+  const handleDeleteRequest = (id: string) => {
+    toast.error('Delete this request?', {
+      description: 'This will remove your request from the marketplace.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          await deleteRequest(id);
+          toast.success('Request deleted');
+        }
+      }
+    });
+  };
 
   return (
     <div className="px-4 py-6 pb-24">
@@ -87,7 +101,7 @@ export default function MarketRequests() {
                 </div>
                 {isOwnRequest && (
                   <button 
-                    onClick={() => confirm('Delete this request?') && deleteRequest(request.id)}
+                    onClick={() => handleDeleteRequest(request.id)}
                     className="p-2 text-gray-300 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={18} />

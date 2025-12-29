@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, Send, MapPin, BadgeDollarSign, Home, AlertCircle } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
+import { toast } from 'sonner';
 
 const ROOM_TYPES = [
   'Self-con',
@@ -34,7 +35,7 @@ export default function NewRequest() {
     if (!user) return;
     
     if (formData.description.length < 10) {
-      alert("Please provide a more detailed description (at least 10 characters).");
+      toast.error("Please provide a more detailed description");
       return;
     }
 

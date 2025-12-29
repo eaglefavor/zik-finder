@@ -5,6 +5,7 @@ import { ShieldCheck, Loader2, CheckCircle, AlertCircle, FileText, User } from '
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 import { Profile } from '@/lib/types';
+import { toast } from 'sonner';
 
 interface VerificationStatusCardProps {
   user: Profile; 
@@ -159,11 +160,11 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
       }
 
       setVerificationStatus('pending');
-      alert('Documents uploaded successfully! We will review your submission shortly.');
+      toast.success('Documents uploaded successfully! We will review your submission shortly.');
       setSelectedFiles({ id: null, selfie: null }); // Reset
     } catch (error: unknown) {
       console.error('Error uploading documents:', error);
-      alert('Error uploading documents: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error uploading documents: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setUploading(false);
     }

@@ -23,6 +23,8 @@ export const metadata: Metadata = {
 
 import Script from 'next/script';
 
+import { Toaster } from 'sonner';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -35,6 +37,7 @@ export default function RootLayout({
       >
         <AppProvider>
           <DataProvider>
+            <Toaster position="top-center" richColors />
             <main className="min-h-screen pb-24">
               {children}
             </main>

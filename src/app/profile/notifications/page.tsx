@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAppContext } from '@/lib/context';
 import { Notification } from '@/lib/types';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 export default function NotificationsPage() {
   const { user } = useAppContext();
@@ -95,18 +96,26 @@ export default function NotificationsPage() {
     e.stopPropagation();
     e.preventDefault();
     
-    if (!confirm('Delete this notification?')) return;
+    toast.error('Delete this notification?', {
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          setNotifications(prev => prev.filter(n => n.id !== id));
+          const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('id', id);
 
-    setNotifications(prev => prev.filter(n => n.id !== id));
-
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting notification:', error);
-    }
+          if (error) {
+            console.error('Error deleting notification:', error);
+            toast.error('Failed to delete notification');
+            fetchNotifications(); // Refresh to restore if failed
+          } else {
+            toast.success('Notification deleted');
+          }
+        }
+      }
+    });
   };
 
   const getIcon = (type: Notification['type']) => {
