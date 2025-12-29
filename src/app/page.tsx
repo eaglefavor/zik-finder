@@ -261,7 +261,7 @@ export default function Home() {
         <AdminLink role={role} />
       <header className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Find your Lodge <span className="text-xs text-purple-500 font-normal opacity-50">(v5)</span></h1>
+          <h1 className="text-2xl font-bold text-gray-900">Find your Lodge</h1>
           <p className="text-sm text-gray-500">Awka, Anambra State</p>
         </div>
         <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
@@ -294,7 +294,7 @@ export default function Home() {
           
           return (
             <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
-              <Link href={`/lodge/${lodge.id}?v=5`}>
+              <Link href={`/lodge/${lodge.id}`}>
                 <div className="relative h-56 w-full bg-gray-100">
                   <img 
                     src={lodge.image_urls[0]} 
@@ -350,7 +350,7 @@ export default function Home() {
               </button>
               
               <div className="p-5">
-                <Link href={`/lodge/${lodge.id}?v=5`}>
+                <Link href={`/lodge/${lodge.id}`}>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg text-gray-900 leading-tight">{lodge.title}</h3>
                     <div className="text-right">
@@ -393,7 +393,7 @@ export default function Home() {
                   <div className="flex gap-2">
                     <button 
                       className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
-                        loadingCallId === lodge.id ? 'bg-purple-100 text-purple-600' : 'bg-purple-600 text-white shadow-lg shadow-purple-100'
+                        loadingCallId === lodge.id ? 'bg-gray-100 text-gray-600' : 'bg-gray-900 text-white shadow-lg shadow-gray-200'
                       }`}
                       disabled={loadingCallId === lodge.id}
                       onClick={() => handleCall(lodge)}
@@ -401,7 +401,7 @@ export default function Home() {
                       {loadingCallId === lodge.id ? (
                         <><Loader2 className="animate-spin" size={18} /> Connecting...</>
                       ) : (
-                        <><Phone size={18} /> Call Landlord</>
+                        <><Phone size={18} /> Call</>
                       )}
                     </button>
                     <button 

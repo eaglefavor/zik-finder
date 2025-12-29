@@ -127,7 +127,7 @@ export default function LodgeDetail() {
               </span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">
-              {lodge.title} <span className="text-xs text-purple-500 font-normal opacity-50">(v5)</span>
+              {lodge.title}
             </h1>
           </div>
           <div className="text-right">
@@ -240,8 +240,7 @@ export default function LodgeDetail() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-100 z-50 flex gap-4">
         <button 
-          className="flex-1 flex items-center justify-center gap-3 py-4 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
-          style={{ backgroundColor: '#7c3aed' }}
+          className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
           disabled={isCalling}
           onClick={async () => {
             setIsCalling(true);
@@ -274,7 +273,7 @@ export default function LodgeDetail() {
             </>
           ) : (
             <>
-              <Phone size={20} /> Call Landlord
+              <Phone size={20} /> Call Now
             </>
           )}
         </button>

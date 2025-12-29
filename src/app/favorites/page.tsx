@@ -75,7 +75,7 @@ export default function FavoritesPage() {
         <button onClick={() => router.back()} className="p-2 bg-white rounded-full shadow-sm border border-gray-100 active:scale-90 transition-transform">
           <ChevronLeft size={20} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Saved Lodges <span className="text-xs text-purple-500 font-normal opacity-50">(v5)</span></h1>
+        <h1 className="text-2xl font-bold text-gray-900">Saved Lodges</h1>
       </header>
 
       {favoriteLodges.length > 0 ? (
@@ -86,7 +86,7 @@ export default function FavoritesPage() {
 
              return (
               <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
-                <Link href={`/lodge/${lodge.id}?v=5`}>
+                <Link href={`/lodge/${lodge.id}`}>
                   <div className="relative h-56 w-full bg-gray-100">
                     <img 
                       src={lodge.image_urls[0]} 
@@ -120,7 +120,7 @@ export default function FavoritesPage() {
                 </button>
                 
                 <div className="p-5">
-                  <Link href={`/lodge/${lodge.id}?v=5`}>
+                  <Link href={`/lodge/${lodge.id}`}>
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-bold text-lg text-gray-900 leading-tight">{lodge.title}</h3>
                       <div className="text-right">
@@ -146,7 +146,7 @@ export default function FavoritesPage() {
                     <div className="flex gap-2 mt-4">
                       <button 
                         className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
-                          loadingCallId === lodge.id ? 'bg-purple-100 text-purple-600' : 'bg-purple-600 text-white shadow-lg shadow-purple-100'
+                          loadingCallId === lodge.id ? 'bg-gray-100 text-gray-600' : 'bg-gray-900 text-white shadow-lg shadow-gray-200'
                         }`}
                         disabled={loadingCallId === lodge.id}
                         onClick={() => handleCall(lodge)}
@@ -154,7 +154,7 @@ export default function FavoritesPage() {
                         {loadingCallId === lodge.id ? (
                           <><Loader2 className="animate-spin" size={18} /> Connecting...</>
                         ) : (
-                          <><Phone size={18} /> Call Landlord</>
+                          <><Phone size={18} /> Call</>
                         )}
                       </button>
                       <button 
