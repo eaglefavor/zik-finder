@@ -112,7 +112,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (lodgeError) return { success: false, error: lodgeError.message };
 
-    // 2. Insert Units
+    // 2. Insert Units and handle notifications
     if (newLodge) {
       if (units && units.length > 0) {
         // Bulk insert provided units
@@ -137,6 +137,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           
         if (unitError) console.error('Error creating default unit:', unitError);
       }
+
+      // --- Student Notification: New Match Alerts ---
+      try {
+        const { data: matchingRequests } = await supabase
+          .from('requests')
+          .select('student_id, location');
+
+        if (matchingRequests && matchingRequests.length > 0) {
+          // Find students whose request location matches this lodge location
+          const targets = matchingRequests.filter(r => 
+            r.location === 'Any Location' || 
+            r.location.toLowerCase().includes(lodgeData.location.toLowerCase()) ||
+            lodgeData.location.toLowerCase().includes(r.location.split(' (')[0].toLowerCase())
+          );
+
+          if (targets.length > 0) {
+            const uniqueStudentIds = Array.from(new Set(targets.map(t => t.student_id)));
+            const matchNotifications = uniqueStudentIds.map(sid => ({
+              user_id: sid,
+              title: 'New Lodge Match! 🏠',
+              message: `A new lodge in ${lodgeData.location} was just posted that matches your request.`,
+              type: 'success',
+              link: `/lodge/${newLodge.id}`
+            }));
+            await supabase.from('notifications').insert(matchNotifications);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to send match notifications:', err);
+      }
     }
     
     await refreshLodges();
@@ -146,6 +176,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const updateLodge = async (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
+    // Fetch old data to check for price drops
+    const { data: oldLodge } = await supabase.from('lodges').select('price, title').eq('id', id).single();
+
     const { error } = await supabase
       .from('lodges')
       .update(lodgeData)
@@ -153,6 +186,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .eq('landlord_id', user.id); // Ensure ownership
 
     if (error) return { success: false, error: error.message };
+
+    // --- Student Notification: Price Drop Alert ---
+    if (oldLodge && lodgeData.price && lodgeData.price < oldLodge.price) {
+      try {
+        const { data: favoritedBy } = await supabase
+          .from('favorites')
+          .select('user_id')
+          .eq('lodge_id', id);
+
+        if (favoritedBy && favoritedBy.length > 0) {
+          const alerts = favoritedBy.map(fav => ({
+            user_id: fav.user_id,
+            title: 'Price Drop! 💸',
+            message: `The rent for "${oldLodge.title}" has been reduced to ₦${lodgeData.price?.toLocaleString()}.`,
+            type: 'info',
+            link: `/lodge/${id}`
+          }));
+          await supabase.from('notifications').insert(alerts);
+        }
+      } catch (err) {
+        console.error('Failed to send price drop notifications:', err);
+      }
+    }
     
     await refreshLodges();
     return { success: true };
@@ -182,7 +238,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .update({ available_units })
       .eq('id', id);
 
-    if (!error) await refreshLodges();
+    if (!error) {
+      // --- Student Notification: Low Availability Alert ---
+      if (available_units > 0 && available_units <= 2) {
+        try {
+          // Fetch lodge info for the notification
+          const { data: unitData } = await supabase
+            .from('lodge_units')
+            .select('lodge_id, name, lodges(title)')
+            .eq('id', id)
+            .single();
+
+          if (unitData) {
+            const { data: favoritedBy } = await supabase
+              .from('favorites')
+              .select('user_id')
+              .eq('lodge_id', unitData.lodge_id);
+
+            if (favoritedBy && favoritedBy.length > 0) {
+              const alerts = favoritedBy.map(fav => ({
+                user_id: fav.user_id,
+                title: 'Hurry! ⏳',
+                message: `Only ${available_units} room${available_units > 1 ? 's' : ''} left for the ${unitData.name} at "${(unitData.lodges as any)?.title}".`,
+                type: 'warning',
+                link: `/lodge/${unitData.lodge_id}`
+              }));
+              await supabase.from('notifications').insert(alerts);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to send availability alerts:', err);
+        }
+      }
+      await refreshLodges();
+    }
   };
 
   const deleteUnit = async (id: string) => {
