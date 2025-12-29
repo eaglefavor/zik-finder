@@ -33,7 +33,10 @@ export default function RootLayout({
       >
         <AppProvider>
           <DataProvider>
-            <main className="min-h-screen pb-24">
+            <div className="fixed top-0 left-0 w-full bg-red-600 text-white text-center text-xs font-bold py-1 z-[9999]">
+              DEBUG MODE: v3 (If you see this, code is updated)
+            </div>
+            <main className="min-h-screen pb-24 pt-6">
               {children}
             </main>
             <BottomNav />
