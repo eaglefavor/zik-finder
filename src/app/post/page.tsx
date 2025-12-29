@@ -40,8 +40,16 @@ export default function PostLodge() {
     amenities: [] as string[]
   });
 
+  interface TempUnit {
+    tempId: string;
+    name: string;
+    price: number;
+    total_units: number;
+    image_urls: string[];
+  }
+
   const [generalImages, setGeneralImages] = useState<string[]>([]);
-  const [units, setUnits] = useState<any[]>([]);
+  const [units, setUnits] = useState<TempUnit[]>([]);
   const [newUnit, setNewUnit] = useState({
     name: '',
     price: '',
@@ -62,8 +70,8 @@ export default function PostLodge() {
         } else {
           localStorage.removeItem(DRAFT_KEY);
         }
-      } catch (e) {
-        console.error('Failed to parse draft');
+      } catch (err) {
+        console.error('Failed to parse draft', err);
       }
     }
   }, []);
@@ -168,6 +176,13 @@ export default function PostLodge() {
 
   const handleDeleteUnit = (tempId: string) => {
     setUnits(units.filter(u => u.tempId !== tempId));
+  };
+
+  const toggleAmenity = (item: string) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(item) ? prev.amenities.filter(i => i !== item) : [...prev.amenities, item]
+    }));
   };
 
   const handleSubmit = async () => {
