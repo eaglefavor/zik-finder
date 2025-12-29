@@ -127,8 +127,15 @@ export default function MarketRequests() {
         })}
         
         {requests.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-gray-400">No requests in the marketplace yet.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-300">
+              <User size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">No requests yet</h3>
+            <p className="text-gray-500 text-sm max-w-[200px] mt-2">Be the first to post a request or check back later.</p>
+            {role === 'student' && (
+              <Link href="/requests/new" className="mt-6 text-blue-600 font-bold text-sm">Post a Request</Link>
+            )}
           </div>
         )}
       </div>
