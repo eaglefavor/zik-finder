@@ -96,13 +96,13 @@ export default function Home() {
             <div className="text-2xl font-bold text-gray-900">{totalViews.toLocaleString()}</div>
             <div className="text-xs text-gray-500 font-medium">Total Views</div>
           </div>
-          <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm opacity-50">
-            <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-3">
+          <Link href="/profile/notifications" className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm active:scale-95 transition-transform block">
+            <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-3">
               <Users size={20} />
             </div>
-            <div className="text-2xl font-bold text-gray-900">--</div>
-            <div className="text-xs text-gray-500 font-medium">Inquiries (Coming Soon)</div>
-          </div>
+            <div className="text-2xl font-bold text-gray-900">Activity</div>
+            <div className="text-xs text-gray-500 font-medium">Check Notifications</div>
+          </Link>
         </div>
 
         <div className="flex justify-between items-center mb-4">
@@ -130,7 +130,7 @@ export default function Home() {
                         <Trash2 size={16} />
                       </button>
                     </div>
-                    <div className="text-sm text-blue-600 font-black">
+                    <div className="text-sm text-blue-600 font-black mb-1">
                       {lodge.units && lodge.units.length > 0 ? (
                         (() => {
                           const prices = lodge.units.map(u => u.price);
@@ -144,12 +144,16 @@ export default function Home() {
                         `₦${lodge.price.toLocaleString()}`
                       )}
                     </div>
-                    <div className="mt-1">
+                    <div className="flex items-center gap-2 mt-1">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         lodge.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                       }`}>
                         {lodge.status === 'available' ? 'Visible' : 'Offline'}
                       </span>
+                      <div className="flex items-center gap-1 text-gray-400">
+                        <Eye size={12} />
+                        <span className="text-[10px] font-bold">{lodge.views?.toLocaleString() || 0}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
