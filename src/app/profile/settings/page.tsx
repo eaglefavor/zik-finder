@@ -12,7 +12,7 @@ const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESE
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dbj0a6uor';
 
 export default function AccountSettingsPage() {
-  const { user, refreshProfile } = useAppContext();
+  const { user, role, refreshProfile } = useAppContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -187,7 +187,9 @@ export default function AccountSettingsPage() {
               />
             </div>
             <p className="text-[10px] text-gray-400 mt-2 ml-1">
-              This number will be visible to students interested in your lodge.
+              {role === 'landlord' 
+                ? 'This number will be visible to students interested in your lodge.'
+                : 'This is how landlords will contact you regarding your requests.'}
             </p>
           </div>
         </div>
