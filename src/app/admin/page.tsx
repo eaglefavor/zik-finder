@@ -117,13 +117,16 @@ export default function AdminPage() {
       alert('Document approved, but failed to verify user profile: ' + profileError.message);
     } else {
       // 3. Notify the landlord
-      await supabase.from('notifications').insert({
+      const { error: notifyError } = await supabase.from('notifications').insert({
         user_id: landlordId,
         title: 'Verification Approved! ✅',
         message: 'Your identity has been verified. You can now post lodges and reach more students.',
         type: 'success',
         link: '/profile'
       });
+
+      if (notifyError) console.error('Failed to notify landlord:', notifyError);
+
       alert('Landlord verified successfully!');
     }
 
@@ -151,13 +154,16 @@ export default function AdminPage() {
       alert('Error rejecting document: ' + error.message);
     } else {
       // Notify the landlord
-      await supabase.from('notifications').insert({
+      const { error: notifyError } = await supabase.from('notifications').insert({
         user_id: landlordId,
         title: 'Verification Rejected ❌',
         message: `Your verification was not approved. Reason: ${reason}`,
         type: 'error',
         link: '/profile'
       });
+
+      if (notifyError) console.error('Failed to notify landlord:', notifyError);
+
       alert('Verification rejected.');
       await fetchPendingDocs();
     }

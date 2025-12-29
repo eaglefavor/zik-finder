@@ -278,7 +278,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }));
 
         // Insert notifications in bulk
-        await supabase.from('notifications').insert(notifications);
+        const { error: insertError } = await supabase.from('notifications').insert(notifications);
+        
+        if (insertError) {
+          console.error('NOTIFICATION INSERT FAILED:', insertError);
+        } else {
+          console.log(`Sent ${notifications.length} notifications to landlords.`);
+        }
       }
     } catch (err) {
       console.error('Failed to send notifications for request:', err);

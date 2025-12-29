@@ -245,7 +245,9 @@ export default function LodgeDetail() {
                 message: `A student just clicked to call you about your lodge "${lodge.title}".`,
                 type: 'info',
                 link: `/lodge/${lodge.id}`
-              }).then();
+              }).then(({ error }) => {
+                if (error) console.error('Call lead notification failed:', error);
+              });
             }
             window.open(`tel:${lodge.profiles?.phone_number}`);
           }}
@@ -262,7 +264,9 @@ export default function LodgeDetail() {
                 message: `A student is messaging you about your lodge "${lodge.title}".`,
                 type: 'info',
                 link: `/lodge/${lodge.id}`
-              }).then();
+              }).then(({ error }) => {
+                if (error) console.error('WhatsApp lead notification failed:', error);
+              });
             }
             const message = selectedUnit 
               ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`
