@@ -1,30 +1,16 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, Plus, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, Save, Plus, Trash2, LayoutGrid, Info, Image as ImageIcon } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import Compressor from 'compressorjs';
-import { LodgeUnit } from '@/lib/types';
+import { ROOM_TYPE_PRESETS } from '@/lib/constants';
 
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
-
-const ROOM_TYPE_PRESETS = [
-  'Standard Self-con',
-  'Executive Self-con',
-  'Studio Apartment',
-  'Single Room',
-  'Face-Me-I-Face-You',
-  '1-Bedroom Flat',
-  '2-Bedroom Flat',
-  '3-Bedroom Flat',
-  'Penthouse',
-  'Basement Room'
-];
 
 export default function EditLodge() {
   const router = useRouter();
@@ -32,31 +18,32 @@ export default function EditLodge() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { lodges, updateLodge, addUnit, deleteUnit } = useData();
   const { user, role, isLoading } = useAppContext();
-  const [step, setStep] = useState(1);
+  
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loadingLodge, setLoadingLodge] = useState(true);
   
   const [formData, setFormData] = useState({
     title: '',
     location: 'Ifite',
-    price: '',
     description: '',
     amenities: [] as string[],
     image_urls: [] as string[]
   });
 
-  const [currentUnits, setCurrentUnits] = useState<LodgeUnit[]>([]);
   const [newUnit, setNewUnit] = useState({
     name: '',
     price: '',
     total_units: '1'
   });
-  
   const [showCustomType, setShowCustomType] = useState(false);
+
+  // Find the current lodge and its units from the data context
+  const lodge = useMemo(() => lodges.find(l => l.id === id), [lodges, id]);
+  const currentUnits = lodge?.units || [];
 
   useEffect(() => {
     if (id && lodges.length > 0) {
-      const lodge = lodges.find(l => l.id === id);
       if (lodge) {
         // Verify ownership
         if (user && lodge.landlord_id !== user.id && role !== 'admin') {
@@ -68,30 +55,24 @@ export default function EditLodge() {
         setFormData({
           title: lodge.title,
           location: lodge.location,
-          price: lodge.price.toString(),
           description: lodge.description,
           amenities: lodge.amenities,
           image_urls: lodge.image_urls
         });
-        setCurrentUnits(lodge.units || []);
         setLoadingLodge(false);
       } else {
         if (!isLoading) setLoadingLodge(false); 
       }
     }
-  }, [id, lodges, user, role, isLoading, router]);
+  }, [id, lodges, user, role, isLoading, router, lodge]);
 
   const compressImage = (file: File): Promise<File> => {
-    console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
     return new Promise((resolve, reject) => {
       new Compressor(file, {
         quality: 0.6,
         maxWidth: 1200,
         success(result) {
-          const compressed = result as File;
-          console.log(`Compressed size: ${(compressed.size / 1024 / 1024).toFixed(2)} MB`);
-          console.log(`Reduction: ${Math.round((1 - compressed.size / file.size) * 100)}%`);
-          resolve(compressed);
+          resolve(result as File);
         },
         error(err) {
           reject(err);
@@ -100,31 +81,14 @@ export default function EditLodge() {
     });
   };
 
-  const handleNext = () => setStep(step + 1);
-  const handleBack = () => setStep(step - 1);
-
-  const toggleAmenity = (item: string) => {
-    setFormData(prev => ({
-      ...prev,
-      amenities: prev.amenities.includes(item)
-        ? prev.amenities.filter(i => i !== item)
-        : [...prev.amenities, item]
-    }));
-  };
-
   const uploadToCloudinary = async (file: File): Promise<string> => {
     const data = new FormData();
     data.append('file', file);
     data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-      {
-        method: 'POST',
-        body: data,
-      }
-    );
-
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: data,
+    });
     const json = await res.json();
     if (json.error) throw new Error(json.error.message);
     return json.secure_url;
@@ -133,29 +97,18 @@ export default function EditLodge() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setUploading(true);
-    
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        try {
-          const compressedFile = await compressImage(file);
-          return uploadToCloudinary(compressedFile);
-        } catch (err) {
-          console.error('Compression failed:', err);
-          return uploadToCloudinary(file);
-        }
-      });
-      
-      const urls = await Promise.all(uploadPromises);
-      
+      const urls = await Promise.all(Array.from(files).map(async (file) => {
+        const compressed = await compressImage(file);
+        return uploadToCloudinary(compressed);
+      }));
       setFormData(prev => ({
         ...prev,
-        image_urls: [...prev.image_urls, ...urls].slice(0, 6)
+        image_urls: [...prev.image_urls, ...urls].slice(0, 10)
       }));
     } catch (err) {
       alert('Error uploading images');
-      console.error(err);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -164,372 +117,265 @@ export default function EditLodge() {
 
   const handleAddUnit = async () => {
     if (!newUnit.name || !newUnit.price) return;
-    if (typeof id !== 'string') return;
-
     await addUnit({
-      lodge_id: id,
+      lodge_id: id as string,
       name: newUnit.name,
       price: parseInt(newUnit.price),
       total_units: parseInt(newUnit.total_units),
       available_units: parseInt(newUnit.total_units),
       image_urls: []
     });
-
     setNewUnit({ name: '', price: '', total_units: '1' });
     setShowCustomType(false);
   };
 
-  const handleDeleteUnit = async (unitId: string) => {
-    if (confirm('Delete this room type?')) {
-      await deleteUnit(unitId);
-    }
-  };
-
   const handleSubmit = async () => {
     if (!user || typeof id !== 'string') return;
+    setSaving(true);
     
+    // Auto-calculate base price from units
+    const minPrice = currentUnits.length > 0 
+      ? Math.min(...currentUnits.map(u => u.price)) 
+      : (lodge?.price || 0);
+
     const { success, error } = await updateLodge(id, {
-      title: formData.title,
-      price: parseInt(formData.price) || 0,
-      location: formData.location,
-      description: formData.description || '',
-      image_urls: formData.image_urls,
-      amenities: formData.amenities,
+      ...formData,
+      price: minPrice
     });
 
+    setSaving(false);
     if (success) {
-      alert('Lodge updated successfully!');
+      alert('Changes saved successfully!');
       router.push('/');
     } else {
-      alert('Error updating lodge: ' + error);
+      alert('Error: ' + error);
     }
   };
 
   if (isLoading || loadingLodge) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-      </div>
-    );
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
   }
 
   return (
-    <div className="px-4 py-6">
-      <header className="flex items-center gap-4 mb-8">
-        <Link href="/" className="p-2 bg-white rounded-full shadow-sm border border-gray-100">
-          <ChevronLeft size={20} />
-        </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Edit Lodge</h1>
+    <div className="min-h-screen bg-gray-50 pb-32">
+      {/* Fixed Header */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ChevronLeft size={24} />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">Edit Lodge</h1>
+        </div>
+        <button 
+          onClick={handleSubmit}
+          disabled={saving || !formData.title}
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-100 flex items-center gap-2 active:scale-95 transition-all disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> Save</>}
+        </button>
       </header>
 
-      {/* Progress Bar with Labels */}
-      <div className="mb-10">
-        <div className="flex justify-between mb-2">
-          {['Info', 'Amenities', 'Rooms', 'Save'].map((label, i) => (
-            <span 
-              key={label} 
-              className={`text-[10px] font-black uppercase tracking-widest ${
-                i + 1 <= step ? 'text-blue-600' : 'text-gray-300'
-              }`}
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div 
-              key={i} 
-              className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                i <= step ? 'bg-blue-600 shadow-sm shadow-blue-100' : 'bg-gray-100'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      {step === 1 && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700">Lodge Title</label>
-            <input 
-              type="text" 
-              value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
-              placeholder="e.g. Clean Self-con in Ifite"
-              className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"
-            />
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+        
+        {/* Basic Info Section */}
+        <section className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-6">
+          <div className="flex items-center gap-2 text-blue-600 mb-2">
+            <Info size={20} />
+            <h2 className="font-bold text-lg">Basic Information</h2>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700">Lodge Photos</label>
-            <input 
-              type="file" 
-              multiple 
-              accept="image/*" 
-              className="hidden" 
-              ref={fileInputRef}
-              onChange={handleFileChange}
-            />
-            <div className="grid grid-cols-3 gap-2">
-              {formData.image_urls.map((img, idx) => (
-                <div key={idx} className="relative h-24 rounded-xl overflow-hidden bg-gray-100">
-                  <img src={img} className="w-full h-full object-cover" alt="" />
-                  <button 
-                    onClick={() => setFormData(p => ({...p, image_urls: p.image_urls.filter((_, i) => i !== idx)}))}
-                    className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-full"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-              {formData.image_urls.length < 6 && (
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 gap-1 active:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  {uploading ? (
-                    <Loader2 className="animate-spin" size={24} />
-                  ) : (
-                    <>
-                      <Camera size={24} />
-                      <span className="text-[10px] font-medium">Add</span>
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700">Location</label>
-            <select 
-              value={formData.location}
-              onChange={e => setFormData({...formData, location: e.target.value})}
-              className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
-            >
-              <option value="Ifite">Ifite</option>
-              <option value="Amansea">Amansea</option>
-              <option value="Temp Site">Temp Site</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700">Price (Min/Base)</label>
-            <div className="relative">
-              <span className="absolute left-4 top-4 font-bold text-gray-400">₦</span>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Lodge Title</label>
               <input 
-                type="number" 
-                value={formData.price}
-                onChange={e => setFormData({...formData, price: e.target.value})}
-                placeholder="0.00"
-                className="w-full p-4 pl-10 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"
+                type="text" 
+                value={formData.title}
+                onChange={e => setFormData({...formData, title: e.target.value})}
+                className="w-full p-4 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Area / Location</label>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-4 text-gray-400" size={18} />
+                <select 
+                  value={formData.location}
+                  onChange={e => setFormData({...formData, location: e.target.value})}
+                  className="w-full p-4 pl-12 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none appearance-none font-medium"
+                >
+                  <option value="Ifite">Ifite</option>
+                  <option value="Amansea">Amansea</option>
+                  <option value="Temp Site">Temp Site</option>
+                  <option value="Okpuno">Okpuno</option>
+                  <option value="Agu-Awka">Agu-Awka</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Description</label>
+              <textarea 
+                value={formData.description}
+                onChange={e => setFormData({...formData, description: e.target.value})}
+                rows={4}
+                className="w-full p-4 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all font-medium"
               />
             </div>
           </div>
-          <button 
-            onClick={handleNext}
-            disabled={!formData.title || !formData.price || formData.image_urls.length === 0}
-            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 mt-4 disabled:opacity-50"
-          >
-            Continue
-          </button>
-        </div>
-      )}
+        </section>
 
-      {step === 2 && (
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700">Description</label>
-            <textarea 
-              value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
-              placeholder="Tell students about the lodge..."
-              className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"
-              rows={3}
-            />
+        {/* Photos Section */}
+        <section className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-6">
+          <div className="flex items-center gap-2 text-blue-600 mb-2">
+            <ImageIcon size={20} />
+            <h2 className="font-bold text-lg">Lodge Photos</h2>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700">Amenities</label>
-            <div className="grid grid-cols-2 gap-3">
-              {['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'].map((item) => (
+          
+          <div className="grid grid-cols-3 gap-3">
+            {formData.image_urls.map((img, idx) => (
+              <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group">
+                <img src={img} className="w-full h-full object-cover" alt="" />
+                <button 
+                  onClick={() => setFormData(p => ({...p, image_urls: p.image_urls.filter((_, i) => i !== idx)}))}
+                  className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            {formData.image_urls.length < 10 && (
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 gap-2 hover:bg-gray-50 transition-colors"
+              >
+                {uploading ? <Loader2 className="animate-spin" size={24} /> : <><Camera size={24} /><span className="text-[10px] font-bold">ADD PHOTO</span></>}
+              </button>
+            )}
+          </div>
+          <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+        </section>
+
+        {/* Amenities Section */}
+        <section className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
+          <h2 className="font-bold text-lg mb-6">Lodge Amenities</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'].map((item) => {
+              const isSelected = formData.amenities.includes(item);
+              return (
                 <div 
                   key={item} 
-                  onClick={() => toggleAmenity(item)}
-                  className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-colors ${
-                    formData.amenities.includes(item) 
-                      ? 'bg-blue-50 border-blue-500' 
-                      : 'bg-white border-gray-100'
+                  onClick={() => setFormData(p => ({
+                    ...p, 
+                    amenities: isSelected ? p.amenities.filter(i => i !== item) : [...p.amenities, item]
+                  }))}
+                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${
+                    isSelected ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-100' : 'bg-white border-gray-100'
                   }`}
                 >
-                  <div className={`w-5 h-5 rounded border flex items-center justify-center ${
-                    formData.amenities.includes(item) ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                  <span className={`text-sm font-bold ${isSelected ? 'text-blue-700' : 'text-gray-600'}`}>{item}</span>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                    isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-200'
                   }`}>
-                    {formData.amenities.includes(item) && <CheckCircle2 size={14} className="text-white" />}
+                    {isSelected && <CheckCircle2 size={12} className="text-white" />}
                   </div>
-                  <span className="text-sm text-gray-600">{item}</span>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Inventory Section */}
+        <section className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-blue-600">
+              <LayoutGrid size={20} />
+              <h2 className="font-bold text-lg">Room Types & Vacancy</h2>
             </div>
+            <span className="text-[10px] font-black text-orange-500 bg-orange-50 px-2 py-1 rounded-lg uppercase">Live Updates</span>
           </div>
-          <div className="flex gap-4">
-            <button 
-              onClick={handleBack}
-              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold"
-            >
-              Back
-            </button>
-            <button 
-              onClick={handleNext}
-              className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200"
-            >
-              Manage Units
-            </button>
-          </div>
-        </div>
-      )}
 
-      {step === 3 && (
-        <div className="space-y-6">
-          <h2 className="text-lg font-bold text-gray-900">Room Types & Availability</h2>
-          <p className="text-sm text-gray-500">Manage different types of rooms available in this lodge.</p>
-
-          <div className="space-y-4">
+          <div className="space-y-3">
             {currentUnits.map((unit) => (
-              <div key={unit.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex justify-between items-center">
+              <div key={unit.id} className="bg-gray-50 p-4 rounded-2xl flex justify-between items-center border border-gray-100">
                 <div>
-                  <h3 className="font-bold text-gray-900">{unit.name}</h3>
-                  <div className="text-sm text-gray-500">
-                    ₦{unit.price.toLocaleString()} • {unit.available_units} / {unit.total_units} left
-                  </div>
+                  <h3 className="font-bold text-gray-900 text-sm">{unit.name}</h3>
+                  <p className="text-xs text-blue-600 font-bold">₦{unit.price.toLocaleString()} • {unit.available_units}/{unit.total_units} left</p>
                 </div>
-                <button 
-                  onClick={() => handleDeleteUnit(unit.id)}
-                  className="p-2 text-gray-400 hover:text-red-500 bg-gray-50 rounded-full"
-                >
-                  <Trash2 size={16} />
+                <button onClick={() => confirm('Delete this room type?') && deleteUnit(unit.id)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
+                  <Trash2 size={18} />
                 </button>
               </div>
             ))}
           </div>
 
-          <div className="bg-gray-50 p-4 rounded-2xl space-y-3">
-            <h3 className="text-sm font-bold text-gray-700">Add New Room Type</h3>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Room Category</label>
-                <select 
-                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 appearance-none shadow-sm"
-                  value={showCustomType ? 'custom' : newUnit.name}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === 'custom') {
-                      setShowCustomType(true);
-                      setNewUnit({ ...newUnit, name: '' });
-                    } else {
-                      setShowCustomType(false);
-                      setNewUnit({ ...newUnit, name: val });
-                    }
-                  }}
-                >
-                  <option value="" disabled>Select Room Type...</option>
-                  {ROOM_TYPE_PRESETS.map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                  <option value="custom">Describe your Own / Other</option>
-                </select>
-              </div>
+          {/* Add Unit Form */}
+          <div className="pt-4 border-t border-gray-50 space-y-4">
+            <p className="text-xs font-bold text-gray-400 uppercase">Add a New Room Type</p>
+            <div className="grid grid-cols-1 gap-4">
+              <select 
+                className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:border-blue-500"
+                value={showCustomType ? 'custom' : newUnit.name}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'custom') { setShowCustomType(true); setNewUnit({ ...newUnit, name: '' }); }
+                  else { setShowCustomType(false); setNewUnit({ ...newUnit, name: val }); }
+                }}
+              >
+                <option value="" disabled>Select Room Type...</option>
+                {ROOM_TYPE_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
+                <option value="custom">Other / Custom</option>
+              </select>
 
               {showCustomType && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Custom Description</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Shop-as-Room with Balcony" 
-                    value={newUnit.name} 
-                    onChange={e => setNewUnit({...newUnit, name: e.target.value})} 
-                    className="w-full p-4 bg-white border border-blue-200 rounded-2xl text-sm outline-none shadow-sm"
-                    autoFocus
-                  />
-                </div>
+                <input 
+                  type="text" placeholder="Custom Description" value={newUnit.name} 
+                  onChange={e => setNewUnit({...newUnit, name: e.target.value})} 
+                  className="w-full p-4 bg-gray-50 border border-blue-200 rounded-2xl text-sm outline-none"
+                />
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Price (₦)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3.5 text-gray-400 text-sm">₦</span>
-                    <input 
-                      type="number" 
-                      placeholder="per year" 
-                      value={newUnit.price} 
-                      onChange={e => setNewUnit({...newUnit, price: e.target.value})} 
-                      className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm" 
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Quantity</label>
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <span className="absolute left-4 top-4 text-gray-400 text-sm">₦</span>
                   <input 
-                    type="number" 
-                    placeholder="Qty"
-                    value={newUnit.total_units}
+                    type="number" placeholder="Price" value={newUnit.price} 
+                    onChange={e => setNewUnit({...newUnit, price: e.target.value})} 
+                    className="w-full p-4 pl-8 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:border-blue-500"
+                  />
+                </div>
+                <div className="w-24">
+                  <input 
+                    type="number" placeholder="Qty" value={newUnit.total_units}
                     onChange={e => setNewUnit({...newUnit, total_units: e.target.value})}
-                    className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm"
+                    className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl text-sm outline-none focus:bg-white focus:border-blue-500 text-center"
                   />
                 </div>
               </div>
+              
               <button 
                 onClick={handleAddUnit}
                 disabled={!newUnit.name || !newUnit.price}
-                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 transition-transform"
+                className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
               >
-                <Plus size={16} /> Add Unit
+                <Plus size={18} /> Add Room Type
               </button>
             </div>
           </div>
+        </section>
+      </div>
 
-          <div className="flex gap-4 pt-4">
-            <button 
-              onClick={handleBack}
-              className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold"
-            >
-              Back
-            </button>
-            <button 
-              onClick={handleNext}
-              className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200"
-            >
-              Review
-            </button>
-          </div>
-        </div>
-      )}
-
-      {step === 4 && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
-            <CheckCircle2 size={48} />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Review Changes</h2>
-          <p className="text-gray-500 mb-8 max-w-xs">
-            Review your changes before saving.
-          </p>
-          <div className="w-full space-y-4">
-            <button 
-              onClick={handleSubmit}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200"
-            >
-              Save Changes
-            </button>
-            <button 
-              onClick={handleBack}
-              className="w-full py-4 bg-white text-gray-500 font-bold"
-            >
-              Back to Edit
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Floating Save FAB for Mobile */}
+      <div className="fixed bottom-6 left-4 right-4 z-40 sm:hidden">
+        <button 
+          onClick={handleSubmit}
+          disabled={saving || !formData.title}
+          className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-2xl shadow-blue-300 flex items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+          {saving ? <Loader2 className="animate-spin" size={20} /> : <><Save size={20} /> Save All Changes</>}
+        </button>
+      </div>
     </div>
   );
 }
