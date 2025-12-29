@@ -285,8 +285,22 @@ export default function SearchPage() {
                 <SearchIcon size={32} />
               </div>
               <h3 className="text-lg font-bold text-gray-900">No matches found</h3>
-              <p className="text-gray-500 text-sm max-w-[200px] mt-2">Try adjusting your filters or search query.</p>
-              <button onClick={clearFilters} className="mt-6 text-blue-600 font-bold text-sm">Clear all filters</button>
+              <p className="text-gray-500 text-sm max-w-[200px] mt-2">Try adjusting your filters or try searching for:</p>
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
+                {['Ifite', 'Amansea', 'Self-con', 'Flat'].map(tag => (
+                  <button 
+                    key={tag} 
+                    onClick={() => {
+                      if (tag === 'Self-con' || tag === 'Flat') setFilters({...filters, roomType: tag});
+                      else setQuery(tag);
+                    }}
+                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-blue-600 shadow-sm active:scale-95 transition-all"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+              <button onClick={clearFilters} className="mt-8 text-gray-400 font-bold text-xs underline">Clear all filters</button>
             </div>
           )}
         </div>

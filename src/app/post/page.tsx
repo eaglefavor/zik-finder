@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw, Plus, Trash2, Image as ImageIcon, Share2, Eye, CheckCircle } from 'lucide-react';
+import { Camera, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw, Plus, Trash2, Share2, Eye, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';

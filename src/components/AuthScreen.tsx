@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
-import { Home, Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw, MessageCircle } from 'lucide-react';
+import { Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw, MessageCircle } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
 export default function AuthScreen() {
@@ -47,8 +47,8 @@ export default function AuthScreen() {
         },
       });
       if (error) throw error;
-    } catch (err: any) {
-      alert('Error connecting to Google: ' + err.message);
+    } catch (err: unknown) {
+      alert('Error connecting to Google: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 

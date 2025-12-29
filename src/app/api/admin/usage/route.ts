@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import cloudinary from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing Authorization header' }, { status: 401 });
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
@@ -56,33 +56,30 @@ export async function GET(request: Request) {
         if (result.storage?.limit) plan_limit = result.storage.limit;
         console.log('Cloudinary usage fetched:', storage_usage);
       }
-    } catch (err: any) {
-      console.error('Cloudinary Usage Error:', err.message || err);
+    } catch (err: unknown) {
+      console.error('Cloudinary Usage Error:', err instanceof Error ? err.message : err);
       // Don't fail, just keep 0
     }
 
     // 3. Fetch Supabase Usage
     try {
       console.log('Fetching Supabase storage metadata...');
-      const storageQuery = (supabase as any)
+      // Accessing the storage schema
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: files, error: storageError } = await (supabase as SupabaseClient<any, 'storage'>)
         .from('objects')
-        .select('metadata')
-        .schema('storage');
-        
-      const storageResponse = await storageQuery;
-      const files = storageResponse.data;
-      const storageError = storageResponse.error;
+        .select('metadata');
 
       if (!storageError && files && Array.isArray(files)) {
-        supabaseSize = files.reduce((acc: number, file: any) => {
+        supabaseSize = files.reduce((acc: number, file: { metadata?: { size?: number } }) => {
           return acc + (file.metadata?.size || 0);
         }, 0);
         console.log('Supabase usage calculated:', supabaseSize);
       } else {
         console.error('Supabase Storage Query Error:', storageError);
       }
-    } catch (err: any) {
-      console.error('Supabase Usage Calculation Error:', err.message || err);
+    } catch (err: unknown) {
+      console.error('Supabase Usage Calculation Error:', err instanceof Error ? err.message : err);
     }
 
     return NextResponse.json({
@@ -96,8 +93,8 @@ export async function GET(request: Request) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Usage Monitor Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
   }
 }

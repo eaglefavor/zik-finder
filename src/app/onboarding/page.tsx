@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
-import { User, Phone, CheckCircle, Loader2, MessageCircle } from 'lucide-react';
+import { User, Phone, Loader2, MessageCircle } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
 export default function OnboardingPage() {
@@ -45,8 +45,8 @@ export default function OnboardingPage() {
       // but a simple reload ensures the context gets the fresh data.
       window.location.href = '/';
       
-    } catch (err: any) {
-      alert('Error updating profile: ' + err.message);
+    } catch (err: unknown) {
+      alert('Error updating profile: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setLoading(false);
     }
   };
@@ -109,7 +109,7 @@ export default function OnboardingPage() {
               />
             </div>
             <p className="text-[10px] text-gray-400 mt-1 ml-2">
-              Used for WhatsApp communication ("I have a lodge for you").
+              Used for WhatsApp communication (&quot;I have a lodge for you&quot;).
             </p>
           </div>
 

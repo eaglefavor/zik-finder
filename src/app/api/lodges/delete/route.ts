@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     // 2. Collect ALL unique image URLs (Lodge + Units)
     const allUrls = [...(lodge.image_urls || [])];
     if (lodge.lodge_units) {
-      lodge.lodge_units.forEach((unit: any) => {
+      lodge.lodge_units.forEach((unit: { image_urls: string[] }) => {
         if (unit.image_urls) allUrls.push(...unit.image_urls);
       });
     }
@@ -61,11 +61,11 @@ export async function POST(request: Request) {
         const filename = parts.pop();
         if (!filename) return null;
         return filename.split('.')[0]; 
-      }))).filter(Boolean);
+      }))).filter((id): id is string => id !== null);
 
       if (publicIds.length > 0) {
         try {
-            await cloudinary.api.delete_resources(publicIds as string[]);
+            await cloudinary.api.delete_resources(publicIds);
         } catch (cloudError) {
             console.error('Cloudinary delete error (continuing...):', cloudError);
         }
@@ -81,8 +81,8 @@ export async function POST(request: Request) {
     
     return NextResponse.json({ success: true });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Delete error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
   }
 }

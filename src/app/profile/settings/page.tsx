@@ -67,9 +67,9 @@ export default function AccountSettingsPage() {
 
         setPreviewUrl(secureUrl);
         setFormData(prev => ({ ...prev, avatar_url: secureUrl }));
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error uploading avatar:', err);
-        alert('Failed to upload image: ' + err.message);
+        alert('Failed to upload image: ' + (err instanceof Error ? err.message : 'Unknown error'));
       } finally {
         setUploading(false);
       }
@@ -104,8 +104,8 @@ export default function AccountSettingsPage() {
       await refreshProfile();
       alert('Profile updated successfully!');
       router.back();
-    } catch (err: any) {
-      alert('Error updating profile: ' + err.message);
+    } catch (err: unknown) {
+      alert('Error updating profile: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }

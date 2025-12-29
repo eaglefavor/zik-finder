@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
+import Script from 'next/script';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -39,8 +41,10 @@ export default function RootLayout({
             <BottomNav />
           </DataProvider>
         </AppProvider>
-        <script src="//cdn.jsdelivr.net/npm/eruda"></script>
-        <script dangerouslySetInnerHTML={{ __html: 'eruda.init();' }} />
+        <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="lazyOnload" />
+        <Script id="eruda-init" strategy="lazyOnload">
+          {`eruda.init();`}
+        </Script>
       </body>
     </html>
   );

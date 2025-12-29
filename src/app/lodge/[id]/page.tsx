@@ -30,9 +30,11 @@ export default function LodgeDetail() {
     // If lodge has units, select the first available one by default
     if (lodge?.units && lodge.units.length > 0) {
       const firstAvailable = lodge.units.find(u => u.available_units > 0);
-      if (firstAvailable) setSelectedUnit(firstAvailable);
+      if (firstAvailable && selectedUnit?.id !== firstAvailable.id) {
+        setTimeout(() => setSelectedUnit(firstAvailable), 0);
+      }
     }
-  }, [lodge]);
+  }, [lodge, selectedUnit?.id]);
 
   if (!lodge) {
     return (
@@ -258,7 +260,7 @@ export default function LodgeDetail() {
                   type: 'info',
                   link: `/lodge/${lodge.id}`
                 });
-              } catch (err: any) {
+              } catch (err: unknown) {
                 console.error('Failed to notify landlord', err);
               }
             }
@@ -294,7 +296,7 @@ export default function LodgeDetail() {
                   type: 'info',
                   link: `/lodge/${lodge.id}`
                 });
-              } catch (err: any) {
+              } catch (err: unknown) {
                 console.error('Failed to notify landlord', err);
               }
             }

@@ -56,7 +56,7 @@ export default function MarketRequests() {
       {role === 'student' && !requests.some(r => r.student_id === user?.id) && (
         <div className="bg-blue-50 p-5 rounded-3xl mb-6 border border-blue-100">
           <p className="text-sm text-blue-700 leading-relaxed mb-3">
-            Can't find a lodge? Post a request so landlords can contact you!
+            Can&apos;t find a lodge? Post a request so landlords can contact you!
           </p>
           <Link href="/requests/new" className="inline-block bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">
             Create Request
@@ -107,7 +107,7 @@ export default function MarketRequests() {
               </div>
 
               <p className="text-sm text-gray-600 bg-gray-50 p-4 rounded-2xl mb-4 italic">
-                "{request.description}"
+                &quot;{request.description}&quot;
               </p>
 
               {(role === 'landlord' || role === 'admin') && (

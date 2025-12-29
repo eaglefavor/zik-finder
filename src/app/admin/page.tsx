@@ -1,10 +1,11 @@
 'use client';
 
 import { useAppContext } from '@/lib/context';
+import { useData } from '@/lib/data-context';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon } from 'lucide-react';
 
 interface VerificationDoc {
   id: string;
@@ -21,25 +22,25 @@ interface VerificationDoc {
 
 export default function AdminPage() {
   const { user, role, isLoading: authLoading } = useAppContext();
+  const { lodges, deleteLodge, updateLodgeStatus } = useData();
   const router = useRouter();
+  
+  const [activeTab, setActiveTab] = useState<'stats' | 'verifications' | 'lodges' | 'broadcast'>('stats');
   const [docs, setDocs] = useState<VerificationDoc[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Broadcast state
+  const [broadcast, setBroadcast] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error',
+    target: 'all' as 'all' | 'landlord' | 'student'
+  });
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
 
   const [usage, setUsage] = useState<{ cloudinary: { used: number, limit: number }, supabase: { used: number, limit: number } } | null>(null);
 
-  useEffect(() => {
-    if (!authLoading) {
-      if (!user || role !== 'admin') {
-        router.push('/');
-        return;
-      }
-      fetchPendingDocs();
-      fetchUsage();
-    }
-  }, [user, role, authLoading, router]);
-
-  const fetchUsage = async () => {
+  const fetchUsage = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
@@ -53,11 +54,10 @@ export default function AdminPage() {
     } catch (err) {
       console.error('Failed to fetch usage stats', err);
     }
-  };
+  }, []);
 
-  const fetchPendingDocs = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchPendingDocs = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const { data, error: fetchError } = await supabase
       .from('verification_docs')
       .select('*, profiles(name)')
@@ -66,15 +66,29 @@ export default function AdminPage() {
 
     if (fetchError) {
       console.error('Error fetching docs:', fetchError);
-      setError(fetchError.message);
     } else if (data) {
       setDocs(data as unknown as VerificationDoc[]);
     }
     
     // Also refresh usage stats when refreshing the list
     await fetchUsage();
-    setLoading(false);
-  };
+    if (!silent) setLoading(false);
+  }, [fetchUsage]);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user || role !== 'admin') {
+        router.push('/');
+        return;
+      }
+      
+      // Defer execution to avoid synchronous setState in effect
+      setTimeout(() => {
+        fetchPendingDocs(true);
+        fetchUsage();
+      }, 0);
+    }
+  }, [user, role, authLoading, router, fetchPendingDocs, fetchUsage]);
 
   // Helper to format bytes
   const formatBytes = (bytes: number) => {
@@ -174,15 +188,52 @@ export default function AdminPage() {
         alert('File path is missing');
         return;
     }
-    const { data, error } = await supabase
+    const { data, error: signedUrlError } = await supabase
       .storage
       .from('secure-docs')
       .createSignedUrl(path, 60 * 60); // 1 hour expiry
 
+    if (signedUrlError) {
+      console.error('Error generating signed URL:', signedUrlError);
+      alert('Error generating signed URL: ' + signedUrlError.message);
+      return;
+    }
+
     if (data?.signedUrl) {
       window.open(data.signedUrl, '_blank');
     } else {
-      alert('Error generating signed URL');
+      alert('Error: Signed URL not generated');
+    }
+  };
+
+  const handleAdminLodgeDelete = async (lodgeId: string) => {
+    if (!confirm('ADMIN: Are you sure you want to PERMANENTLY DELETE this lodge? This cannot be undone.')) return;
+    await deleteLodge(lodgeId);
+  };
+
+  const handleSendBroadcast = async () => {
+    if (!broadcast.title || !broadcast.message) {
+      alert('Please provide both title and message.');
+      return;
+    }
+
+    setSendingBroadcast(true);
+    try {
+      const { error } = await supabase.rpc('broadcast_notification', {
+        p_title: broadcast.title,
+        p_message: broadcast.message,
+        p_type: broadcast.type,
+        p_target_role: broadcast.target
+      });
+
+      if (error) throw error;
+
+      alert('Broadcast sent successfully!');
+      setBroadcast({ ...broadcast, title: '', message: '' });
+    } catch (err: unknown) {
+      alert('Error sending broadcast: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setSendingBroadcast(false);
     }
   };
 
@@ -195,154 +246,241 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+    <div className="px-4 py-6 pb-24">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Admin</h1>
         <button 
-          onClick={fetchPendingDocs}
-          className="p-2 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors"
-          title="Refresh List"
+          onClick={() => fetchPendingDocs()}
+          className="p-2.5 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors"
         >
           <Loader2 size={20} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
+
+      {/* Admin Tabs */}
+      <div className="flex bg-gray-100 p-1 rounded-2xl mb-8">
+        <button 
+          onClick={() => setActiveTab('stats')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'stats' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+        >
+          <LayoutDashboard size={16} /> Stats
+        </button>
+        <button 
+          onClick={() => setActiveTab('verifications')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'verifications' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+        >
+          <CheckCircle size={16} /> Verify
+          {docs.length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+        </button>
+        <button 
+          onClick={() => setActiveTab('lodges')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'lodges' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+        >
+          <Building size={16} /> Lodges
+        </button>
+        <button 
+          onClick={() => setActiveTab('broadcast')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'broadcast' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+        >
+          <Megaphone size={16} /> Alert
+        </button>
+      </div>
       
-      <div className="space-y-6">
-        {/* Usage Monitor Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {/* Cloudinary Card */}
-          <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-900">Cloudinary Media</h3>
-              <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase">Storage</span>
-            </div>
-            
-            {!usage ? (
-              <div className="h-20 flex items-center justify-center">
-                <Loader2 className="animate-spin text-gray-300" size={20} />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <div className="text-2xl font-black text-gray-900">
-                    {formatBytes(usage.cloudinary.used)}
-                  </div>
-                  <div className="text-xs font-bold text-gray-400 uppercase">
-                    of {formatBytes(usage.cloudinary.limit)}
-                  </div>
-                </div>
-                
-                <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div 
-                    className={`absolute top-0 left-0 h-full transition-all duration-1000 ${getProgressColor((usage.cloudinary.used / usage.cloudinary.limit) * 100)}`}
-                    style={{ width: `${Math.min(100, (usage.cloudinary.used / usage.cloudinary.limit) * 100)}%` }}
-                  />
-                </div>
-                
-                <div className="text-[10px] font-bold text-gray-400">
-                  {((usage.cloudinary.used / usage.cloudinary.limit) * 100).toFixed(1)}% Capacity Used
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Supabase Card */}
-          <div className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-900">Supabase Storage</h3>
-              <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg uppercase">DB & Docs</span>
-            </div>
-            
-            {!usage ? (
-              <div className="h-20 flex items-center justify-center">
-                <Loader2 className="animate-spin text-gray-300" size={20} />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <div className="text-2xl font-black text-gray-900">
-                    {formatBytes(usage.supabase.used)}
-                  </div>
-                  <div className="text-xs font-bold text-gray-400 uppercase">
-                    of {formatBytes(usage.supabase.limit)}
-                  </div>
-                </div>
-                
-                <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div 
-                    className={`absolute top-0 left-0 h-full transition-all duration-1000 ${getProgressColor((usage.supabase.used / usage.supabase.limit) * 100)}`}
-                    style={{ width: `${Math.min(100, (usage.supabase.used / usage.supabase.limit) * 100)}%` }}
-                  />
-                </div>
-                
-                <div className="text-[10px] font-bold text-gray-400">
-                  {((usage.supabase.used / usage.supabase.limit) * 100).toFixed(1)}% Capacity Used
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <h2 className="text-lg font-bold text-gray-700">Pending Verifications</h2>
+      <div className="space-y-6 animate-in fade-in duration-500">
         
-        {error && (
-          <div className="p-4 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-sm font-bold">
-            Error: {error}
+        {activeTab === 'stats' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Cloudinary Card */}
+              <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-gray-900">Cloudinary</h3>
+                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg uppercase">Media</span>
+                </div>
+                {!usage ? <div className="h-20 flex items-center justify-center"><Loader2 className="animate-spin text-gray-200" size={20} /></div> : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div className="text-2xl font-black text-gray-900">{formatBytes(usage.cloudinary.used)}</div>
+                      <div className="text-xs font-bold text-gray-400 uppercase">of {formatBytes(usage.cloudinary.limit)}</div>
+                    </div>
+                    <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ${getProgressColor((usage.cloudinary.used / usage.cloudinary.limit) * 100)}`} style={{ width: `${Math.min(100, (usage.cloudinary.used / usage.cloudinary.limit) * 100)}%` }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Supabase Card */}
+              <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-gray-900">Supabase</h3>
+                  <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg uppercase">Storage</span>
+                </div>
+                {!usage ? <div className="h-20 flex items-center justify-center"><Loader2 className="animate-spin text-gray-200" size={20} /></div> : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div className="text-2xl font-black text-gray-900">{formatBytes(usage.supabase.used)}</div>
+                      <div className="text-xs font-bold text-gray-400 uppercase">of {formatBytes(usage.supabase.limit)}</div>
+                    </div>
+                    <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ${getProgressColor((usage.supabase.used / usage.supabase.limit) * 100)}`} style={{ width: `${Math.min(100, (usage.supabase.used / usage.supabase.limit) * 100)}%` }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-blue-600 p-6 rounded-[32px] text-white shadow-xl shadow-blue-100">
+               <h3 className="font-bold opacity-80 uppercase text-[10px] tracking-widest mb-1">System Health</h3>
+               <div className="text-3xl font-black mb-4">All Systems Operational</div>
+               <div className="flex gap-4">
+                  <div className="bg-white/10 px-4 py-2 rounded-2xl flex-1 border border-white/10">
+                     <div className="text-xl font-bold">{lodges.length}</div>
+                     <div className="text-[10px] font-bold opacity-60">Total Lodges</div>
+                  </div>
+                  <div className="bg-white/10 px-4 py-2 rounded-2xl flex-1 border border-white/10">
+                     <div className="text-xl font-bold">{docs.length}</div>
+                     <div className="text-[10px] font-bold opacity-60">Pending Docs</div>
+                  </div>
+               </div>
+            </div>
           </div>
         )}
-        
-        {docs.length === 0 && !error ? (
-          <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-500">
-            No pending verifications.
+
+        {activeTab === 'verifications' && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Pending Landlords</h2>
+            {docs.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-[32px] border border-dashed border-gray-200 text-gray-400 font-bold">
+                No pending verifications.
+              </div>
+            ) : (
+              docs.map((doc) => (
+                <div key={doc.id} className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{doc.profiles?.name || 'Unknown User'}</h3>
+                      <p className="text-xs text-gray-400 mt-1 uppercase font-black tracking-tighter">Submitted: {new Date(doc.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <span className="bg-yellow-50 text-yellow-600 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">Pending</span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                        <button onClick={() => getSignedUrl(doc.id_card_path)} className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-600 rounded-2xl text-xs font-bold active:scale-95 transition-all"><ExternalLink size={14} /> ID Card</button>
+                        {doc.selfie_path && <button onClick={() => getSignedUrl(doc.selfie_path!)} className="flex-1 flex items-center justify-center gap-2 py-3 bg-purple-50 text-purple-600 rounded-2xl text-xs font-bold active:scale-95 transition-all"><ExternalLink size={14} /> Selfie</button>}
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                        <button onClick={() => handleReject(doc.id, doc.landlord_id)} className="flex-1 py-4 border border-red-100 text-red-600 rounded-2xl text-sm font-bold active:scale-95 transition-all">Reject</button>
+                        <button onClick={() => handleApprove(doc.id, doc.landlord_id)} className="flex-[2] py-4 bg-green-600 text-white rounded-2xl text-sm font-bold active:scale-95 transition-all shadow-lg shadow-green-100">Approve Landlord</button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        ) : (
-          docs.map((doc) => (
-            <div key={doc.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-bold text-gray-900">{doc.profiles?.name || 'Unknown User'}</h3>
-                  <p className="text-xs text-gray-400 mt-1">Submitted: {new Date(doc.created_at).toLocaleDateString()}</p>
-                </div>
-                <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded-full uppercase">
-                  Pending
-                </span>
+        )}
+
+        {activeTab === 'lodges' && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Moderate Listings</h2>
+            {lodges.length === 0 ? <p className="text-center py-10 text-gray-400">No lodges in system.</p> : (
+              <div className="space-y-3">
+                {lodges.map(l => (
+                  <div key={l.id} className="bg-white p-4 rounded-[24px] border border-gray-100 flex items-center gap-4 shadow-sm">
+                    <img src={l.image_urls[0]} className="w-12 h-12 rounded-xl object-cover" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-900 truncate">{l.title}</div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase">{l.location} • ₦{l.price.toLocaleString()}</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => updateLodgeStatus(l.id, l.status === 'available' ? 'taken' : 'available')}
+                        className={`p-2 rounded-full ${l.status === 'available' ? 'text-green-500 bg-green-50' : 'text-gray-400 bg-gray-50'}`}
+                        title={l.status === 'available' ? 'Public' : 'Hidden'}
+                      >
+                        {l.status === 'available' ? <Eye size={18} /> : <EyeOff size={18} />}
+                      </button>
+                      <button 
+                        onClick={() => handleAdminLodgeDelete(l.id)}
+                        className="p-2 text-red-400 bg-red-50 rounded-full hover:bg-red-100 transition-colors"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <div className="flex flex-col gap-2">
-                <div className="flex gap-2">
-                    <button 
-                    onClick={() => getSignedUrl(doc.id_card_path)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold active:scale-95 transition-transform"
-                    >
-                    <ExternalLink size={14} /> View ID Card
-                    </button>
-                    {doc.selfie_path && (
-                        <button 
-                        onClick={() => getSignedUrl(doc.selfie_path!)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-purple-50 text-purple-600 rounded-xl text-xs font-bold active:scale-95 transition-transform"
-                        >
-                        <ExternalLink size={14} /> View Selfie
-                        </button>
-                    )}
-                </div>
-                
-                <div className="flex gap-2 mt-2">
-                    <button 
-                    onClick={() => handleReject(doc.id, doc.landlord_id)}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-red-100 text-red-600 rounded-xl text-sm font-bold active:scale-95 transition-transform"
-                    >
-                    <XCircle size={16} /> Reject
-                    </button>
-                    <button 
-                    onClick={() => handleApprove(doc.id, doc.landlord_id)}
-                    className="flex-[2] flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl text-sm font-bold active:scale-95 transition-transform shadow-lg shadow-green-200"
-                    >
-                    <CheckCircle size={16} /> Approve Landlord
-                    </button>
-                </div>
-              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'broadcast' && (
+          <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Global Broadcast</h2>
+              <p className="text-xs text-gray-500">Send an instant notification to many users.</p>
             </div>
-          ))
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  onClick={() => setBroadcast({...broadcast, target: 'all'})}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold border transition-all ${broadcast.target === 'all' ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border-gray-100'}`}
+                >
+                  <Globe size={14} /> All Users
+                </button>
+                <button 
+                  onClick={() => setBroadcast({...broadcast, target: 'landlord'})}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold border transition-all ${broadcast.target === 'landlord' ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border-gray-100'}`}
+                >
+                  <UsersIcon size={14} /> Landlords
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Notification Title</label>
+                <input 
+                  type="text" 
+                  value={broadcast.title}
+                  onChange={e => setBroadcast({...broadcast, title: e.target.value})}
+                  placeholder="e.g. Maintenance Update"
+                  className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all font-bold text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Message Body</label>
+                <textarea 
+                  value={broadcast.message}
+                  onChange={e => setBroadcast({...broadcast, message: e.target.value})}
+                  placeholder="Write your message here..."
+                  rows={4}
+                  className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                {(['info', 'success', 'warning', 'error'] as const).map(t => (
+                  <button 
+                    key={t}
+                    onClick={() => setBroadcast({...broadcast, type: t})}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase border transition-all ${broadcast.type === t ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white text-gray-400 border-gray-100'}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                onClick={handleSendBroadcast}
+                disabled={sendingBroadcast || !broadcast.title || !broadcast.message}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl shadow-blue-100 mt-4"
+              >
+                {sendingBroadcast ? <Loader2 className="animate-spin" size={20} /> : <><Send size={20} /> Send Broadcast</>}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

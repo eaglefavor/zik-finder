@@ -81,7 +81,7 @@ export default function NewRequest() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-blue-50 p-5 rounded-3xl mb-4 border border-blue-100">
           <p className="text-sm text-blue-700 leading-relaxed">
-            Can't find what you need? Post a request and landlords with matching lodges will contact you directly.
+            Can&apos;t find what you need? Post a request and landlords with matching lodges will contact you directly.
           </p>
         </div>
 

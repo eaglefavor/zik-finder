@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import { UserRole, Profile } from './types';
 import { supabase } from './supabase';
 import { usePathname, useRouter } from 'next/navigation';
@@ -79,7 +79,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    let profileSubscription: any = null;
+    let profileSubscription: RealtimeChannel | null = null;
 
     // Check active sessions
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -97,8 +97,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             filter: `id=eq.${userId}` 
           }, (payload) => {
             console.log('Profile updated via Realtime:', payload.new);
-            setUser(payload.new as Profile);
-            setRole((payload.new as Profile).role);
+            const updatedProfile = payload.new as Profile;
+            setUser(updatedProfile);
+            setRole(updatedProfile.role);
           })
           .subscribe();
       } else {
@@ -123,8 +124,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             filter: `id=eq.${userId}` 
           }, (payload) => {
             console.log('Profile updated via Realtime:', payload.new);
-            setUser(payload.new as Profile);
-            setRole((payload.new as Profile).role);
+            const updatedProfile = payload.new as Profile;
+            setUser(updatedProfile);
+            setRole(updatedProfile.role);
           })
           .subscribe();
 

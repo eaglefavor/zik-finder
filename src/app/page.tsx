@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import AuthScreen from '@/components/AuthScreen';
+import { Lodge } from '@/lib/types';
 
 const AdminLink = ({ role }: { role: string }) => (
   role === 'admin' ? (
@@ -54,7 +55,7 @@ export default function Home() {
     }
   };
 
-  const handleCall = async (lodge: any) => {
+  const handleCall = async (lodge: Lodge) => {
     setLoadingCallId(lodge.id);
     if (user) {
       try {
@@ -65,7 +66,7 @@ export default function Home() {
           type: 'info',
           link: `/lodge/${lodge.id}`
         });
-      } catch (e) { console.error(e); }
+      } catch (err: unknown) { console.error(err); }
     }
     // Artificial delay for visual feedback
     await new Promise(r => setTimeout(r, 600));
@@ -73,7 +74,7 @@ export default function Home() {
     setTimeout(() => setLoadingCallId(null), 2000);
   };
 
-  const handleWhatsApp = async (lodge: any) => {
+  const handleWhatsApp = async (lodge: Lodge) => {
     setLoadingMsgId(lodge.id);
     if (user) {
       try {
@@ -84,7 +85,7 @@ export default function Home() {
           type: 'info',
           link: `/lodge/${lodge.id}`
         });
-      } catch (e) { console.error(e); }
+      } catch (err: unknown) { console.error(err); }
     }
     await new Promise(r => setTimeout(r, 600));
     window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`);
@@ -247,7 +248,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-            <p className="text-gray-500 mb-4">You haven't posted any lodges yet.</p>
+            <p className="text-gray-500 mb-4">You haven&apos;t posted any lodges yet.</p>
             <Link href="/post" className="inline-block bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">Post your first Lodge</Link>
           </div>
         )}
@@ -455,7 +456,7 @@ export default function Home() {
               <MapPin size={32} />
             </div>
             <h3 className="text-lg font-bold text-gray-900">No lodges available</h3>
-            <p className="text-gray-500 text-sm max-w-[200px] mt-2">We couldn't find any lodges at the moment. Please check back later.</p>
+            <p className="text-gray-500 text-sm max-w-[200px] mt-2">We couldn&apos;t find any lodges at the moment. Please check back later.</p>
           </div>
         )}
       </div>

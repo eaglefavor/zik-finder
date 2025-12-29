@@ -38,9 +38,9 @@ export default function ProfilePage() {
 
       await logout();
       router.push('/');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting account:', error);
-      alert('Failed to delete account: ' + error.message);
+      alert('Failed to delete account: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -97,7 +97,7 @@ export default function ProfilePage() {
   );
 }
 
-function MenuButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick?: () => void }) {
+function MenuButton({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick?: () => void }) {
   return (
     <button 
       onClick={onClick}

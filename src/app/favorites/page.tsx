@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Lodge } from '@/lib/types';
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function FavoritesPage() {
     );
   }
 
-  const handleCall = async (lodge: any) => {
+  const handleCall = async (lodge: Lodge) => {
     setLoadingCallId(lodge.id);
     if (user) {
       try {
@@ -41,14 +42,14 @@ export default function FavoritesPage() {
           type: 'info',
           link: `/lodge/${lodge.id}`
         });
-      } catch (e) { console.error(e); }
+      } catch (err: unknown) { console.error(err); }
     }
     await new Promise(r => setTimeout(r, 600));
     window.location.href = `tel:${lodge.profiles?.phone_number}`;
     setTimeout(() => setLoadingCallId(null), 2000);
   };
 
-  const handleWhatsApp = async (lodge: any) => {
+  const handleWhatsApp = async (lodge: Lodge) => {
     setLoadingMsgId(lodge.id);
     if (user) {
       try {
@@ -59,7 +60,7 @@ export default function FavoritesPage() {
           type: 'info',
           link: `/lodge/${lodge.id}`
         });
-      } catch (e) { console.error(e); }
+      } catch (err: unknown) { console.error(err); }
     }
     await new Promise(r => setTimeout(r, 600));
     window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`);

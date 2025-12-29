@@ -30,8 +30,8 @@ export default function ForgotPassword() {
       } else {
         setSuccessMessage('Password reset link sent! Check your email.');
       }
-    } catch (err: any) {
-      setError('An unexpected error occurred.');
+    } catch (err: unknown) {
+      setError('An unexpected error occurred: ' + (err instanceof Error ? err.message : ''));
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function ForgotPassword() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Forgot Password?</h1>
           <p className="text-gray-500 mt-2">
-            No worries! Enter your email and we'll send you a link to reset your password.
+            No worries! Enter your email and we&apos;ll send you a link to reset your password.
           </p>
         </div>
 

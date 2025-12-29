@@ -24,7 +24,7 @@ export default function ChangePasswordPage() {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      alert("Passwords don't match!");
+      alert("Passwords do not match!");
       return;
     }
     
@@ -44,8 +44,8 @@ export default function ChangePasswordPage() {
 
       alert('Password updated successfully!');
       router.back();
-    } catch (err: any) {
-      alert('Error updating password: ' + err.message);
+    } catch (err: unknown) {
+      alert('Error updating password: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }

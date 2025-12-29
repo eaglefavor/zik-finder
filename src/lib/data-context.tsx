@@ -43,12 +43,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      const formatted = (data as any[]).map(l => ({
+      const formatted = data.map((l: { profiles: unknown; lodge_units: unknown }) => ({
         ...l,
         profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles,
         units: l.lodge_units // Assign the fetched units
       }));
-      setLodges(formatted as Lodge[]);
+      setLodges(formatted as unknown as Lodge[]);
     }
   };
 
@@ -60,7 +60,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      const formatted = (data as any[]).map(r => ({
+      const formatted = data.map((r: { id: string; student_id: string; profiles: { name?: string; phone_number?: string } | null; budget_range: string; location: string; description: string; created_at: string }) => ({
         id: r.id,
         student_id: r.student_id,
         student_name: r.profiles?.name || 'Student',
@@ -221,11 +221,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (available_units > 0 && available_units <= 2) {
         try {
           // Fetch lodge info for the notification
-          const { data: unitData } = await supabase
+          const { data } = await supabase
             .from('lodge_units')
             .select('lodge_id, name, lodges(title)')
             .eq('id', id)
             .single();
+
+          const unitData = data as { lodge_id: string, name: string, lodges: { title: string } | null } | null;
 
           if (unitData) {
             const { data: favoritedBy } = await supabase
@@ -237,7 +239,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               const alerts = favoritedBy.map(fav => ({
                 user_id: fav.user_id,
                 title: 'Hurry! ⏳',
-                message: `Only ${available_units} room${available_units > 1 ? 's' : ''} left for the ${unitData.name} at "${(unitData.lodges as any)?.title}".`,
+                message: `Only ${available_units} room${available_units > 1 ? 's' : ''} left for the ${unitData.name} at "${unitData.lodges?.title || 'the lodge'}".`,
                 type: 'warning',
                 link: `/lodge/${unitData.lodge_id}`
               }));
@@ -301,9 +303,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       await refreshLodges();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting lodge:', error);
-      alert('Error deleting lodge: ' + error.message);
+      alert('Error deleting lodge: ' + (error instanceof Error ? error.message : 'Unknown error'));
       await refreshLodges(); // Revert optimistic update
     }
   };
