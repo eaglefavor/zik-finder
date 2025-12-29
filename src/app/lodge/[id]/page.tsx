@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle, Camera } from 'lucide-react';
+import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle, Camera, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
@@ -18,6 +18,8 @@ export default function LodgeDetail() {
   const { user } = useAppContext();
   const [activeImage, setActiveImage] = useState(0);
   const [selectedUnit, setSelectedUnit] = useState<LodgeUnit | null>(null);
+  const [isCalling, setIsCalling] = useState(false);
+  const [isMessaging, setIsMessaging] = useState(false);
   
   const lodge = lodges.find(l => l.id === id);
 
@@ -236,41 +238,72 @@ export default function LodgeDetail() {
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-lg border-t border-gray-100 z-50 flex gap-4">
         <button 
-          className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
-          onClick={() => {
+          className="flex-1 flex items-center justify-center gap-3 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          disabled={isCalling}
+          onClick={async () => {
+            setIsCalling(true);
             if (user && lodge) {
-              supabase.from('notifications').insert({
-                user_id: lodge.landlord_id,
-                title: 'New Lead! 📞',
-                message: `A student just clicked to call you about your lodge "${lodge.title}".`,
-                type: 'info',
-                link: `/lodge/${lodge.id}`
-              }).then(); // Fire and forget
+              try {
+                await supabase.from('notifications').insert({
+                  user_id: lodge.landlord_id,
+                  title: 'New Lead! 📞',
+                  message: `A student just clicked to call you about your lodge "${lodge.title}".`,
+                  type: 'info',
+                  link: `/lodge/${lodge.id}`
+                });
+              } catch (err) {
+                console.error('Failed to notify landlord', err);
+              }
             }
             window.location.href = `tel:${lodge.profiles?.phone_number}`;
+            // Reset state after a delay (since we might stay on page if user cancels)
+            setTimeout(() => setIsCalling(false), 2000);
           }}
         >
-          <Phone size={20} /> Call Now
+          {isCalling ? (
+            <>
+              <Loader2 className="animate-spin" size={20} /> Connecting...
+            </>
+          ) : (
+            <>
+              <Phone size={20} /> Call Now
+            </>
+          )}
         </button>
         <button 
-          className="flex-1 flex items-center justify-center gap-3 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
-          onClick={() => {
+          className="flex-1 flex items-center justify-center gap-3 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          disabled={isMessaging}
+          onClick={async () => {
+            setIsMessaging(true);
             if (user && lodge) {
-              supabase.from('notifications').insert({
-                user_id: lodge.landlord_id,
-                title: 'WhatsApp Inquiry! 💬',
-                message: `A student is messaging you about your lodge "${lodge.title}".`,
-                type: 'info',
-                link: `/lodge/${lodge.id}`
-              }).then();
+              try {
+                await supabase.from('notifications').insert({
+                  user_id: lodge.landlord_id,
+                  title: 'WhatsApp Inquiry! 💬',
+                  message: `A student is messaging you about your lodge "${lodge.title}".`,
+                  type: 'info',
+                  link: `/lodge/${lodge.id}`
+                });
+              } catch (err) {
+                console.error('Failed to notify landlord', err);
+              }
             }
             const message = selectedUnit 
               ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`
               : `I am interested in ${lodge.title}`;
             window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=${encodeURIComponent(message)}`);
+            setTimeout(() => setIsMessaging(false), 2000);
           }}
         >
-          <MessageCircle size={20} /> WhatsApp
+          {isMessaging ? (
+            <>
+               <Loader2 className="animate-spin" size={20} /> Opening...
+            </>
+          ) : (
+             <>
+               <MessageCircle size={20} /> WhatsApp
+             </>
+          )}
         </button>
       </div>
     </div>
