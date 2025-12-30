@@ -40,6 +40,7 @@ export default function Home() {
   const router = useRouter();
   const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
   const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
+  const [loadingStatusId, setLoadingStatusId] = useState<string | null>(null);
 
   if (authLoading) {
     return (
@@ -100,6 +101,12 @@ export default function Home() {
     await new Promise(r => setTimeout(r, 600));
     window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`);
     setTimeout(() => setLoadingMsgId(null), 2000);
+  };
+
+  const handleStatusUpdate = async (id: string, currentStatus: string) => {
+    setLoadingStatusId(id);
+    await updateLodgeStatus(id, currentStatus === 'available' ? 'taken' : 'available');
+    setTimeout(() => setLoadingStatusId(null), 500);
   };
 
   if (role === 'landlord') {
@@ -280,14 +287,18 @@ export default function Home() {
                         <Edit3 size={14} /> Edit Details
                       </Link>
                       <button 
-                        onClick={() => updateLodgeStatus(lodge.id, lodge.status === 'available' ? 'taken' : 'available')}
+                        onClick={() => handleStatusUpdate(lodge.id, lodge.status)}
+                        disabled={loadingStatusId === lodge.id}
                         className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${
+                          loadingStatusId === lodge.id ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
                           lodge.status === 'available' 
-                            ? 'bg-orange-50 text-orange-600 border border-orange-100' 
-                            : 'bg-blue-600 text-white shadow-xl shadow-blue-200'
+                            ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' 
+                            : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'
                         }`}
                       >
-                        {lodge.status === 'available' ? (
+                        {loadingStatusId === lodge.id ? (
+                          <><Loader2 className="animate-spin" size={14} /> Updating...</>
+                        ) : lodge.status === 'available' ? (
                           <><X size={14} /> Mark Taken</>
                         ) : (
                           <><CheckCircle size={14} /> Mark Public</>

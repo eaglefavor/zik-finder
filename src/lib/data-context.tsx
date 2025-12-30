@@ -314,12 +314,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateLodgeStatus = async (id: string, status: 'available' | 'taken') => {
-    const { error } = await supabase
-      .from('lodges')
-      .update({ status })
-      .eq('id', id);
+    if (!user) return;
 
-    if (!error) await refreshLodges();
+    const updateAction = async () => {
+      const { error } = await supabase
+        .from('lodges')
+        .update({ status })
+        .eq('id', id)
+        .eq('landlord_id', user.id);
+      
+      if (error) throw error;
+      return status;
+    };
+
+    toast.promise(updateAction(), {
+      loading: 'Updating status...',
+      success: (data) => {
+        refreshLodges();
+        return `Lodge marked as ${data}`;
+      },
+      error: (err) => `Failed to update: ${err.message}`
+    });
   };
 
   const addUnit = async (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => {
