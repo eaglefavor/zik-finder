@@ -58,12 +58,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshRequests = async () => {
-    // Explicitly use 'requests_student_id_fkey' just in case
-    const { data, error } = await supabase
+    // Attempt to fetch with new columns and expiration filter
+    let { data, error } = await supabase
       .from('requests')
       .select('*, profiles!requests_student_id_fkey(phone_number, name)')
-      .gt('expires_at', new Date().toISOString()) // Only get non-expired requests
+      .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false });
+
+    // Fallback if columns don't exist yet
+    if (error) {
+      console.warn('Falling back to legacy requests fetch:', error.message);
+      const fallback = await supabase
+        .from('requests')
+        .select('*, profiles!requests_student_id_fkey(phone_number, name)')
+        .order('created_at', { ascending: false });
+      
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (!error && data) {
       const formatted = (data as unknown as {
@@ -71,26 +83,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         student_id: string;
         profiles: { name?: string; phone_number?: string } | null;
         budget_range: string;
-        min_budget: number;
-        max_budget: number;
+        min_budget?: number;
+        max_budget?: number;
         location: string;
-        locations: string[];
+        locations?: string[];
         description: string;
         created_at: string;
-        expires_at: string;
+        expires_at?: string;
       }[]).map((r) => ({
         id: r.id,
         student_id: r.student_id,
         student_name: r.profiles?.name || 'Student',
         student_phone: r.profiles?.phone_number || '',
         budget_range: r.budget_range,
-        min_budget: r.min_budget,
-        max_budget: r.max_budget,
+        min_budget: r.min_budget || 0,
+        max_budget: r.max_budget || 0,
         location: r.location,
         locations: r.locations || [r.location],
         description: r.description,
         created_at: r.created_at,
-        expires_at: r.expires_at
+        expires_at: r.expires_at || new Date(new Date().getTime() + 1000*60*60*24*14).toISOString()
       }));
       setRequests(formatted);
     }
@@ -342,7 +354,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const legacyLocation = requestData.location || (requestData.locations ? requestData.locations.join(', ') : 'Any Location');
     const legacyBudget = requestData.budget_range || (requestData.min_budget && requestData.max_budget ? `₦${requestData.min_budget.toLocaleString()} - ₦${requestData.max_budget.toLocaleString()}` : 'Any Budget');
 
-    const { error } = await supabase
+    // 1. Attempt full insert with new columns
+    let { error } = await supabase
       .from('requests')
       .insert({
         ...requestData,
@@ -351,6 +364,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         student_id: user.id,
         expires_at: expiryDate.toISOString()
       });
+
+    // 2. Fallback to legacy insert if new columns missing
+    if (error) {
+      console.warn('Falling back to legacy requests insert:', error.message);
+      const fallback = await supabase
+        .from('requests')
+        .insert({
+          location: legacyLocation,
+          budget_range: legacyBudget,
+          description: requestData.description,
+          student_id: user.id
+        });
+      error = fallback.error;
+    }
 
     if (error) return { success: false, error: error.message };
 

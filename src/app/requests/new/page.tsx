@@ -64,7 +64,7 @@ export default function NewRequest() {
     const min = parseInt(formData.minBudget) || 0;
     const max = parseInt(formData.maxBudget) || 0;
 
-    await addRequest({
+    const { success, error } = await addRequest({
       locations: formData.locations,
       min_budget: min,
       max_budget: max,
@@ -74,8 +74,13 @@ export default function NewRequest() {
     });
 
     setLoading(false);
-    setSubmitted(true);
-    setTimeout(() => router.push('/market'), 2000);
+    
+    if (success) {
+      setSubmitted(true);
+      setTimeout(() => router.push('/market'), 2000);
+    } else {
+      toast.error('Failed to post request: ' + error);
+    }
   };
 
   if (submitted) {
