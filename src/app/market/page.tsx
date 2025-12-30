@@ -3,7 +3,7 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { RequestSkeleton } from '@/components/Skeleton';
-import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, CheckCircle, X, Loader2, ChevronRight, Search, Filter, Sparkles, Send } from 'lucide-react';
+import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, CheckCircle, X, Loader2, ChevronRight, Search, Filter, Sparkles, Send, ArrowUpAz, ArrowDownAz } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
@@ -16,6 +16,7 @@ export default function MarketRequests() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isNotifying, setIsNotifying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'budget_low' | 'budget_high'>('newest');
 
   // Landlord's active lodges
   const landlordLodges = useMemo(() => 
@@ -24,13 +25,34 @@ export default function MarketRequests() {
   );
 
   const filteredRequests = useMemo(() => {
-    return requests.filter(r => 
-      r.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.locations?.some(loc => loc.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }, [requests, searchQuery]);
+    return requests
+      .filter(r => 
+        r.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.locations?.some(loc => loc.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+      .sort((a, b) => {
+        if (sortBy === 'newest') {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
+        
+        // Helper to get a numeric budget for sorting
+        const getBudget = (req: typeof a) => {
+          if (req.min_budget) return req.min_budget;
+          // Try to parse from legacy budget_range (e.g. "₦150,000")
+          const match = req.budget_range.match(/\d+/g);
+          return match ? parseInt(match.join('')) : 0;
+        };
+
+        const budgetA = getBudget(a);
+        const budgetB = getBudget(b);
+
+        if (sortBy === 'budget_low') return budgetA - budgetB;
+        if (sortBy === 'budget_high') return budgetB - budgetA;
+        return 0;
+      });
+  }, [requests, searchQuery, sortBy]);
 
   const formatTime = (dateString: string) => {
     if (!dateString) return '';
@@ -110,24 +132,41 @@ export default function MarketRequests() {
           )}
         </div>
 
-        {/* Modern Search Bar */}
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-          <input 
-            type="text"
-            placeholder="Search area, budget..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-100 p-3.5 pl-11 rounded-xl xs:rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-medium text-sm"
-          />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500 hover:bg-gray-300 transition-colors"
+        {/* Modern Search Bar & Sort */}
+        <div className="flex gap-2 group">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={16} />
+            <input 
+              type="text"
+              placeholder="Search area, budget..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-100 p-3.5 pl-11 rounded-xl xs:rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-medium text-sm"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500 hover:bg-gray-300 transition-colors"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
             >
-              <X size={12} />
+              <option value="newest">Newest First</option>
+              <option value="budget_low">Budget: Low - High</option>
+              <option value="budget_high">Budget: High - Low</option>
+            </select>
+            <button className="h-full px-3 bg-gray-50 border border-gray-100 rounded-xl xs:rounded-2xl text-gray-500 flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
+              {sortBy === 'newest' ? <Clock size={18} /> : sortBy === 'budget_low' ? <ArrowUpAz size={18} /> : <ArrowDownAz size={18} />}
             </button>
-          )}
+          </div>
         </div>
       </div>
 
