@@ -4,8 +4,8 @@ import cloudinary from '@/lib/cloudinary';
 
 export const dynamic = 'force-dynamic';
 
-const SUPABASE_URL = 'https://wammuxdrpyhppdyhsxam.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhbW11eGRycHlocHBkeWhzeGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMjU5NjYsImV4cCI6MjA4MTgwMTk2Nn0.am7bJAME3vsmCRMfI9hyw3bkEICmu9YbD1bWTceZf9U';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export async function GET(request: Request) {
   try {
@@ -49,12 +49,10 @@ export async function GET(request: Request) {
 
     // 2. Fetch Cloudinary Usage
     try {
-      console.log('Fetching Cloudinary usage...');
       const result = await cloudinary.api.usage();
       if (result) {
         storage_usage = result.storage?.usage || 0;
         if (result.storage?.limit) plan_limit = result.storage.limit;
-        console.log('Cloudinary usage fetched:', storage_usage);
       }
     } catch (err: unknown) {
       console.error('Cloudinary Usage Error:', err instanceof Error ? err.message : err);
@@ -63,7 +61,6 @@ export async function GET(request: Request) {
 
     // 3. Fetch Supabase Usage
     try {
-      console.log('Fetching Supabase storage metadata...');
       // Accessing the storage schema
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: files, error: storageError } = await (supabase as unknown as SupabaseClient<any, 'storage'>)
@@ -74,7 +71,6 @@ export async function GET(request: Request) {
         supabaseSize = files.reduce((acc: number, file: { metadata?: { size?: number } }) => {
           return acc + (file.metadata?.size || 0);
         }, 0);
-        console.log('Supabase usage calculated:', supabaseSize);
       } else {
         console.error('Supabase Storage Query Error:', storageError);
       }

@@ -71,8 +71,6 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('Auth Header:', authHeader ? authHeader.substring(0, 20) + '...' : 'Missing');
-
     // 3. Delete Lodge from Supabase
     // We SKIP this step here. The Client will handle DB deletion.
     // This solves the RLS/Auth context issue on the server.

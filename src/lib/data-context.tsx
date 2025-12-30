@@ -524,8 +524,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         
         if (insertError) {
           console.error('NOTIFICATION INSERT FAILED:', insertError);
-        } else {
-          console.log(`Sent ${notifications.length} notifications to landlords.`);
         }
       }
     } catch (err) {

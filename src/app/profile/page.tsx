@@ -29,7 +29,20 @@ export default function ProfilePage() {
         await deleteLodge(lodge.id);
       }
 
-      // 2. Clean up Supabase storage and Account (via SQL function)
+      // 2. Clean up Profile Image from Cloudinary
+      if (user.avatar_url && user.avatar_url.includes('cloudinary')) {
+        const { data: { session } } = await supabase.auth.getSession();
+        await fetch('/api/profile/delete-image', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify({ userId: user.id })
+        });
+      }
+
+      // 3. Clean up Supabase storage and Account (via SQL function)
       const { error } = await supabase.rpc('delete_own_user');
 
       if (error) throw error;

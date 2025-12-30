@@ -20,7 +20,6 @@ export default function AuthScreen() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        console.log('Session found in storage, reloading to sync state...');
         window.location.reload();
       }
     };

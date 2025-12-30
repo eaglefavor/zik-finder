@@ -35,7 +35,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       if (!error && data) {
         const profile = data as Profile;
-        console.log('Profile loaded:', profile);
         setUser(profile);
         setRole(profile.role);
         return;
@@ -67,7 +66,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }]);
 
         if (!insertError) {
-          console.log('Profile created via fallback');
           setUser(newProfile);
           setRole(newProfile.role);
         } else {
@@ -97,7 +95,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             table: 'profiles', 
             filter: `id=eq.${userId}` 
           }, (payload) => {
-            console.log('Profile updated via Realtime:', payload.new);
             const updatedProfile = payload.new as Profile;
             setUser(updatedProfile);
             setRole(updatedProfile.role);
@@ -124,7 +121,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             table: 'profiles', 
             filter: `id=eq.${userId}` 
           }, (payload) => {
-            console.log('Profile updated via Realtime:', payload.new);
             const updatedProfile = payload.new as Profile;
             setUser(updatedProfile);
             setRole(updatedProfile.role);
