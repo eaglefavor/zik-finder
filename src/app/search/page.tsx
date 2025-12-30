@@ -28,6 +28,9 @@ export default function SearchPage() {
 
   const filteredListings = useMemo(() => {
     return lodges.filter(l => {
+      // 0. Status Filter (Only show available lodges to students)
+      if (l.status !== 'available') return false;
+
       // 1. Text Search (Title, Location, Description, Amenities, Room Types)
       const searchQuery = query.toLowerCase();
       const matchesQuery = query ? (

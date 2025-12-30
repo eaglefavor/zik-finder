@@ -362,7 +362,7 @@ export default function Home() {
 
       <div className="px-4 py-8 space-y-8">
         <AnimatePresence mode="popLayout">
-          {lodges.map((lodge, index) => {
+          {lodges.filter(l => l.status === 'available').map((lodge, index) => {
             const isFavorite = favorites.includes(lodge.id);
             const isVerified = lodge.profiles?.is_verified === true;
             const hasPhone = !!lodge.profiles?.phone_number;
