@@ -21,6 +21,7 @@ export function useLodgeViewTracker(lodgeId: string) {
       // 1. Increment the view count via RPC.
       const { error: rpcError } = await supabase.rpc('increment_lodge_view', {
         p_lodge_id: lodgeId,
+        p_viewer_id: user?.id || null
       });
 
       if (rpcError) {

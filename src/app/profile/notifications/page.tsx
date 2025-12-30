@@ -15,6 +15,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
+  const [clearingAll, setClearingAll] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -92,6 +93,31 @@ export default function NotificationsPage() {
     setMarkingAll(false);
   };
 
+  const clearAllNotifications = async () => {
+    toast.error('Clear all notifications?', {
+      description: 'This action cannot be undone.',
+      action: {
+        label: 'Clear All',
+        onClick: async () => {
+          setClearingAll(true);
+          const { error } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('user_id', user!.id);
+
+          if (error) {
+            console.error('Error clearing notifications:', error);
+            toast.error('Failed to clear notifications');
+          } else {
+            setNotifications([]);
+            toast.success('All notifications cleared');
+          }
+          setClearingAll(false);
+        }
+      }
+    });
+  };
+
   const deleteNotification = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -157,15 +183,26 @@ export default function NotificationsPage() {
           </button>
           <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
         </div>
-        {unreadCount > 0 && (
-          <button 
-            onClick={markAllAsRead}
-            disabled={markingAll}
-            className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
-          >
-            {markingAll ? 'Marking...' : 'Mark all read'}
-          </button>
-        )}
+        <div className="flex gap-2">
+          {unreadCount > 0 && (
+            <button 
+              onClick={markAllAsRead}
+              disabled={markingAll}
+              className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
+            >
+              {markingAll ? '...' : 'Mark Read'}
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button 
+              onClick={clearAllNotifications}
+              disabled={clearingAll}
+              className="text-[10px] font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-full hover:bg-red-100 transition-colors"
+            >
+              {clearingAll ? '...' : 'Clear All'}
+            </button>
+          )}
+        </div>
       </header>
 
       {notifications.length > 0 ? (

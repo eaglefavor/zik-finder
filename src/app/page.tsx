@@ -2,7 +2,7 @@
 
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
-import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, Activity, LayoutGrid, ChevronRight, Search } from 'lucide-react';
+import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, TrendingDown, Minus, Activity, LayoutGrid, ChevronRight, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -36,7 +36,7 @@ const AdminLink = ({ role }: { role: string }) => (
 
 export default function Home() {
   const { user, role, isLoading: authLoading } = useAppContext();
-  const { lodges, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites } = useData();
+  const { lodges, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites, viewGrowth } = useData();
   const router = useRouter();
   const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
   const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
@@ -137,8 +137,11 @@ export default function Home() {
                   <span className="text-[10px] font-black uppercase tracking-widest">Total Views</span>
                 </div>
                 <div className="text-2xl font-black">{totalViews.toLocaleString()}</div>
-                <div className="flex items-center gap-1 mt-1 text-[10px] font-bold text-blue-100">
-                  <TrendingUp size={10} /> +12% this week
+                <div className={`flex items-center gap-1 mt-1 text-[10px] font-bold ${
+                  viewGrowth > 0 ? 'text-green-300' : viewGrowth < 0 ? 'text-red-300' : 'text-blue-100'
+                }`}>
+                  {viewGrowth > 0 ? <TrendingUp size={10} /> : viewGrowth < 0 ? <TrendingDown size={10} /> : <Minus size={10} />}
+                  {viewGrowth > 0 ? '+' : ''}{viewGrowth}% this week
                 </div>
               </div>
               <Activity className="absolute -bottom-4 -right-4 w-20 h-20 text-white/10 -rotate-12" />

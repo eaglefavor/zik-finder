@@ -1,13 +1,14 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle, Camera, Loader2 } from 'lucide-react';
+import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle, Camera, Loader2, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect } from 'react';
 import { LodgeUnit } from '@/lib/types';
+import { toast } from 'sonner';
 
 import { useLodgeViewTracker } from '@/lib/useLodgeViewTracker';
 
@@ -17,7 +18,7 @@ export default function LodgeDetail() {
   const { lodges, favorites, toggleFavorite } = useData();
   const { user } = useAppContext();
   const [activeImage, setActiveImage] = useState(0);
-  const [selectedUnit, setSelectedUnit] = useState<LodgeUnit | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState< LodgeUnit | null>(null);
   const [isCalling, setIsCalling] = useState(false);
   const [isMessaging, setIsMessaging] = useState(false);
   
@@ -46,6 +47,25 @@ export default function LodgeDetail() {
   }
 
   const isFavorite = favorites.includes(lodge.id);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: lodge.title,
+      text: `Check out this lodge on ZikLodge: ${lodge.title} in ${lodge.location}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success('Link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
+  };
   
   // Combine building photos and selected unit photos for a complete gallery
   const displayImages = [
@@ -79,14 +99,22 @@ export default function LodgeDetail() {
         </button>
 
         {/* Favorite Button */}
-        <button 
-          onClick={() => toggleFavorite(lodge.id)}
-          className={`absolute top-6 right-4 p-3 rounded-full shadow-lg active:scale-75 transition-all z-20 ${
-            isFavorite ? 'bg-red-500 text-white' : 'bg-white/90 backdrop-blur text-gray-900'
-          }`}
-        >
-          <Heart size={24} fill={isFavorite ? "currentColor" : "none"} />
-        </button>
+        <div className="absolute top-6 right-4 flex gap-2 z-20">
+          <button 
+            onClick={handleShare}
+            className="p-3 bg-white/90 backdrop-blur rounded-full shadow-lg active:scale-75 transition-all"
+          >
+            <Share2 size={24} className="text-gray-900" />
+          </button>
+          <button 
+            onClick={() => toggleFavorite(lodge.id)}
+            className={`p-3 rounded-full shadow-lg active:scale-75 transition-all ${
+              isFavorite ? 'bg-red-500 text-white' : 'bg-white/90 backdrop-blur text-gray-900'
+            }`}
+          >
+            <Heart size={24} fill={isFavorite ? "currentColor" : "none"} />
+          </button>
+        </div>
 
         {/* Gallery Dots */}
         {displayImages.length > 1 && (

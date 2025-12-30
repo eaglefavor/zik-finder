@@ -11,6 +11,7 @@ interface DataContextType {
   requests: LodgeRequest[];
   favorites: string[];
   unreadCount: number;
+  viewGrowth: number;
   isLoading: boolean;
   refreshLodges: () => Promise<void>;
   refreshRequests: () => Promise<void>;
@@ -37,6 +38,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [requests, setRequests] = useState<LodgeRequest[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [viewGrowth, setViewGrowth] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshLodges = async () => {
@@ -142,10 +144,63 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshViewGrowth = async () => {
+    if (!user) return;
+
+    // Get current time and date 7 and 14 days ago
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    try {
+      // 1. Get the landlord's lodge IDs
+      const { data: landlordLodgeIds } = await supabase
+        .from('lodges')
+        .select('id')
+        .eq('landlord_id', user.id);
+
+      if (!landlordLodgeIds || landlordLodgeIds.length === 0) {
+        setViewGrowth(0);
+        return;
+      }
+
+      const ids = landlordLodgeIds.map(l => l.id);
+
+      // 2. Fetch view counts for "This Week" (last 7 days)
+      const { count: thisWeekCount } = await supabase
+        .from('lodge_views_log')
+        .select('*', { count: 'exact', head: true })
+        .in('lodge_id', ids)
+        .gte('created_at', sevenDaysAgo.toISOString());
+
+      // 3. Fetch view counts for "Last Week" (7-14 days ago)
+      const { count: lastWeekCount } = await supabase
+        .from('lodge_views_log')
+        .select('*', { count: 'exact', head: true })
+        .in('lodge_id', ids)
+        .gte('created_at', fourteenDaysAgo.toISOString())
+        .lt('created_at', sevenDaysAgo.toISOString());
+
+      // 4. Calculate Percentage Growth
+      const current = thisWeekCount || 0;
+      const previous = lastWeekCount || 0;
+
+      if (previous === 0) {
+        setViewGrowth(current > 0 ? 100 : 0);
+      } else {
+        const growth = ((current - previous) / previous) * 100;
+        setViewGrowth(Math.round(growth));
+      }
+    } catch (err) {
+      console.error('Failed to calculate view growth:', err);
+      setViewGrowth(0);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([refreshLodges(), refreshRequests(), refreshFavorites(), refreshUnreadCount()]);
+      await Promise.all([refreshLodges(), refreshRequests(), refreshFavorites(), refreshUnreadCount(), refreshViewGrowth()]);
       setIsLoading(false);
     };
     loadData();
@@ -565,6 +620,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       requests,
       favorites, 
       unreadCount,
+      viewGrowth,
       isLoading, 
       refreshLodges, 
       refreshRequests,
