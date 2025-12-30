@@ -2,47 +2,50 @@
 
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
-import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Users } from 'lucide-react';
+import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, Activity, LayoutGrid, ChevronRight, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import AuthScreen from '@/components/AuthScreen';
 import { Lodge } from '@/lib/types';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminLink = ({ role }: { role: string }) => (
   role === 'admin' ? (
-    <Link href="/admin" className="block mb-6 bg-gray-900 text-white p-4 rounded-2xl shadow-lg shadow-gray-200">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-            <ShieldCheck size={20} />
+    <Link href="/admin" className="block mb-6 bg-gray-900 text-white p-5 rounded-3xl shadow-xl shadow-gray-200 relative overflow-hidden group">
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
+            <ShieldCheck size={24} className="text-blue-400" />
           </div>
           <div>
-            <div className="font-bold">Admin Dashboard</div>
-            <div className="text-[10px] text-white/60 uppercase font-black tracking-widest">System Control</div>
+            <div className="font-black tracking-tight text-lg leading-none">Admin Dashboard</div>
+            <div className="text-[10px] text-white/50 uppercase font-black tracking-widest mt-1.5">System Control Center</div>
           </div>
         </div>
-        <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-          <Edit3 size={16} />
+        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
+          <ChevronRight size={20} />
         </div>
       </div>
+      <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl" />
     </Link>
   ) : null
 );
 
 export default function Home() {
-  const { user, role, logout, isLoading: authLoading } = useAppContext();
-  const { lodges, requests, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites, isLoading: dataLoading } = useData();
+  const { user, role, isLoading: authLoading } = useAppContext();
+  const { lodges, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites } = useData();
   const router = useRouter();
   const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
   const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
 
   if (authLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+        <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em] animate-pulse">Initializing ZikLodge</p>
       </div>
     );
   }
@@ -51,13 +54,13 @@ export default function Home() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
-    toast.error('Are you sure you want to delete this lodge?', {
-      description: 'This listing and its data will be removed forever.',
+    toast.error('Delete this listing?', {
+      description: 'This action is permanent and cannot be undone.',
       action: {
-        label: 'Delete Listing',
+        label: 'Delete Forever',
         onClick: async () => {
           await deleteLodge(id);
-          toast.success('Listing deleted');
+          toast.success('Listing removed');
         }
       }
     });
@@ -76,7 +79,6 @@ export default function Home() {
         });
       } catch (err: unknown) { console.error(err); }
     }
-    // Artificial delay for visual feedback
     await new Promise(r => setTimeout(r, 600));
     window.location.href = `tel:${lodge.profiles?.phone_number}`;
     setTimeout(() => setLoadingCallId(null), 2000);
@@ -105,366 +107,415 @@ export default function Home() {
     const totalViews = landlordLodges.reduce((acc, curr) => acc + (curr.views || 0), 0);
 
     return (
-      <div className="px-4 py-6">
-          <AdminLink role={role} />
-        <header className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Lodge Activity</h1>
-            <p className="text-sm text-gray-500">Manage your listings</p>
-          </div>
-          <Link href="/profile" className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
-            {user.avatar_url ? (
-              <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
-            ) : (
-              <span className="font-bold text-blue-600">{(user.name || 'L')[0]}</span>
-            )}
-          </Link>
-        </header>
-
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
-              <Eye size={20} />
+      <div className="min-h-screen bg-gray-50/50 pb-24">
+        {/* Premium Dashboard Header */}
+        <div className="bg-white border-b border-gray-100 px-4 py-6 sticky top-0 z-30 shadow-sm shadow-gray-100/50 backdrop-blur-xl bg-white/80">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl xs:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                Activity <Activity className="text-blue-600" size={20} />
+              </h1>
+              <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5">Manage your real estate portfolio</p>
             </div>
-            <div className="text-2xl font-bold text-gray-900">{totalViews.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 font-medium">Total Views</div>
+            <Link href="/profile" className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden">
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-black text-blue-600 text-lg">{(user.name || 'L')[0]}</span>
+              )}
+            </Link>
           </div>
-          <Link href="/profile/notifications" className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm active:scale-95 transition-transform block">
-            <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-3">
-              <Users size={20} />
-            </div>
-            <div className="text-2xl font-bold text-gray-900">Activity</div>
-            <div className="text-xs text-gray-500 font-medium">Check Notifications</div>
-          </Link>
-        </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Your Listings</h2>
-          <Link href="/post" className="text-blue-600 flex items-center gap-1 text-sm font-bold">
-            <PlusCircle size={18} /> Add New
-          </Link>
-        </div>
-
-        {landlordLodges.length > 0 ? (
-          <div className="space-y-4">
-            {landlordLodges.map((lodge) => (
-              <div key={lodge.id} className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-                <div className="flex gap-4 mb-4">
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                    <img src={lodge.image_urls[0]} className="w-full h-full object-cover" alt="" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <div className="font-bold text-gray-900 truncate pr-2">{lodge.title}</div>
-                      <button 
-                        onClick={(e) => handleDelete(e, lodge.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                    <div className="text-sm text-blue-600 font-black mb-1">
-                      {lodge.units && lodge.units.length > 0 ? (
-                        (() => {
-                          const prices = lodge.units.map(u => u.price);
-                          const min = Math.min(...prices);
-                          const max = Math.max(...prices);
-                          return min === max 
-                            ? `₦${min.toLocaleString()}`
-                            : `From ₦${min.toLocaleString()}`;
-                        })()
-                      ) : (
-                        `₦${lodge.price.toLocaleString()}`
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                        lodge.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {lodge.status === 'available' ? 'Visible' : 'Offline'}
-                      </span>
-                      <div className="flex items-center gap-1 text-gray-400">
-                        <Eye size={12} />
-                        <span className="text-[10px] font-bold">{lodge.views?.toLocaleString() || 0}</span>
-                      </div>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-2 gap-3">
+            <motion.div 
+              whileHover={{ y: -2 }}
+              className="bg-gradient-to-br from-blue-600 to-blue-700 p-4 rounded-[24px] text-white shadow-xl shadow-blue-200 relative overflow-hidden"
+            >
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3 opacity-80">
+                  <Eye size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Total Views</span>
                 </div>
-
-                {/* Unit Inventory Management */}
-                {lodge.units && lodge.units.length > 0 && (
-                  <div className="bg-gray-50 rounded-2xl p-3 mb-4 space-y-3">
-                    <div className="flex justify-between items-center px-1">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Unit Inventory</h4>
-                      <span className="text-[10px] font-bold text-gray-400">Available / Total</span>
-                    </div>
-                    {lodge.units.map((unit) => (
-                      <div key={unit.id} className="flex justify-between items-center bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-                        <div>
-                          <p className="text-xs font-bold text-gray-700">{unit.name}</p>
-                          <p className="text-[10px] text-blue-600 font-bold">₦{unit.price.toLocaleString()}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button 
-                            onClick={() => updateUnitAvailability(unit.id, Math.max(0, unit.available_units - 1))}
-                            className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-lg text-gray-600 active:bg-red-100 active:text-red-600"
-                          >
-                            -
-                          </button>
-                          <div className="text-center min-w-[40px]">
-                            <span className={`text-xs font-black ${unit.available_units === 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                              {unit.available_units}
-                            </span>
-                            <span className="text-[10px] text-gray-400 font-bold"> / {unit.total_units}</span>
-                          </div>
-                          <button 
-                            onClick={() => updateUnitAvailability(unit.id, Math.min(unit.total_units, unit.available_units + 1))}
-                            className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-lg text-gray-600 active:bg-green-100 active:text-green-600"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex gap-2 border-t border-gray-50 pt-4">
-                  <Link 
-                    href={`/edit-lodge/${lodge.id}`}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gray-50 text-gray-700 rounded-xl text-sm font-bold active:scale-95 transition-transform"
-                  >
-                    <Edit3 size={16} /> Edit
-                  </Link>
-                  <button 
-                    onClick={() => updateLodgeStatus(lodge.id, lodge.status === 'available' ? 'taken' : 'available')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all ${
-                      lodge.status === 'available' 
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100' 
-                        : 'bg-green-600 text-white shadow-lg shadow-green-100 hover:bg-green-700'
-                    }`}
-                  >
-                    {lodge.status === 'available' ? (
-                      <><X size={16} /> Set Offline</>
-                    ) : (
-                      <><CheckCircle size={16} /> Set Online</>
-                    )}
-                  </button>
+                <div className="text-2xl font-black">{totalViews.toLocaleString()}</div>
+                <div className="flex items-center gap-1 mt-1 text-[10px] font-bold text-blue-100">
+                  <TrendingUp size={10} /> +12% this week
                 </div>
               </div>
-            ))}
+              <Activity className="absolute -bottom-4 -right-4 w-20 h-20 text-white/10 -rotate-12" />
+            </motion.div>
+
+            <Link href="/profile/notifications">
+              <motion.div 
+                whileHover={{ y: -2 }}
+                className="bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm active:scale-95 transition-all h-full"
+              >
+                <div className="flex items-center gap-2 mb-3 text-orange-500">
+                  <Bell size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Live Feed</span>
+                </div>
+                <div className="text-2xl font-black text-gray-900">Leads</div>
+                <div className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tighter">Check Notifications</div>
+              </motion.div>
+            </Link>
           </div>
-        ) : (
-          <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-            <p className="text-gray-500 mb-4">You haven&apos;t posted any lodges yet.</p>
-            <Link href="/post" className="inline-block bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">Post your first Lodge</Link>
+        </div>
+
+        <div className="px-4 py-8 space-y-8">
+          <AdminLink role={role} />
+
+          <div className="flex justify-between items-end mb-2">
+            <div>
+              <h2 className="text-xl font-black text-gray-900 tracking-tight">Your Properties</h2>
+              <p className="text-xs text-gray-400 font-medium">Active listings on ZikLodge</p>
+            </div>
+            <Link 
+              href="/post" 
+              className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+              <PlusCircle size={14} /> New Lodge
+            </Link>
           </div>
-        )}
+
+          <div className="space-y-6">
+            <AnimatePresence mode="popLayout">
+              {landlordLodges.length > 0 ? (
+                landlordLodges.map((lodge, index) => (
+                  <motion.div 
+                    key={lodge.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white p-5 xs:p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-6 relative overflow-hidden group"
+                  >
+                    <div className="flex gap-4 xs:gap-6">
+                      <div className="w-20 h-20 xs:w-24 xs:h-24 rounded-2xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100 shadow-inner">
+                        <img src={lodge.image_urls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-black text-gray-900 truncate pr-2 text-lg leading-tight">{lodge.title}</h3>
+                          <button 
+                            onClick={(e) => handleDelete(e, lodge.id)}
+                            className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all active:scale-90"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                        <div className="text-blue-600 font-black text-sm mt-1">
+                          {lodge.units && lodge.units.length > 0 ? (
+                            (() => {
+                              const prices = lodge.units.map(u => u.price);
+                              return `From ₦${Math.min(...prices).toLocaleString()}`;
+                            })()
+                          ) : (
+                            `₦${lodge.price.toLocaleString()}`
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-3">
+                          <div className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${
+                            lodge.status === 'available' ? 'bg-green-50 border-green-100 text-green-600' : 'bg-red-50 border-red-100 text-red-600'
+                          }`}>
+                            {lodge.status === 'available' ? 'Public' : 'Hidden'}
+                          </div>
+                          <div className="flex items-center gap-1 text-gray-400">
+                            <Eye size={12} className="text-blue-400" />
+                            <span className="text-[10px] font-black">{lodge.views?.toLocaleString() || 0} Views</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Compact Unit Management */}
+                    {lodge.units && lodge.units.length > 0 && (
+                      <div className="bg-gray-50/50 rounded-3xl p-4 space-y-3 border border-gray-100/50">
+                        <div className="flex justify-between items-center px-1">
+                          <div className="flex items-center gap-2">
+                            <LayoutGrid size={12} className="text-gray-400" />
+                            <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Inventory Status</h4>
+                          </div>
+                          <span className="text-[9px] font-bold text-gray-400">Avail / Total</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                          {lodge.units.map((unit) => (
+                            <div key={unit.id} className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-50 group/unit">
+                              <div className="min-w-0 pr-2">
+                                <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tighter">{unit.name}</p>
+                                <p className="text-[9px] text-blue-600 font-bold">₦{unit.price.toLocaleString()}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => updateUnitAvailability(unit.id, Math.max(0, unit.available_units - 1))}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-600 transition-colors active:scale-90"
+                                >
+                                  -
+                                </button>
+                                <div className="text-center min-w-[35px]">
+                                  <span className={`text-xs font-black ${unit.available_units === 0 ? 'text-red-500' : 'text-gray-900'}`}>
+                                    {unit.available_units}
+                                  </span>
+                                  <span className="text-[9px] text-gray-300 font-bold">/{unit.total_units}</span>
+                                </div>
+                                <button 
+                                  onClick={() => updateUnitAvailability(unit.id, Math.min(unit.total_units, unit.available_units + 1))}
+                                  className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-green-50 rounded-xl text-gray-400 hover:text-green-600 transition-colors active:scale-90"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 pt-2">
+                      <Link 
+                        href={`/edit-lodge/${lodge.id}`}
+                        className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-gray-100 border border-gray-100"
+                      >
+                        <Edit3 size={14} /> Edit Details
+                      </Link>
+                      <button 
+                        onClick={() => updateLodgeStatus(lodge.id, lodge.status === 'available' ? 'taken' : 'available')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${
+                          lodge.status === 'available' 
+                            ? 'bg-orange-50 text-orange-600 border border-orange-100' 
+                            : 'bg-blue-600 text-white shadow-xl shadow-blue-200'
+                        }`}
+                      >
+                        {lodge.status === 'available' ? (
+                          <><X size={14} /> Mark Taken</>
+                        ) : (
+                          <><CheckCircle size={14} /> Mark Public</>
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed border-gray-100"
+                >
+                  <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-gray-300">
+                    <Building2 size={40} />
+                  </div>
+                  <p className="text-gray-500 font-bold mb-6">You haven&apos;t posted any lodges yet.</p>
+                  <Link href="/post" className="inline-block bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 active:scale-95 transition-all">Create Your First Listing</Link>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
     );
   }
 
   // Student/General View
   return (
-    <div className="px-4 py-6">
+    <div className="min-h-screen bg-gray-50/50 pb-24">
+      {/* Premium Search Header */}
+      <div className="bg-white border-b border-gray-100 px-4 py-6 sticky top-0 z-30 shadow-sm shadow-gray-100/50 backdrop-blur-xl bg-white/80">
         <AdminLink role={role} />
-      <header className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Find your Lodge</h1>
-          <p className="text-sm text-gray-500">Awka, Anambra State</p>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl xs:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              Explore <Sparkles className="text-blue-500 fill-blue-500" size={20} />
+            </h1>
+            <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5">Find your perfect lodge in Awka</p>
+          </div>
+          <Link href="/profile" className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden">
+            {user.avatar_url ? (
+              <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-black text-blue-600 text-lg">{(user.name || 'S')[0]}</span>
+            )}
+          </Link>
         </div>
-        <Link href="/profile" className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border-2 border-white shadow-sm active:scale-90 transition-transform overflow-hidden">
-          {user.avatar_url ? (
-            <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
-          ) : (
-            <span className="font-bold text-gray-600">{(user.name || 'S')[0]}</span>
-          )}
-        </Link>
-      </header>
 
-      <div className="mb-6">
-        <Link href="/search" className="block relative">
-          <input
-            type="text"
-            placeholder="Search Ifite, Amansea..."
-            readOnly
-            className="w-full p-4 pl-12 bg-white border border-gray-100 rounded-2xl shadow-sm focus:outline-none pointer-events-none"
-          />
-          <MapPin className="absolute left-4 top-4 text-gray-400" size={20} />
-          <div className="absolute right-4 top-4 text-blue-600 font-bold text-xs uppercase tracking-wider">Search</div>
+        <Link href="/search" className="block relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors" size={18} />
+          <div className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl text-gray-400 text-sm font-medium transition-all group-hover:bg-white group-hover:border-blue-500/30 group-hover:ring-4 group-hover:ring-blue-500/5">
+            Search Ifite, Amansea, Okpuno...
+          </div>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-1.5 rounded-lg">
+            <LayoutGrid size={14} />
+          </div>
         </Link>
       </div>
 
-      <div className="space-y-6">
-        {lodges.map((lodge) => {
-          const isFavorite = favorites.includes(lodge.id);
-          const isVerified = lodge.profiles?.is_verified === true;
-          const hasPhone = !!lodge.profiles?.phone_number;
-          
-          // Combine building photos and room photos for the card gallery
-          const allCardImages = [
-            ...lodge.image_urls,
-            ...(lodge.units?.flatMap(u => u.image_urls || []).filter(Boolean) || [])
-          ].slice(0, 10); // Limit to 10 for performance
+      <div className="px-4 py-8 space-y-8">
+        <AnimatePresence mode="popLayout">
+          {lodges.map((lodge, index) => {
+            const isFavorite = favorites.includes(lodge.id);
+            const isVerified = lodge.profiles?.is_verified === true;
+            const hasPhone = !!lodge.profiles?.phone_number;
+            
+            const allCardImages = [
+              ...lodge.image_urls,
+              ...(lodge.units?.flatMap(u => u.image_urls || []).filter(Boolean) || [])
+            ].slice(0, 10);
 
-          return (
-            <div key={lodge.id} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 relative group">
-              <div className="relative h-56 w-full bg-gray-100 group">
-                {/* Horizontal Image Scroll */}
-                <div className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar">
-                  {allCardImages.map((img, idx) => (
-                    <div key={idx} className="w-full h-full shrink-0 snap-start">
-                      <Link href={`/lodge/${lodge.id}`}>
-                        <img 
-                          src={img} 
-                          alt={lodge.title}
-                          loading={idx === 0 ? "eager" : "lazy"}
-                          className="w-full h-full object-cover group-active:scale-105 transition-transform duration-500"
-                        />
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="absolute bottom-4 left-4 flex flex-col gap-2 pointer-events-none">
-                  <div className="flex gap-2">
-                    <div className="px-3 py-1 bg-blue-600/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider">
-                      {lodge.location}
-                    </div>
-                    {isVerified && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-green-500/90 backdrop-blur text-white text-[10px] font-bold rounded-lg uppercase tracking-wider shadow-sm">
-                        <CheckCircle size={12} /> Verified
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Low Occupancy Alert */}
-                  {(() => {
-                    const totalAvailable = lodge.units?.reduce((acc, u) => acc + u.available_units, 0) || 0;
-                    if (totalAvailable > 0 && totalAvailable <= 2) {
-                      return (
-                        <div className="px-3 py-1 bg-red-600/90 backdrop-blur text-white text-[10px] font-black rounded-lg uppercase tracking-wider animate-pulse">
-                          Only {totalAvailable} room{totalAvailable > 1 ? 's' : ''} left!
-                        </div>
-                      );
-                    }
-                    if (totalAvailable === 0 && lodge.units && lodge.units.length > 0) {
-                      return (
-                        <div className="px-3 py-1 bg-gray-900/90 backdrop-blur text-white text-[10px] font-black rounded-lg uppercase tracking-wider">
-                          Fully Booked
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-
-                {/* Photo Count Badge */}
-                {allCardImages.length > 1 && (
-                  <div className="absolute top-4 left-4 px-2 py-1 bg-black/40 backdrop-blur-md rounded-lg text-white text-[9px] font-bold pointer-events-none">
-                    {allCardImages.length} Photos
-                  </div>
-                )}
-              </div>
-              
-              <button 
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleFavorite(lodge.id);
-                }}
-                className={`absolute top-4 right-4 p-2 rounded-full shadow-lg active:scale-75 transition-all ${
-                  isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-md text-gray-900'
-                }`}
+            return (
+              <motion.div 
+                key={lodge.id} 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+                className="bg-white rounded-[40px] overflow-hidden shadow-sm border border-gray-100 relative group"
               >
-                <Heart size={20} fill={isFavorite ? "currentColor" : "none"} />
-              </button>
-              
-              <div className="p-5">
-                <Link href={`/lodge/${lodge.id}`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg text-gray-900 leading-tight">{lodge.title}</h3>
-                    <div className="text-right">
-                      <div className="text-blue-600 font-black text-sm">
-                        {lodge.units && lodge.units.length > 0 ? (
-                          (() => {
-                            const prices = lodge.units.map(u => u.price);
-                            const min = Math.min(...prices);
-                            const max = Math.max(...prices);
-                            return min === max 
-                              ? `₦${min.toLocaleString()}`
-                              : `From ₦${min.toLocaleString()}`;
-                          })()
-                        ) : (
-                          `₦${lodge.price.toLocaleString()}`
-                        )}
+                <div className="relative h-64 xs:h-72 w-full bg-gray-100 group">
+                  <div className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar">
+                    {allCardImages.map((img, idx) => (
+                      <div key={idx} className="w-full h-full shrink-0 snap-start">
+                        <Link href={`/lodge/${lodge.id}`}>
+                          <img 
+                            src={img} 
+                            alt={lodge.title}
+                            loading={idx === 0 ? "eager" : "lazy"}
+                            className="w-full h-full object-cover group-active:scale-105 transition-transform duration-700"
+                          />
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="absolute bottom-5 left-5 flex flex-col gap-2 pointer-events-none">
+                    <div className="flex gap-2">
+                      <div className="px-3 py-1.5 bg-blue-600/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
+                        {lodge.location}
+                      </div>
+                      {isVerified && (
+                        <div className="flex items-center gap-1 px-3 py-1.5 bg-green-500/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
+                          <CheckCircle size={12} className="fill-white/20" /> Verified
+                        </div>
+                      )}
+                    </div>
+                    
+                    {(() => {
+                      const totalAvailable = lodge.units?.reduce((acc, u) => acc + u.available_units, 0) || 0;
+                      if (totalAvailable > 0 && totalAvailable <= 2) {
+                        return (
+                          <div className="px-3 py-1.5 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest animate-pulse shadow-lg">
+                            Only {totalAvailable} left!
+                          </div>
+                        );
+                      }
+                      if (totalAvailable === 0 && lodge.units && lodge.units.length > 0) {
+                        return (
+                          <div className="px-3 py-1.5 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
+                            Fully Booked
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  {allCardImages.length > 1 && (
+                    <div className="absolute top-5 left-5 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-xl text-white text-[9px] font-black tracking-widest uppercase pointer-events-none border border-white/10">
+                      {allCardImages.length} Photos
+                    </div>
+                  )}
+                </div>
+                
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleFavorite(lodge.id);
+                  }}
+                  className={`absolute top-5 right-5 p-3.5 rounded-2xl shadow-xl active:scale-75 transition-all backdrop-blur-md border ${
+                    isFavorite ? 'bg-red-500 border-red-400 text-white' : 'bg-white/80 border-white text-gray-900 hover:bg-white'
+                  }`}
+                >
+                  <Heart size={20} fill={isFavorite ? "currentColor" : "none"} />
+                </button>
+                
+                <div className="p-6 xs:p-8">
+                  <Link href={`/lodge/${lodge.id}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-black text-xl text-gray-900 tracking-tight leading-tight group-hover:text-blue-600 transition-colors">{lodge.title}</h3>
+                      <div className="text-right shrink-0 ml-4">
+                        <div className="text-blue-600 font-black text-lg leading-none">
+                          {lodge.units && lodge.units.length > 0 ? (
+                            (() => {
+                              const prices = lodge.units.map(u => u.price);
+                              return `₦${Math.min(...prices).toLocaleString()}`;
+                            })()
+                          ) : (
+                            `₦${lodge.price.toLocaleString()}`
+                          )}
+                        </div>
+                        <div className="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Per Year</div>
                       </div>
                     </div>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-4 line-clamp-2">{lodge.description}</p>
-                </Link>
-                
-                {/* Room Type Badges */}
-                {lodge.units && lodge.units.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {Array.from(new Set(lodge.units.map(u => u.name))).slice(0, 3).map(name => (
-                      <span key={name} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-black uppercase tracking-tighter rounded-md border border-gray-200/50">
-                        {name}
-                      </span>
-                    ))}
-                    {new Set(lodge.units.map(u => u.name)).size > 3 && (
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-tighter rounded-md border border-blue-100">
-                        +{new Set(lodge.units.map(u => u.name)).size - 3} More
-                      </span>
-                    )}
-                  </div>
-                )}
-                
-                {hasPhone ? (
-                  <div className="flex gap-2">
-                    <button 
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
-                        loadingCallId === lodge.id ? 'bg-gray-100 text-gray-600' : 'bg-gray-900 text-white shadow-lg shadow-gray-200'
-                      }`}
-                      disabled={loadingCallId === lodge.id}
-                      onClick={() => handleCall(lodge)}
-                    >
-                      {loadingCallId === lodge.id ? (
-                        <><Loader2 className="animate-spin" size={18} /> Connecting...</>
-                      ) : (
-                        <><Phone size={18} /> Call</>
+                    <p className="text-sm text-gray-500 mb-6 line-clamp-2 leading-relaxed font-medium">{lodge.description}</p>
+                  </Link>
+                  
+                  {lodge.units && lodge.units.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-8">
+                      {Array.from(new Set(lodge.units.map(u => u.name))).slice(0, 3).map(name => (
+                        <span key={name} className="px-3 py-1.5 bg-gray-50 text-gray-600 text-[10px] font-black uppercase tracking-tighter rounded-xl border border-gray-100">
+                          {name}
+                        </span>
+                      ))}
+                      {new Set(lodge.units.map(u => u.name)).size > 3 && (
+                        <span className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-tighter rounded-xl border border-blue-100">
+                          +{new Set(lodge.units.map(u => u.name)).size - 3} More
+                        </span>
                       )}
-                    </button>
-                    <button 
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium active:scale-95 transition-all ${
-                        loadingMsgId === lodge.id ? 'bg-green-100 text-green-600' : 'bg-green-600 text-white shadow-lg shadow-green-100'
-                      }`}
-                      disabled={loadingMsgId === lodge.id}
-                      onClick={() => handleWhatsApp(lodge)}
-                    >
-                      {loadingMsgId === lodge.id ? (
-                        <><Loader2 className="animate-spin" size={18} /> Opening...</>
-                      ) : (
-                        <><MessageCircle size={18} /> WhatsApp</>
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="py-2 px-4 bg-gray-50 rounded-xl text-center text-xs text-gray-400 font-medium italic">
-                    Contact details not provided
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                    </div>
+                  )}
+                  
+                  {hasPhone ? (
+                    <div className="flex gap-3">
+                      <button 
+                        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all ${
+                          loadingCallId === lodge.id ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white shadow-xl shadow-gray-200'
+                        }`}
+                        disabled={loadingCallId === lodge.id}
+                        onClick={() => handleCall(lodge)}
+                      >
+                        {loadingCallId === lodge.id ? (
+                          <><Loader2 className="animate-spin" size={16} /> Connecting</>
+                        ) : (
+                          <><Phone size={16} /> Call Now</>
+                        )}
+                      </button>
+                      <button 
+                        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all ${
+                          loadingMsgId === lodge.id ? 'bg-green-100 text-green-600' : 'bg-green-600 text-white shadow-xl shadow-green-100 hover:bg-green-700'
+                        }`}
+                        disabled={loadingMsgId === lodge.id}
+                        onClick={() => handleWhatsApp(lodge)}
+                      >
+                        {loadingMsgId === lodge.id ? (
+                          <><Loader2 className="animate-spin" size={16} /> Opening</>
+                        ) : (
+                          <><MessageCircle size={16} /> WhatsApp</>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="py-4 px-6 bg-gray-50 rounded-2xl text-center text-[10px] text-gray-400 font-black uppercase tracking-widest italic border border-dashed border-gray-200">
+                      Contact details not provided
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
         {lodges.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-300">
-              <MapPin size={32} />
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 text-gray-300 border-4 border-white shadow-inner">
+              <MapPin size={40} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">No lodges available</h3>
-            <p className="text-gray-500 text-sm max-w-[200px] mt-2">We couldn&apos;t find any lodges at the moment. Please check back later.</p>
+            <h3 className="text-xl font-black text-gray-900">No lodges available</h3>
+            <p className="text-gray-500 text-sm max-w-[220px] mt-2 leading-relaxed">We couldn&apos;t find any active listings. Check back later!</p>
           </div>
         )}
       </div>
