@@ -488,6 +488,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           .from('favorites')
           .insert({ user_id: user.id, lodge_id: lodgeId });
         if (error) throw error;
+
+        // --- Notification Logic: Notify Landlord ---
+        try {
+          const { data: lodge } = await supabase
+            .from('lodges')
+            .select('landlord_id, title')
+            .eq('id', lodgeId)
+            .single();
+
+          if (lodge && lodge.landlord_id !== user.id) {
+            await supabase.from('notifications').insert({
+              user_id: lodge.landlord_id,
+              title: 'New Interest! ❤️',
+              message: `A student just favorited your lodge "${lodge.title}". They might be interested in a viewing!`,
+              type: 'info',
+              link: `/lodge/${lodgeId}`
+            });
+          }
+        } catch (notifyErr) {
+          console.error('Failed to notify landlord of favorite:', notifyErr);
+        }
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
