@@ -91,67 +91,67 @@ export default function MarketRequests() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-24">
-      {/* Premium Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-8 sticky top-0 z-30 shadow-sm shadow-gray-100/50 backdrop-blur-xl bg-white/80">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-              Marketplace <Sparkles className="text-blue-500 fill-blue-500" size={20} />
+      {/* Premium Header - Optimized for small screens */}
+      <div className="bg-white border-b border-gray-100 px-4 py-6 sticky top-0 z-30 shadow-sm shadow-gray-100/50 backdrop-blur-xl bg-white/80">
+        <div className="flex justify-between items-start mb-5">
+          <div className="min-w-0 pr-2">
+            <h1 className="text-2xl xs:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              Marketplace <Sparkles className="text-blue-500 fill-blue-500 shrink-0" size={18} />
             </h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Connect with students looking for lodges</p>
+            <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5 truncate">Connect with students looking for lodges</p>
           </div>
           {role === 'student' && (
             <Link 
               href="/requests/new" 
-              className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-200 active:scale-95 transition-all hover:bg-blue-700 group"
+              className="p-2.5 xs:p-3 bg-blue-600 text-white rounded-xl xs:rounded-2xl shadow-xl shadow-blue-200 active:scale-95 transition-all hover:bg-blue-700 group shrink-0"
             >
-              <PlusCircle size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+              <PlusCircle size={22} className="group-hover:rotate-90 transition-transform duration-300" />
             </Link>
           )}
         </div>
 
         {/* Modern Search Bar */}
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={16} />
           <input 
             type="text"
-            placeholder="Search by area, budget or name..."
+            placeholder="Search area, budget..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-medium text-sm"
+            className="w-full bg-gray-50 border border-gray-100 p-3.5 pl-11 rounded-xl xs:rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-medium text-sm"
           />
           {searchQuery && (
             <button 
               onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500 hover:bg-gray-300 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500 hover:bg-gray-300 transition-colors"
             >
-              <X size={14} />
+              <X size={12} />
             </button>
           )}
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-6">
+      <div className="px-3 xs:px-4 py-6 space-y-6">
         {/* Post CTA for Students */}
         {role === 'student' && !requests.some(r => r.student_id === user?.id) && !searchQuery && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[32px] text-white shadow-xl shadow-blue-200 relative overflow-hidden"
+            className="bg-gradient-to-br from-blue-600 to-blue-700 p-5 xs:p-6 rounded-[28px] xs:rounded-[32px] text-white shadow-xl shadow-blue-200 relative overflow-hidden"
           >
             <div className="relative z-10">
-              <h3 className="text-xl font-bold mb-2">Can&apos;t find a lodge?</h3>
-              <p className="text-blue-50 text-sm leading-relaxed mb-4 opacity-90">
+              <h3 className="text-lg xs:text-xl font-bold mb-1.5 xs:mb-2">Can&apos;t find a lodge?</h3>
+              <p className="text-blue-50 text-xs xs:text-sm leading-relaxed mb-4 opacity-90">
                 Post your specific requirements and let landlords reach out to you with matching listings!
               </p>
               <Link 
                 href="/requests/new" 
-                className="inline-flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-2xl text-sm font-black shadow-lg active:scale-95 transition-all"
+                className="inline-flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 xs:px-6 xs:py-3 rounded-xl xs:rounded-2xl text-xs xs:text-sm font-black shadow-lg active:scale-95 transition-all"
               >
-                Create Request <Send size={16} />
+                Create Request <Send size={14} />
               </Link>
             </div>
-            <PlusCircle className="absolute -bottom-4 -right-4 w-32 h-32 text-white/10 rotate-12" />
+            <PlusCircle className="absolute -bottom-4 -right-4 w-24 h-24 xs:w-32 xs:h-32 text-white/10 rotate-12" />
           </motion.div>
         )}
 
@@ -169,31 +169,31 @@ export default function MarketRequests() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`bg-white p-6 rounded-[32px] shadow-sm border transition-all ${
+                  className={`bg-white p-4 xs:p-6 rounded-[24px] xs:rounded-[32px] shadow-sm border transition-all ${
                     isOwnRequest 
                       ? 'border-blue-200 ring-4 ring-blue-500/5' 
                       : 'border-gray-100 hover:border-blue-100 hover:shadow-md'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center text-gray-400 border border-gray-100">
-                        <User size={24} />
+                  <div className="flex items-start justify-between mb-5 gap-3">
+                    <div className="flex items-center gap-3 xs:gap-4 min-w-0">
+                      <div className="w-10 h-10 xs:w-12 xs:h-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl xs:rounded-2xl flex items-center justify-center text-gray-400 border border-gray-100 shrink-0">
+                        <User size={20} />
                       </div>
-                      <div>
-                        <div className="font-bold text-gray-900 flex items-center gap-2 text-lg">
-                          {request.student_name}
+                      <div className="min-w-0">
+                        <div className="font-bold text-gray-900 flex flex-wrap items-center gap-1.5 text-base xs:text-lg leading-tight">
+                          <span className="truncate">{request.student_name}</span>
                           {isOwnRequest && (
-                            <span className="text-[10px] bg-blue-600 text-white px-2.5 py-1 rounded-full uppercase font-black tracking-widest">You</span>
+                            <span className="text-[8px] xs:text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full uppercase font-black tracking-widest whitespace-nowrap">You</span>
                           )}
                         </div>
-                        <div className="text-[10px] text-gray-400 flex items-center gap-1.5 font-black uppercase tracking-widest">
-                          <Clock size={12} className="text-blue-500" /> {formatTime(request.created_at)}
+                        <div className="text-[9px] xs:text-[10px] text-gray-400 flex items-center gap-1 font-black uppercase tracking-widest mt-0.5">
+                          <Clock size={10} className="text-blue-500" /> {formatTime(request.created_at)}
                         </div>
                       </div>
                     </div>
                     {isOwnRequest && (
-                      <div className="flex gap-2">
+                      <div className="flex gap-1.5 shrink-0">
                         <button 
                           onClick={() => {
                             toast.success('Found a lodge!', {
@@ -204,41 +204,39 @@ export default function MarketRequests() {
                               }
                             });
                           }}
-                          className="px-4 py-2 bg-green-50 text-green-600 rounded-xl text-[10px] font-black uppercase border border-green-100 hover:bg-green-100 transition-all active:scale-95"
+                          className="px-2.5 py-1.5 bg-green-50 text-green-600 rounded-lg xs:rounded-xl text-[9px] xs:text-[10px] font-black uppercase border border-green-100 active:scale-95"
                         >
                           Found it
                         </button>
                         <button 
                           onClick={() => handleDeleteRequest(request.id)}
-                          className="p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all active:scale-95"
+                          className="p-1.5 xs:p-2 bg-gray-50 text-gray-400 hover:text-red-500 rounded-lg xs:rounded-xl transition-all active:scale-95"
                         >
-                          <Trash2 size={20} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     )}
                   </div>
 
-                  {/* Requirements Section */}
-                  <div className="grid grid-cols-1 gap-3 mb-6 bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
-                        <MapPin size={16} />
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
+                  {/* Requirements Section - More compact for small screens */}
+                  <div className="space-y-2 mb-5">
+                    <div className="flex items-start gap-2.5 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100/30">
+                      <MapPin size={14} className="text-blue-600 shrink-0 mt-0.5" />
+                      <div className="flex flex-wrap gap-1">
                         {request.locations && request.locations.length > 0 ? (
                           request.locations.map(loc => (
-                            <span key={loc} className="px-2.5 py-1 bg-white text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100 shadow-sm">{loc}</span>
+                            <span key={loc} className="px-2 py-0.5 bg-white text-blue-700 text-[9px] xs:text-[10px] font-bold rounded-md border border-blue-100 shadow-sm">{loc}</span>
                           ))
                         ) : (
-                          <span className="text-sm font-bold text-gray-700">{request.location}</span>
+                          <span className="text-xs xs:text-sm font-bold text-gray-700">{request.location}</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center shrink-0">
-                        <span className="text-xs font-black">₦</span>
+                    <div className="flex items-center gap-2.5 bg-green-50/50 p-2.5 rounded-xl border border-green-100/30">
+                      <div className="w-4 h-4 bg-green-100 text-green-600 rounded flex items-center justify-center shrink-0">
+                        <span className="text-[10px] font-black">₦</span>
                       </div>
-                      <span className="text-sm text-gray-700 font-bold tracking-tight">
+                      <span className="text-xs xs:text-sm text-gray-700 font-bold tracking-tight">
                         Budget: <span className="text-gray-900 font-black">
                           {request.min_budget && request.max_budget 
                             ? `₦${request.min_budget.toLocaleString()} - ₦${request.max_budget.toLocaleString()}` 
@@ -249,13 +247,13 @@ export default function MarketRequests() {
                   </div>
 
                   <div className="relative group/text">
-                    <p className="text-sm text-gray-600 leading-relaxed italic border-l-4 border-blue-200 pl-4 mb-6">
+                    <p className="text-xs xs:text-sm text-gray-600 leading-relaxed italic border-l-4 border-blue-200 pl-3 xs:pl-4 mb-6 line-clamp-4">
                       &quot;{request.description}&quot;
                     </p>
                   </div>
 
                   {(role === 'landlord' || role === 'admin') && (
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex flex-col xs:flex-row gap-2.5 xs:gap-3 pt-1">
                       <button 
                         onClick={() => {
                           if (!user?.is_verified && role !== 'admin') {
@@ -267,9 +265,9 @@ export default function MarketRequests() {
                           setSelectedStudentId(request.student_id);
                           setShowLodgeSelector(true);
                         }}
-                        className="flex-[1.5] flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 active:scale-95 transition-all hover:bg-blue-700"
+                        className="flex-[1.5] flex items-center justify-center gap-2 py-3.5 xs:py-4 bg-blue-600 text-white rounded-xl xs:rounded-2xl font-black text-[10px] xs:text-xs uppercase tracking-widest shadow-xl shadow-blue-200 active:scale-95 transition-all hover:bg-blue-700"
                       >
-                        <Sparkles size={16} /> I have a match
+                        <Sparkles size={14} /> I have a match
                       </button>
                       <button 
                         onClick={() => {
@@ -277,9 +275,9 @@ export default function MarketRequests() {
                             window.open(`https://wa.me/234${request.student_phone.substring(1)}?text=Hello ${request.student_name}, I saw your request on ZikLodge for a lodge in ${request.location}. I have something available.`);
                           }
                         }}
-                        className="flex-1 flex items-center justify-center gap-2 py-4 bg-white text-green-600 border-2 border-green-50 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all hover:bg-green-50 shadow-sm"
+                        className="flex-1 flex items-center justify-center gap-2 py-3.5 xs:py-4 bg-white text-green-600 border-2 border-green-50 rounded-xl xs:rounded-2xl font-black text-[10px] xs:text-xs uppercase tracking-widest active:scale-95 transition-all hover:bg-green-50 shadow-sm"
                       >
-                        <MessageCircle size={16} /> WhatsApp
+                        <MessageCircle size={14} /> WhatsApp
                       </button>
                     </div>
                   )}
