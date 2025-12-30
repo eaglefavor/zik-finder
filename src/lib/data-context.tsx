@@ -10,9 +10,11 @@ interface DataContextType {
   lodges: Lodge[];
   requests: LodgeRequest[];
   favorites: string[];
+  unreadCount: number;
   isLoading: boolean;
   refreshLodges: () => Promise<void>;
   refreshRequests: () => Promise<void>;
+  refreshUnreadCount: () => Promise<void>;
   toggleFavorite: (lodgeId: string) => Promise<void>;
   addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => Promise<{ success: boolean; error?: string }>;
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => Promise<{ success: boolean; error?: string }>;
@@ -34,6 +36,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [lodges, setLodges] = useState<Lodge[]>([]);
   const [requests, setRequests] = useState<LodgeRequest[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshLodges = async () => {
@@ -123,13 +126,52 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshUnreadCount = async () => {
+    if (!user) {
+      setUnreadCount(0);
+      return;
+    }
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+
+    if (!error && count !== null) {
+      setUnreadCount(count);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([refreshLodges(), refreshRequests(), refreshFavorites()]);
+      await Promise.all([refreshLodges(), refreshRequests(), refreshFavorites(), refreshUnreadCount()]);
       setIsLoading(false);
     };
     loadData();
+
+    // Subscribe to real-time notification changes to update unreadCount
+    if (user) {
+      const channel = supabase
+        .channel(`unread-notifications-${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Listen to all changes (insert, update, delete)
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            refreshUnreadCount();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
 
   const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => {
@@ -522,9 +564,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       lodges, 
       requests,
       favorites, 
+      unreadCount,
       isLoading, 
       refreshLodges, 
       refreshRequests,
+      refreshUnreadCount,
       toggleFavorite,
       addLodge,
       updateLodge,

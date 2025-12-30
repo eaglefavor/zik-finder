@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 export default function ProfilePage() {
   const { user, role, logout } = useAppContext();
-  const { lodges, deleteLodge } = useData();
+  const { lodges, deleteLodge, unreadCount } = useData();
   const router = useRouter();
   
   if (!user) return null;
@@ -75,7 +75,12 @@ export default function ProfilePage() {
 
       <div className="space-y-4">
         <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-          <MenuButton icon={Bell} label="Notifications" onClick={() => router.push('/profile/notifications')} />
+          <MenuButton 
+            icon={Bell} 
+            label="Notifications" 
+            onClick={() => router.push('/profile/notifications')} 
+            showDot={unreadCount > 0}
+          />
           <MenuButton icon={Settings} label="Account Settings" onClick={() => router.push('/profile/settings')} />
           <MenuButton icon={Lock} label="Change Password" onClick={() => router.push('/profile/change-password')} />
           <MenuButton icon={HelpCircle} label="Help & Support" onClick={() => router.push('/profile/support')} />
@@ -105,15 +110,18 @@ export default function ProfilePage() {
   );
 }
 
-function MenuButton({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick?: () => void }) {
+function MenuButton({ icon: Icon, label, onClick, showDot }: { icon: React.ElementType; label: string; onClick?: () => void; showDot?: boolean }) {
   return (
     <button 
       onClick={onClick}
       className="w-full flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
     >
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400">
+        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 relative">
           <Icon size={20} />
+          {showDot && (
+            <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+          )}
         </div>
         <span className="font-bold text-gray-700">{label}</span>
       </div>

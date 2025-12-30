@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, Globe, User, Heart } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
+import { useData } from '@/lib/data-context';
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { role, user } = useAppContext();
+  const { unreadCount } = useData();
 
   if (!user) return null;
 
@@ -35,11 +37,16 @@ export default function BottomNav() {
           <Link
             key={tab.path}
             href={tab.path}
-            className={`flex flex-col items-center gap-1 ${
+            className={`flex flex-col items-center gap-1 relative ${
               isActive ? 'text-blue-600' : 'text-gray-500'
             }`}
           >
-            <Icon size={24} />
+            <div className="relative">
+              <Icon size={24} />
+              {tab.label === 'Profile' && unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+              )}
+            </div>
             <span className="text-[10px] font-medium">{tab.label}</span>
           </Link>
         );
