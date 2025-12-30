@@ -41,23 +41,18 @@ export interface Lodge {
 }
 
 export interface LodgeRequest {
-
   id: string;
-
   student_id: string;
-
   student_name: string;
-
   student_phone: string;
-
-  budget_range: string;
-
-  location: string;
-
+  budget_range: string; // Keep for legacy
+  min_budget?: number;
+  max_budget?: number;
+  location: string; // Keep for legacy
+  locations?: string[];
   description: string;
-
   created_at: string;
-
+  expires_at: string;
 }
 
 export interface Notification {

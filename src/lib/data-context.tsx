@@ -22,8 +22,9 @@ interface DataContextType {
   updateUnitAvailability: (id: string, available_units: number) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
   deleteLodge: (id: string) => Promise<void>;
-  addRequest: (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at'>) => Promise<{ success: boolean; error?: string }>;
+  addRequest: (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at' | 'expires_at'>) => Promise<{ success: boolean; error?: string }>;
   deleteRequest: (id: string) => Promise<void>;
+  notifyStudentOfMatch: (studentId: string, lodgeId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -61,6 +62,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from('requests')
       .select('*, profiles!requests_student_id_fkey(phone_number, name)')
+      .gt('expires_at', new Date().toISOString()) // Only get non-expired requests
       .order('created_at', { ascending: false });
 
     if (!error && data) {
@@ -69,18 +71,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         student_id: string;
         profiles: { name?: string; phone_number?: string } | null;
         budget_range: string;
+        min_budget: number;
+        max_budget: number;
         location: string;
+        locations: string[];
         description: string;
         created_at: string;
+        expires_at: string;
       }[]).map((r) => ({
         id: r.id,
         student_id: r.student_id,
         student_name: r.profiles?.name || 'Student',
         student_phone: r.profiles?.phone_number || '',
         budget_range: r.budget_range,
+        min_budget: r.min_budget,
+        max_budget: r.max_budget,
         location: r.location,
+        locations: r.locations || [r.location],
         description: r.description,
-        created_at: r.created_at
+        created_at: r.created_at,
+        expires_at: r.expires_at
       }));
       setRequests(formatted);
     }
@@ -322,27 +332,39 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addRequest = async (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at'>) => {
+  const addRequest = async (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at' | 'expires_at'>) => {
     if (!user) return { success: false, error: 'Not authenticated' };
+
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 14);
+
+    // Provide default values for legacy fields if not present
+    const legacyLocation = requestData.location || (requestData.locations ? requestData.locations.join(', ') : 'Any Location');
+    const legacyBudget = requestData.budget_range || (requestData.min_budget && requestData.max_budget ? `₦${requestData.min_budget.toLocaleString()} - ₦${requestData.max_budget.toLocaleString()}` : 'Any Budget');
 
     const { error } = await supabase
       .from('requests')
       .insert({
         ...requestData,
-        student_id: user.id
+        location: legacyLocation,
+        budget_range: legacyBudget,
+        student_id: user.id,
+        expires_at: expiryDate.toISOString()
       });
 
     if (error) return { success: false, error: error.message };
 
     // Notification Logic: Notify landlords in the area
     try {
-      // Normalize location (e.g. "Ifite (School Gate Area)" -> "Ifite")
-      const normalizedLocation = requestData.location.split(' (')[0];
+      // Normalize location - Use the first location for simplified matching or match ANY of the selected locations
+      const matchLocation = requestData.locations && requestData.locations.length > 0 
+        ? requestData.locations[0].split(' (')[0] 
+        : requestData.location?.split(' (')[0] || 'Any Location';
       
       let query = supabase.from('lodges').select('landlord_id');
       
-      if (normalizedLocation !== 'Any Location') {
-        query = query.eq('location', normalizedLocation);
+      if (matchLocation !== 'Any Location') {
+        query = query.eq('location', matchLocation);
       }
 
       const { data: lodgesInArea } = await query;
@@ -353,7 +375,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const notifications = landlordIds.map(id => ({
           user_id: id,
           title: 'New Student Request! 🎯',
-          message: `A student is looking for a lodge in ${normalizedLocation}. Check the Market to see if you have a match!`,
+          message: `A student is looking for a lodge in ${matchLocation}. Check the Market to see if you have a match!`,
           type: 'info',
           link: '/market'
         }));
@@ -382,6 +404,33 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .eq('id', id);
 
     if (!error) await refreshRequests();
+  };
+
+  const notifyStudentOfMatch = async (studentId: string, lodgeId: string) => {
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    try {
+      // 1. Fetch lodge details for the notification
+      const { data: lodge } = await supabase
+        .from('lodges')
+        .select('title')
+        .eq('id', lodgeId)
+        .single();
+
+      // 2. Create notification for student
+      const { error } = await supabase.from('notifications').insert({
+        user_id: studentId,
+        title: 'Lodge Match! 🏠',
+        message: `${user.name || 'A landlord'} has a lodge ("${lodge?.title || 'Untitled'}") that matches your request!`,
+        type: 'success',
+        link: `/lodge/${lodgeId}`
+      });
+
+      if (error) throw error;
+      return { success: true };
+    } catch (err: unknown) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
   };
 
   const toggleFavorite = async (lodgeId: string) => {
@@ -438,7 +487,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteUnit,
       deleteLodge,
       addRequest,
-      deleteRequest
+      deleteRequest,
+      notifyStudentOfMatch
     }}>
       {children}
     </DataContext.Provider>

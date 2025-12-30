@@ -28,12 +28,14 @@ export default function SearchPage() {
 
   const filteredListings = useMemo(() => {
     return lodges.filter(l => {
-      // 1. Text Search (Title, Location, Description)
+      // 1. Text Search (Title, Location, Description, Amenities, Room Types)
       const searchQuery = query.toLowerCase();
       const matchesQuery = query ? (
         l.title.toLowerCase().includes(searchQuery) || 
         l.location.toLowerCase().includes(searchQuery) ||
-        l.description.toLowerCase().includes(searchQuery)
+        l.description.toLowerCase().includes(searchQuery) ||
+        l.amenities.some(a => a.toLowerCase().includes(searchQuery)) ||
+        l.units?.some(u => u.name.toLowerCase().includes(searchQuery))
       ) : true;
 
       // 2. Strict Location Filter
