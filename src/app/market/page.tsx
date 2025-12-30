@@ -105,22 +105,37 @@ export default function MarketRequests() {
     for (const lodge of landlordLodges) {
       let score = 0;
       
-      // 1. Location Match (Highest weight)
+      // 1. Precise Location Match (Highest weight: 60%)
       const reqLocations = request.locations || [request.location];
-      const locationMatch = reqLocations.some(loc => loc.toLowerCase().includes(lodge.location.toLowerCase()));
+      const isAnyLocation = reqLocations.some(l => l.toLowerCase().includes('any'));
+      
+      const locationMatch = isAnyLocation || reqLocations.some(loc => {
+        // Normalize: "Ifite (School Gate Area)" -> "ifite"
+        const cleanReq = loc.toLowerCase().split(' (')[0].trim();
+        const cleanLodge = lodge.location.toLowerCase().split(' (')[0].trim();
+        return cleanReq === cleanLodge || cleanReq === 'any location';
+      });
+
       if (locationMatch) score += 60;
       
-      // 2. Price Match
-      if (request.max_budget && request.max_budget > 0) {
-        if (lodge.price <= request.max_budget) {
+      // 2. Budget Match (Weight: 40%)
+      const hasBudget = request.max_budget && request.max_budget > 0;
+      
+      if (hasBudget) {
+        if (lodge.price <= request.max_budget!) {
+          // Perfectly within budget
           score += 40;
-        } else if (lodge.price <= request.max_budget * 1.2) {
-          // within 20% over budget
+        } else if (lodge.price <= request.max_budget! * 1.1) {
+          // Slightly over (10%)
           score += 20;
+        } else if (lodge.price <= request.max_budget! * 1.25) {
+          // Moderately over (25%)
+          score += 10;
         }
       } else {
-        // If no budget specified, assume partial match on price
-        score += 20;
+        // No budget specified in request - assume partial match on price
+        // Only if location matches, we give a base "potential" match
+        if (locationMatch) score += 20;
       }
       
       if (score > bestScore) bestScore = score;
