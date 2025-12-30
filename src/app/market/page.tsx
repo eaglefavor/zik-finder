@@ -97,6 +97,38 @@ export default function MarketRequests() {
     }
   };
 
+  const calculateMatchScore = (request: typeof requests[0]) => {
+    if (landlordLodges.length === 0) return 0;
+    
+    let bestScore = 0;
+    
+    for (const lodge of landlordLodges) {
+      let score = 0;
+      
+      // 1. Location Match (Highest weight)
+      const reqLocations = request.locations || [request.location];
+      const locationMatch = reqLocations.some(loc => loc.toLowerCase().includes(lodge.location.toLowerCase()));
+      if (locationMatch) score += 60;
+      
+      // 2. Price Match
+      if (request.max_budget && request.max_budget > 0) {
+        if (lodge.price <= request.max_budget) {
+          score += 40;
+        } else if (lodge.price <= request.max_budget * 1.2) {
+          // within 20% over budget
+          score += 20;
+        }
+      } else {
+        // If no budget specified, assume partial match on price
+        score += 20;
+      }
+      
+      if (score > bestScore) bestScore = score;
+    }
+    
+    return bestScore;
+  };
+
   if (isLoading) {
     return (
       <div className="px-4 py-6 pb-24">
@@ -231,6 +263,24 @@ export default function MarketRequests() {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* Smart Match Score Badge for Landlords */}
+                    {(role === 'landlord' || role === 'admin') && !isOwnRequest && landlordLodges.length > 0 && (
+                      <div className="shrink-0 flex flex-col items-end">
+                        <div className={`px-2 py-1 rounded-lg flex items-center gap-1.5 border ${
+                          calculateMatchScore(request) >= 80 ? 'bg-green-50 border-green-100 text-green-700' :
+                          calculateMatchScore(request) >= 40 ? 'bg-blue-50 border-blue-100 text-blue-700' :
+                          'bg-gray-50 border-gray-100 text-gray-500'
+                        }`}>
+                          <Sparkles size={10} className={calculateMatchScore(request) >= 80 ? 'animate-pulse' : ''} />
+                          <span className="text-[9px] font-black uppercase tracking-tighter">
+                            {calculateMatchScore(request)}% Match
+                          </span>
+                        </div>
+                        <span className="text-[8px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Compatibility</span>
+                      </div>
+                    )}
+
                     {isOwnRequest && (
                       <div className="flex gap-1.5 shrink-0">
                         <button 
@@ -310,6 +360,12 @@ export default function MarketRequests() {
                       </button>
                       <button 
                         onClick={() => {
+                          if (!user?.is_verified && role !== 'admin') {
+                            toast.error('Verification Required', {
+                              description: 'You must be a verified landlord to contact students.'
+                            });
+                            return;
+                          }
                           if (request.student_phone) {
                             window.open(`https://wa.me/234${request.student_phone.substring(1)}?text=Hello ${request.student_name}, I saw your request on ZikLodge for a lodge in ${request.location}. I have something available.`);
                           }
