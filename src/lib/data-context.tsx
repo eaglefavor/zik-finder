@@ -42,21 +42,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshLodges = async () => {
-    // Explicitly use the 'lodges_landlord_id_fkey' constraint we enforced in SQL
-    // Also fetch the related units
-    const { data, error } = await supabase
+    // Attempt full fetch with all relations and new columns
+    let { data, error } = await supabase
       .from('lodges')
-      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*), landmark')
+      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
       .order('created_at', { ascending: false });
 
+    // Fallback if there's an error (likely missing columns during transition)
+    if (error) {
+      console.warn('Falling back to legacy lodges fetch:', error.message);
+      const fallback = await supabase
+        .from('lodges')
+        .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified)')
+        .order('created_at', { ascending: false });
+      
+      data = fallback.data;
+      error = fallback.error;
+    }
+
     if (!error && data) {
-      const formatted = (data as unknown as {
-        profiles: { phone_number: string; is_verified: boolean } | { phone_number: string; is_verified: boolean }[];
-        lodge_units: LodgeUnit[];
-      }[]).map((l) => ({
+      const formatted = (data as unknown as any[]).map((l) => ({
         ...l,
         profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles,
-        units: l.lodge_units // Assign the fetched units
+        units: l.lodge_units || [] // Assign fetched units or empty array
       }));
       setLodges(formatted as unknown as Lodge[]);
     }
@@ -229,11 +237,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => {
+  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    // 1. Insert Lodge
-    const { data: newLodge, error: lodgeError } = await supabase
+    // 1. Insert Lodge (Attempt with all new columns)
+    let { data: newLodge, error: lodgeError } = await supabase
       .from('lodges')
       .insert({
         ...lodgeData,
@@ -241,6 +249,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       })
       .select()
       .single();
+
+    // Fallback if columns missing
+    if (lodgeError) {
+      console.warn('Falling back to legacy lodge insert:', lodgeError.message);
+      const { landmark, ...legacyData } = lodgeData as any;
+      const fallback = await supabase
+        .from('lodges')
+        .insert({
+          ...legacyData,
+          landlord_id: user.id
+        })
+        .select()
+        .single();
+      
+      newLodge = fallback.data;
+      lodgeError = fallback.error;
+    }
 
     if (lodgeError) return { success: false, error: lodgeError.message };
 
@@ -272,17 +297,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const updateLodge = async (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => {
+  const updateLodge = async (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     // Fetch old data to check for price drops
     const { data: oldLodge } = await supabase.from('lodges').select('price, title').eq('id', id).single();
 
-    const { error } = await supabase
+    // 1. Attempt full update
+    let { error } = await supabase
       .from('lodges')
       .update(lodgeData)
       .eq('id', id)
-      .eq('landlord_id', user.id); // Ensure ownership
+      .eq('landlord_id', user.id);
+
+    // 2. Fallback if new columns missing
+    if (error) {
+      console.warn('Falling back to legacy lodge update:', error.message);
+      const { landmark, ...legacyData } = lodgeData as any;
+      const fallback = await supabase
+        .from('lodges')
+        .update(legacyData)
+        .eq('id', id)
+        .eq('landlord_id', user.id);
+      error = fallback.error;
+    }
 
     if (error) return { success: false, error: error.message };
 
