@@ -68,6 +68,11 @@ export default function Home() {
   };
 
   const handleCall = async (lodge: Lodge) => {
+    setLoadingCallId(lodge.id);
+    if (user) {
+      try {
+        await supabase.from('notifications').insert({
+          user_id: lodge.landlord_id,
           type: 'info',
           link: `/lodge/${lodge.id}`
         });

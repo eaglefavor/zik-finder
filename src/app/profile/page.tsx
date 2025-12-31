@@ -206,7 +206,7 @@ export default function ProfilePage() {
         </section>
 
         <p className="text-center text-[10px] text-gray-300 font-black uppercase tracking-widest">
-          ZikLodge v1.2.4 • Made with ❤️ in Awka
+          ZikLodge v1.2.4, To the Lord and Christ, Jesus
         </p>
       </motion.div>
     </div>

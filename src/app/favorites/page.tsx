@@ -46,7 +46,6 @@ export default function FavoritesPage() {
         toast.error('Could not send notification to landlord');
       }
     }
-    }
     await new Promise(r => setTimeout(r, 600));
     window.location.href = `tel:${lodge.profiles?.phone_number}`;
     setTimeout(() => setLoadingCallId(null), 2000);
