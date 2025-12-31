@@ -6,6 +6,8 @@ import { supabase } from './supabase';
 import { useAppContext } from './context';
 import { toast } from 'sonner';
 
+const LODGE_PAGE_SIZE = 8;
+
 interface DataContextType {
   lodges: Lodge[];
   requests: LodgeRequest[];
@@ -13,7 +15,10 @@ interface DataContextType {
   unreadCount: number;
   viewGrowth: number;
   isLoading: boolean;
-  refreshLodges: () => Promise<void>;
+  isLodgesLoading: boolean;
+  hasMoreLodges: boolean;
+  fetchInitialLodges: () => Promise<void>;
+  fetchMoreLodges: () => Promise<void>;
   refreshRequests: () => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
   toggleFavorite: (lodgeId: string) => Promise<void>;
@@ -41,44 +46,82 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [viewGrowth, setViewGrowth] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshLodges = async () => {
-    // Attempt full fetch with all relations and new columns
+  // New state for infinite scroll
+  const [lodgesPage, setLodgesPage] = useState(0);
+  const [hasMoreLodges, setHasMoreLodges] = useState(true);
+  const [isLodgesLoading, setIsLodgesLoading] = useState(false);
+
+  const formatLodgeData = (data: any[]) => {
+    return (data as unknown as (Lodge & { lodge_units?: LodgeUnit[] })[]).map((l) => ({
+      ...l,
+      profiles: Array.isArray(l.profiles) ? l.profiles[0] : (l.profiles as unknown as { phone_number: string; is_verified: boolean }),
+      units: l.lodge_units || [] // Assign fetched units or empty array
+    })) as unknown as Lodge[];
+  }
+
+  const fetchInitialLodges = async () => {
+    setIsLodgesLoading(true);
     let { data, error } = await supabase
       .from('lodges')
       .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(0, LODGE_PAGE_SIZE - 1);
 
-    // Fallback if there's an error (likely missing columns during transition)
+    // Fallback logic remains the same for initial fetch
     if (error) {
       console.warn('Falling back to legacy lodges fetch:', error.message);
       const fallback = await supabase
         .from('lodges')
         .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified)')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(LODGE_PAGE_SIZE);
       
       data = fallback.data;
       error = fallback.error;
     }
 
     if (!error && data) {
-      const formatted = (data as unknown as (Lodge & { lodge_units?: LodgeUnit[] })[]).map((l) => ({
-        ...l,
-        profiles: Array.isArray(l.profiles) ? l.profiles[0] : (l.profiles as unknown as { phone_number: string; is_verified: boolean }),
-        units: l.lodge_units || [] // Assign fetched units or empty array
-      }));
-      setLodges(formatted as unknown as Lodge[]);
+      const formatted = formatLodgeData(data);
+      setLodges(formatted);
+      setLodgesPage(1);
+      setHasMoreLodges(data.length === LODGE_PAGE_SIZE);
     }
+    setIsLodgesLoading(false);
   };
+  
+  const fetchMoreLodges = async () => {
+    if (isLodgesLoading || !hasMoreLodges) return;
+    setIsLodgesLoading(true);
+
+    const from = lodgesPage * LODGE_PAGE_SIZE;
+    const to = from + LODGE_PAGE_SIZE - 1;
+
+    let { data, error } = await supabase
+      .from('lodges')
+      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      toast.error("Failed to load more lodges");
+    }
+
+    if (!error && data) {
+      const formatted = formatLodgeData(data);
+      setLodges(prev => [...prev, ...formatted]);
+      setLodgesPage(prev => prev + 1);
+      setHasMoreLodges(data.length === LODGE_PAGE_SIZE);
+    }
+    setIsLodgesLoading(false);
+  }
 
   const refreshRequests = async () => {
-    // Attempt to fetch with new columns and expiration filter
     let { data, error } = await supabase
       .from('requests')
       .select('*, profiles!requests_student_id_fkey(phone_number, name)')
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false });
 
-    // Fallback if columns don't exist yet
     if (error) {
       console.warn('Falling back to legacy requests fetch:', error.message);
       const fallback = await supabase
@@ -155,13 +198,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const refreshViewGrowth = async () => {
     if (!user) return;
 
-    // Get current time and date 7 and 14 days ago
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
     try {
-      // 1. Get the landlord's lodge IDs
       const { data: landlordLodgeIds } = await supabase
         .from('lodges')
         .select('id')
@@ -174,14 +215,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const ids = landlordLodgeIds.map(l => l.id);
 
-      // 2. Fetch view counts for "This Week" (last 7 days)
       const { count: thisWeekCount } = await supabase
         .from('lodge_views_log')
         .select('*', { count: 'exact', head: true })
         .in('lodge_id', ids)
         .gte('created_at', sevenDaysAgo.toISOString());
 
-      // 3. Fetch view counts for "Last Week" (7-14 days ago)
       const { count: lastWeekCount } = await supabase
         .from('lodge_views_log')
         .select('*', { count: 'exact', head: true })
@@ -189,7 +228,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .gte('created_at', fourteenDaysAgo.toISOString())
         .lt('created_at', sevenDaysAgo.toISOString());
 
-      // 4. Calculate Percentage Growth
       const current = thisWeekCount || 0;
       const previous = lastWeekCount || 0;
 
@@ -208,19 +246,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([refreshLodges(), refreshRequests(), refreshFavorites(), refreshUnreadCount(), refreshViewGrowth()]);
+      await Promise.all([fetchInitialLodges(), refreshRequests(), refreshFavorites(), refreshUnreadCount(), refreshViewGrowth()]);
       setIsLoading(false);
     };
     loadData();
 
-    // Subscribe to real-time notification changes to update unreadCount
     if (user) {
       const channel = supabase
         .channel(`unread-notifications-${user.id}`)
         .on(
           'postgres_changes',
           {
-            event: '*', // Listen to all changes (insert, update, delete)
+            event: '*',
             schema: 'public',
             table: 'notifications',
             filter: `user_id=eq.${user.id}`,
@@ -240,26 +277,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    // 1. Insert Lodge (Attempt with all new columns)
     let { data: newLodge, error: lodgeError } = await supabase
       .from('lodges')
-      .insert({
-        ...lodgeData,
-        landlord_id: user.id
-      })
+      .insert({ ...lodgeData, landlord_id: user.id })
       .select()
       .single();
 
-    // Fallback if columns missing
     if (lodgeError) {
       console.warn('Falling back to legacy lodge insert:', lodgeError.message);
       const { landmark: _, ...legacyData } = lodgeData as Record<string, unknown>;
       const fallback = await supabase
         .from('lodges')
-        .insert({
-          ...legacyData,
-          landlord_id: user.id
-        })
+        .insert({ ...legacyData, landlord_id: user.id })
         .select()
         .single();
       
@@ -269,13 +298,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (lodgeError) return { success: false, error: lodgeError.message };
 
-    // 2. Insert Units
     if (newLodge) {
       if (units && units.length > 0) {
-        const unitsToInsert = units.map(u => ({
-          ...u,
-          lodge_id: newLodge.id
-        }));
+        const unitsToInsert = units.map(u => ({ ...u, lodge_id: newLodge.id }));
         const { error: unitError } = await supabase.from('lodge_units').insert(unitsToInsert);
         if (unitError) console.error('Error adding units:', unitError);
       } else {
@@ -293,24 +318,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
-    await refreshLodges();
+    await fetchInitialLodges();
     return { success: true };
   };
 
   const updateLodge = async (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    // Fetch old data to check for price drops
     const { data: oldLodge } = await supabase.from('lodges').select('price, title').eq('id', id).single();
 
-    // 1. Attempt full update
     let { error } = await supabase
       .from('lodges')
       .update(lodgeData)
       .eq('id', id)
       .eq('landlord_id', user.id);
 
-    // 2. Fallback if new columns missing
     if (error) {
       console.warn('Falling back to legacy lodge update:', error.message);
       const { landmark: _, ...legacyData } = lodgeData as Record<string, unknown>;
@@ -324,7 +346,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (error) return { success: false, error: error.message };
 
-    // --- Student Notification: Price Drop Alert ---
     if (oldLodge && lodgeData.price && lodgeData.price < oldLodge.price) {
       try {
         const { data: favoritedBy } = await supabase
@@ -347,7 +368,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
-    await refreshLodges();
+    await fetchInitialLodges();
     return { success: true };
   };
 
@@ -368,7 +389,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     toast.promise(updateAction(), {
       loading: 'Updating status...',
       success: (data) => {
-        refreshLodges();
+        fetchInitialLodges();
         return `Lodge marked as ${data}`;
       },
       error: (err) => `Failed to update: ${err.message}`
@@ -381,7 +402,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .insert(unitData);
       
     if (error) console.error('Error adding unit:', error);
-    await refreshLodges();
+    await fetchInitialLodges();
   };
 
   const updateUnit = async (id: string, unitData: Partial<{ name: string, price: number, total_units: number, available_units: number }>) => {
@@ -391,7 +412,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .eq('id', id);
       
     if (error) console.error('Error updating unit:', error);
-    await refreshLodges();
+    await fetchInitialLodges();
   };
 
   const updateUnitAvailability = async (id: string, available_units: number) => {
@@ -401,10 +422,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .eq('id', id);
 
     if (!error) {
-      // --- Student Notification: Low Availability Alert ---
       if (available_units > 0 && available_units <= 2) {
         try {
-          // Fetch lodge info for the notification
           const { data } = await supabase
             .from('lodge_units')
             .select('lodge_id, name, lodges(title)')
@@ -434,7 +453,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           console.error('Failed to send availability alerts:', err);
         }
       }
-      await refreshLodges();
+      await fetchInitialLodges();
     }
   };
 
@@ -445,13 +464,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .eq('id', id);
       
     if (error) console.error('Error deleting unit:', error);
-    await refreshLodges();
+    await fetchInitialLodges();
   };
 
   const deleteLodge = async (id: string) => {
     if (!user) return;
 
-    // Get current session token
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
 
@@ -460,11 +478,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Optimistic update
     setLodges(prev => prev.filter(l => l.id !== id));
 
     try {
-      // 1. Delete images via API (Server-side)
       const res = await fetch('/api/lodges/delete', {
         method: 'POST',
         headers: { 
@@ -478,19 +494,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         console.warn('Image deletion API warning:', await res.json());
       }
 
-      // 2. Delete Lodge Record (Client-side, via RPC to bypass RLS quirks)
       const { error } = await supabase.rpc('delete_lodge', { lodge_id: id });
 
       if (error) {
         throw error;
       }
 
-      await refreshLodges();
+      await fetchInitialLodges();
 
     } catch (error: unknown) {
       console.error('Error deleting lodge:', error);
       toast.error('Error deleting lodge: ' + (error instanceof Error ? error.message : 'Unknown error'));
-      await refreshLodges(); // Revert optimistic update
+      await fetchInitialLodges(); 
     }
   };
 
@@ -500,11 +515,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 14);
 
-    // Provide default values for legacy fields if not present
     const legacyLocation = requestData.location || (requestData.locations ? requestData.locations.join(', ') : 'Any Location');
     const legacyBudget = requestData.budget_range || (requestData.min_budget && requestData.max_budget ? `₦${requestData.min_budget.toLocaleString()} - ₦${requestData.max_budget.toLocaleString()}` : 'Any Budget');
 
-    // 1. Attempt full insert with new columns
     let { error } = await supabase
       .from('requests')
       .insert({
@@ -515,7 +528,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         expires_at: expiryDate.toISOString()
       });
 
-    // 2. Fallback to legacy insert if new columns missing
     if (error) {
       console.warn('Falling back to legacy requests insert:', error.message);
       const fallback = await supabase
@@ -531,9 +543,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (error) return { success: false, error: error.message };
 
-    // Notification Logic: Notify landlords in the area
     try {
-      // Normalize location - Use the first location for simplified matching or match ANY of the selected locations
       const matchLocation = requestData.locations && requestData.locations.length > 0 
         ? requestData.locations[0].split(' (')[0] 
         : requestData.location?.split(' (')[0] || 'Any Location';
@@ -557,7 +567,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           link: '/market'
         }));
 
-        // Insert notifications in bulk
         const { error: insertError } = await supabase.from('notifications').insert(notifications);
         
         if (insertError) {
@@ -585,14 +594,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     try {
-      // 1. Fetch lodge details for the notification
       const { data: lodge } = await supabase
         .from('lodges')
         .select('title')
         .eq('id', lodgeId)
         .single();
 
-      // 2. Create notification for student
       const { error } = await supabase.from('notifications').insert({
         user_id: studentId,
         title: 'Lodge Match! 🏠',
@@ -616,14 +623,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     const isFav = favorites.includes(lodgeId);
     
-    // Optimistic Update
     setFavorites(prev => 
       isFav ? prev.filter(id => id !== lodgeId) : [...prev, lodgeId]
     );
 
     try {
       if (isFav) {
-        // Remove from DB
         const { error } = await supabase
           .from('favorites')
           .delete()
@@ -631,13 +636,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           .eq('lodge_id', lodgeId);
         if (error) throw error;
       } else {
-        // Add to DB
         const { error } = await supabase
           .from('favorites')
           .insert({ user_id: user.id, lodge_id: lodgeId });
         if (error) throw error;
 
-        // --- Notification Logic: Notify Landlord ---
         try {
           const { data: lodge } = await supabase
             .from('lodges')
@@ -660,7 +663,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // Revert on error
       await refreshFavorites();
     }
   };
@@ -673,7 +675,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       unreadCount,
       viewGrowth,
       isLoading, 
-      refreshLodges, 
+      isLodgesLoading,
+      hasMoreLodges,
+      fetchInitialLodges,
+      fetchMoreLodges,
       refreshRequests,
       refreshUnreadCount,
       toggleFavorite,

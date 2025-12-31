@@ -2,11 +2,12 @@
 
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
-import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, TrendingDown, Minus, Activity, LayoutGrid, ChevronRight, Search } from 'lucide-react';
+import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, TrendingDown, Minus, Activity, LayoutGrid, ChevronRight, Search, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import Image from 'next/image';
 import AuthScreen from '@/components/AuthScreen';
 import { Lodge } from '@/lib/types';
 import { toast } from 'sonner';
@@ -36,11 +37,35 @@ const AdminLink = ({ role }: { role: string }) => (
 
 export default function Home() {
   const { user, role, isLoading: authLoading } = useAppContext();
-  const { lodges, deleteLodge, updateLodgeStatus, updateUnitAvailability, toggleFavorite, favorites, viewGrowth } = useData();
-  const router = useRouter();
+  const { 
+    lodges, 
+    deleteLodge, 
+    updateLodgeStatus, 
+    updateUnitAvailability, 
+    toggleFavorite, 
+    favorites, 
+    viewGrowth,
+    fetchMoreLodges,
+    isLodgesLoading,
+    hasMoreLodges
+  } = useData();
+  
   const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
   const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
   const [loadingStatusId, setLoadingStatusId] = useState<string | null>(null);
+
+  // Infinite Scroll Logic
+  const observer = useRef<IntersectionObserver>();
+  const lastLodgeRef = useCallback((node: HTMLDivElement) => {
+    if (isLodgesLoading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMoreLodges) {
+        fetchMoreLodges();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [isLodgesLoading, hasMoreLodges, fetchMoreLodges]);
 
   if (authLoading) {
     return (
@@ -78,7 +103,6 @@ export default function Home() {
         });
       } catch (err: unknown) { 
         console.error('Failed to notify landlord of call:', err);
-        toast.error('Could not notify landlord');
       }
     }
     await new Promise(r => setTimeout(r, 600));
@@ -99,7 +123,6 @@ export default function Home() {
         });
       } catch (err: unknown) { 
         console.error('Failed to notify landlord of WhatsApp inquiry:', err);
-        toast.error('Could not notify landlord');
       }
     }
     await new Promise(r => setTimeout(r, 600));
@@ -128,9 +151,9 @@ export default function Home() {
               </h1>
               <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5">Manage your real estate portfolio</p>
             </div>
-            <Link href="/profile" className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden">
+            <Link href="/profile" className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden relative">
               {user.avatar_url ? (
-                <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+                <Image src={user.avatar_url} alt={user.name || 'User'} fill className="object-cover" />
               ) : (
                 <span className="font-black text-blue-600 text-lg">{(user.name || 'L')[0]}</span>
               )}
@@ -203,8 +226,8 @@ export default function Home() {
                     className="bg-white p-5 xs:p-6 rounded-[32px] border border-gray-100 shadow-sm space-y-6 relative overflow-hidden group"
                   >
                     <div className="flex gap-4 xs:gap-6">
-                      <div className="w-20 h-20 xs:w-24 xs:h-24 rounded-2xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100 shadow-inner">
-                        <img src={lodge.image_urls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                      <div className="w-20 h-20 xs:w-24 xs:h-24 rounded-2xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100 shadow-inner relative">
+                        <Image src={lodge.image_urls[0]} fill className="object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex justify-between items-start">
@@ -218,10 +241,7 @@ export default function Home() {
                         </div>
                         <div className="text-blue-600 font-black text-sm mt-1">
                           {lodge.units && lodge.units.length > 0 ? (
-                            (() => {
-                              const prices = lodge.units.map(u => u.price);
-                              return `From ₦${Math.min(...prices).toLocaleString()}`;
-                            })()
+                            `From ₦${Math.min(...lodge.units.map(u => u.price)).toLocaleString()}`
                           ) : (
                             `₦${lodge.price.toLocaleString()}`
                           )}
@@ -240,7 +260,6 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {/* Compact Unit Management */}
                     {lodge.units && lodge.units.length > 0 && (
                       <div className="bg-gray-50/50 rounded-3xl p-4 space-y-3 border border-gray-100/50">
                         <div className="flex justify-between items-center px-1">
@@ -258,24 +277,9 @@ export default function Home() {
                                 <p className="text-[9px] text-blue-600 font-bold">₦{unit.price.toLocaleString()}</p>
                               </div>
                               <div className="flex items-center gap-2">
-                                <button 
-                                  onClick={() => updateUnitAvailability(unit.id, Math.max(0, unit.available_units - 1))}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-600 transition-colors active:scale-90"
-                                >
-                                  -
-                                </button>
-                                <div className="text-center min-w-[35px]">
-                                  <span className={`text-xs font-black ${unit.available_units === 0 ? 'text-red-500' : 'text-gray-900'}`}>
-                                    {unit.available_units}
-                                  </span>
-                                  <span className="text-[9px] text-gray-300 font-bold">/{unit.total_units}</span>
-                                </div>
-                                <button 
-                                  onClick={() => updateUnitAvailability(unit.id, Math.min(unit.total_units, unit.available_units + 1))}
-                                  className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-green-50 rounded-xl text-gray-400 hover:text-green-600 transition-colors active:scale-90"
-                                >
-                                  +
-                                </button>
+                                <button onClick={() => updateUnitAvailability(unit.id, Math.max(0, unit.available_units - 1))} className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-600 transition-colors active:scale-90">-</button>
+                                <div className="text-center min-w-[35px]"><span className={`text-xs font-black ${unit.available_units === 0 ? 'text-red-500' : 'text-gray-900'}`}>{unit.available_units}</span><span className="text-[9px] text-gray-300 font-bold">/{unit.total_units}</span></div>
+                                <button onClick={() => updateUnitAvailability(unit.id, Math.min(unit.total_units, unit.available_units + 1))} className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-green-50 rounded-xl text-gray-400 hover:text-green-600 transition-colors active:scale-90">+</button>
                               </div>
                             </div>
                           ))}
@@ -284,42 +288,14 @@ export default function Home() {
                     )}
 
                     <div className="flex gap-3 pt-2">
-                      <Link 
-                        href={`/edit-lodge/${lodge.id}`}
-                        className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-gray-100 border border-gray-100"
-                      >
-                        <Edit3 size={14} /> Edit Details
-                      </Link>
-                      <button 
-                        onClick={() => handleStatusUpdate(lodge.id, lodge.status)}
-                        disabled={loadingStatusId === lodge.id}
-                        className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${
-                          loadingStatusId === lodge.id ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
-                          lodge.status === 'available' 
-                            ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' 
-                            : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'
-                        }`}
-                      >
-                        {loadingStatusId === lodge.id ? (
-                          <><Loader2 className="animate-spin" size={14} /> Updating...</>
-                        ) : lodge.status === 'available' ? (
-                          <><X size={14} /> Mark Taken</>
-                        ) : (
-                          <><CheckCircle size={14} /> Mark Public</>
-                        )}
-                      </button>
+                      <Link href={`/edit-lodge/${lodge.id}`} className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-gray-100 border border-gray-100"><Edit3 size={14} /> Edit Details</Link>
+                      <button onClick={() => handleStatusUpdate(lodge.id, lodge.status)} disabled={loadingStatusId === lodge.id} className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${loadingStatusId === lodge.id ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : lodge.status === 'available' ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'}`}>{loadingStatusId === lodge.id ? <><Loader2 className="animate-spin" size={14} /> Updating...</> : lodge.status === 'available' ? <><X size={14} /> Mark Taken</> : <><CheckCircle size={14} /> Mark Public</>}</button>
                     </div>
                   </motion.div>
                 ))
               ) : (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed border-gray-100"
-                >
-                  <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-gray-300">
-                    <Building2 size={40} />
-                  </div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20 bg-white rounded-[40px] border-2 border-dashed border-gray-100">
+                  <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-6 text-gray-300"><Building2 size={40} /></div>
                   <p className="text-gray-500 font-bold mb-6">You haven&apos;t posted any lodges yet.</p>
                   <Link href="/post" className="inline-block bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-200 active:scale-95 transition-all">Create Your First Listing</Link>
                 </motion.div>
@@ -344,9 +320,9 @@ export default function Home() {
             </h1>
             <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5">Find your perfect lodge in Awka</p>
           </div>
-          <Link href="/profile" className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden">
+          <Link href="/profile" className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden relative">
             {user.avatar_url ? (
-              <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover" />
+              <Image src={user.avatar_url} alt={user.name || 'User'} fill className="object-cover" />
             ) : (
               <span className="font-black text-blue-600 text-lg">{(user.name || 'S')[0]}</span>
             )}
@@ -365,8 +341,8 @@ export default function Home() {
       </div>
 
       <div className="px-4 py-8 space-y-8">
-        <AnimatePresence mode="popLayout">
           {lodges.filter(l => l.status === 'available').map((lodge, index) => {
+            const isLastLodge = index === lodges.length - 1;
             const isFavorite = favorites.includes(lodge.id);
             const isVerified = lodge.profiles?.is_verified === true;
             const hasPhone = !!lodge.profiles?.phone_number;
@@ -378,6 +354,7 @@ export default function Home() {
 
             return (
               <motion.div 
+                ref={isLastLodge ? lastLodgeRef : null}
                 key={lodge.id} 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -387,13 +364,14 @@ export default function Home() {
                 <div className="relative h-64 xs:h-72 w-full bg-gray-100 group">
                   <div className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar">
                     {allCardImages.map((img, idx) => (
-                      <div key={idx} className="w-full h-full shrink-0 snap-start">
+                      <div key={idx} className="w-full h-full shrink-0 snap-start relative">
                         <Link href={`/lodge/${lodge.id}`}>
-                          <img 
+                          <Image 
                             src={img} 
                             alt={lodge.title}
-                            loading={idx === 0 ? "eager" : "lazy"}
-                            className="w-full h-full object-cover group-active:scale-105 transition-transform duration-700"
+                            fill
+                            priority={index === 0 && idx === 0} // Prioritize first image of first lodge
+                            className="object-cover group-active:scale-105 transition-transform duration-700"
                           />
                         </Link>
                       </div>
@@ -458,10 +436,7 @@ export default function Home() {
                       <div className="text-right shrink-0 ml-4">
                         <div className="text-blue-600 font-black text-lg leading-none">
                           {lodge.units && lodge.units.length > 0 ? (
-                            (() => {
-                              const prices = lodge.units.map(u => u.price);
-                              return `₦${Math.min(...prices).toLocaleString()}`;
-                            })()
+                            `₦${Math.min(...lodge.units.map(u => u.price)).toLocaleString()}`
                           ) : (
                             `₦${lodge.price.toLocaleString()}`
                           )}
@@ -525,18 +500,31 @@ export default function Home() {
               </motion.div>
             );
           })}
-        </AnimatePresence>
-
-        {lodges.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 text-gray-300 border-4 border-white shadow-inner">
-              <MapPin size={40} />
-            </div>
-            <h3 className="text-xl font-black text-gray-900">No lodges available</h3>
-            <p className="text-gray-500 text-sm max-w-[220px] mt-2 leading-relaxed">We couldn&apos;t find any active listings. Check back later!</p>
-          </div>
-        )}
       </div>
+      
+      {isLodgesLoading && (
+        <div className="text-center py-8 flex items-center justify-center gap-2">
+          <Loader2 className="animate-spin text-blue-500" size={20} />
+          <span className="text-gray-400 font-bold text-sm">Loading more...</span>
+        </div>
+      )}
+
+      {!isLodgesLoading && !hasMoreLodges && lodges.length > 0 && (
+        <div className="text-center py-10 flex flex-col items-center justify-center gap-3">
+          <Zap size={24} className="text-gray-300" />
+          <p className="text-gray-400 font-bold text-sm">You&apos;ve reached the end!</p>
+        </div>
+      )}
+
+      {lodges.length === 0 && !isLodgesLoading && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 text-gray-300 border-4 border-gray-100 shadow-inner">
+            <MapPin size={40} />
+          </div>
+          <h3 className="text-xl font-black text-gray-900">No lodges available</h3>
+          <p className="text-gray-500 text-sm max-w-[220px] mt-2 leading-relaxed">We couldn&apos;t find any active listings. Check back later!</p>
+        </div>
+      )}
     </div>
   );
 }
