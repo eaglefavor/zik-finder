@@ -61,9 +61,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (!error && data) {
-      const formatted = (data as unknown as any[]).map((l) => ({
+      const formatted = (data as unknown as (Lodge & { lodge_units?: LodgeUnit[] })[]).map((l) => ({
         ...l,
-        profiles: Array.isArray(l.profiles) ? l.profiles[0] : l.profiles,
+        profiles: Array.isArray(l.profiles) ? l.profiles[0] : (l.profiles as unknown as { phone_number: string; is_verified: boolean }),
         units: l.lodge_units || [] // Assign fetched units or empty array
       }));
       setLodges(formatted as unknown as Lodge[]);
@@ -253,7 +253,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // Fallback if columns missing
     if (lodgeError) {
       console.warn('Falling back to legacy lodge insert:', lodgeError.message);
-      const { landmark, ...legacyData } = lodgeData as any;
+      const { landmark: _, ...legacyData } = lodgeData as Record<string, unknown>;
       const fallback = await supabase
         .from('lodges')
         .insert({
@@ -313,7 +313,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // 2. Fallback if new columns missing
     if (error) {
       console.warn('Falling back to legacy lodge update:', error.message);
-      const { landmark, ...legacyData } = lodgeData as any;
+      const { landmark: _, ...legacyData } = lodgeData as Record<string, unknown>;
       const fallback = await supabase
         .from('lodges')
         .update(legacyData)

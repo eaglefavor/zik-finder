@@ -203,7 +203,7 @@ export default function MarketRequests() {
           <div className="relative">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as 'newest' | 'budget_low' | 'budget_high')}
               className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
             >
               <option value="newest">Newest First</option>

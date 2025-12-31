@@ -24,17 +24,15 @@ export default function LodgeDetail() {
   
   const lodge = lodges.find(l => l.id === id);
 
+  // If lodge has units, select the first available one by default
+  // Adjust state during render - React allows this if it's conditional and changes state once
+  if (lodge?.units && lodge.units.length > 0 && !selectedUnit) {
+    const firstAvailable = lodge.units.find(u => u.available_units > 0) || lodge.units[0];
+    setSelectedUnit(firstAvailable);
+  }
+
   // Use the new custom hook for view tracking and notifications
   useLodgeViewTracker(id as string);
-
-  useEffect(() => {
-    // If lodge has units, select the first available one by default
-    // FIX: Only set if selectedUnit is null to prevent overriding user selection on re-renders
-    if (lodge?.units && lodge.units.length > 0 && !selectedUnit) {
-      const firstAvailable = lodge.units.find(u => u.available_units > 0) || lodge.units[0];
-      setSelectedUnit(firstAvailable);
-    }
-  }, [lodge, selectedUnit]);
 
   if (!lodge) {
     return (

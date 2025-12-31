@@ -42,6 +42,12 @@ export default function ProfilePage() {
         });
       }
 
+      // 2.5 Clean up Supabase Storage (Verification Docs)
+      const { data: files } = await supabase.storage.from('secure-docs').list(user.id);
+      if (files && files.length > 0) {
+        await supabase.storage.from('secure-docs').remove(files.map(f => `${user.id}/${f.name}`));
+      }
+
       // 3. Clean up Supabase storage and Account (via SQL function)
       const { error } = await supabase.rpc('delete_own_user');
 
@@ -206,7 +212,7 @@ export default function ProfilePage() {
         </section>
 
         <p className="text-center text-[10px] text-gray-300 font-black uppercase tracking-widest">
-          ZikLodge v1.2.4, To the Lord and Christ, Jesus
+          ZikLodge v1.2.4. MADE WITH ❤️ IN AWKA
         </p>
       </motion.div>
     </div>
