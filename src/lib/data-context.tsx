@@ -17,8 +17,8 @@ interface DataContextType {
   refreshRequests: () => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
   toggleFavorite: (lodgeId: string) => Promise<void>;
-  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => Promise<{ success: boolean; error?: string }>;
-  updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at'>>) => Promise<{ success: boolean; error?: string }>;
+  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => Promise<{ success: boolean; error?: string }>;
+  updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken') => Promise<void>;
   addUnit: (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => Promise<void>;
   updateUnit: (id: string, unitData: Partial<{ name: string, price: number, total_units: number, available_units: number }>) => Promise<void>;

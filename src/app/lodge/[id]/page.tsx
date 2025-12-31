@@ -252,7 +252,7 @@ export default function LodgeDetail() {
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
             <Info size={20} className="text-gray-400" /> Description
           </h2>
-          <p className="text-gray-600 leading-relaxed text-sm">
+          <p className="text-gray-600 leading-relaxed text-sm whitespace-pre-wrap">
             {lodge.description}
           </p>
         </section>
@@ -289,6 +289,7 @@ export default function LodgeDetail() {
                 });
               } catch (err: unknown) {
                 console.error('Failed to notify landlord', err);
+                toast.error('Could not notify landlord');
               }
             }
             
@@ -325,6 +326,7 @@ export default function LodgeDetail() {
                 });
               } catch (err: unknown) {
                 console.error('Failed to notify landlord', err);
+                toast.error('Could not notify landlord');
               }
             }
             

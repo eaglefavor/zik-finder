@@ -209,7 +209,6 @@ export default function PostLodge() {
 
   const handleSubmit = async () => {
     if (!user) return;
-    setUploading(true);
     
     // Prepare units for DB
     const finalUnits = units.map(u => ({
@@ -221,23 +220,25 @@ export default function PostLodge() {
     }));
 
     const minPrice = units.length > 0 ? Math.min(...units.map(u => u.price)) : 0;
-    const fullDescription = `Landmark: ${formData.landmark}\nAddress: ${formData.address}\n\n${formData.description}`;
 
-    const { success, error } = await addLodge({
-      title: formData.title,
-      price: minPrice,
-      location: formData.location,
-      description: fullDescription,
-      image_urls: generalImages.length > 0 ? generalImages : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'],
-      amenities: formData.amenities,
-      status: 'available',
-    }, finalUnits);
+    const action = async () => {
+      const { success, error } = await addLodge({
+        title: formData.title,
+        price: minPrice,
+        location: formData.location,
+        landmark: formData.landmark,
+        description: formData.description,
+        image_urls: generalImages.length > 0 ? generalImages : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'],
+        amenities: formData.amenities,
+        status: 'available',
+      }, finalUnits);
 
-    if (success) {
+      if (!success) throw new Error(error);
+
       // Clear draft
       localStorage.removeItem(DRAFT_KEY);
       
-      // Get the ID of the newly created lodge (we fetch it based on landlord_id and title)
+      // Get the ID of the newly created lodge
       const { data } = await supabase.from('lodges').select('id').eq('landlord_id', user.id).eq('title', formData.title).order('created_at', { ascending: false }).limit(1).single();
       
       if (data) setNewlyCreatedLodgeId(data.id);
@@ -251,10 +252,14 @@ export default function PostLodge() {
       });
       
       setIsSubmitted(true);
-    } else {
-      toast.error('Error saving lodge: ' + error);
-    }
-    setUploading(false);
+      return formData.title;
+    };
+
+    toast.promise(action(), {
+      loading: 'Publishing your listing...',
+      success: (name) => `Lodge "${name}" is now live!`,
+      error: (err) => `Failed to publish: ${err.message}`
+    });
   };
 
   const shareToWhatsApp = () => {

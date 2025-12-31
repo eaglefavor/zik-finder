@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Lodge } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -37,12 +38,14 @@ export default function FavoritesPage() {
       try {
         await supabase.from('notifications').insert({
           user_id: lodge.landlord_id,
-          title: 'New Lead! 📞',
-          message: `A student clicked to call you about "${lodge.title}" (Favorites).`,
           type: 'info',
           link: `/lodge/${lodge.id}`
         });
-      } catch (err: unknown) { console.error(err); }
+      } catch (err: unknown) { 
+        console.error('Failed to notify landlord of call:', err);
+        toast.error('Could not send notification to landlord');
+      }
+    }
     }
     await new Promise(r => setTimeout(r, 600));
     window.location.href = `tel:${lodge.profiles?.phone_number}`;
@@ -60,7 +63,10 @@ export default function FavoritesPage() {
           type: 'info',
           link: `/lodge/${lodge.id}`
         });
-      } catch (err: unknown) { console.error(err); }
+      } catch (err: unknown) { 
+        console.error('Failed to notify landlord of WhatsApp inquiry:', err);
+        toast.error('Could not send notification to landlord');
+      }
     }
     await new Promise(r => setTimeout(r, 600));
     window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`);
