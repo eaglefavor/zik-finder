@@ -292,7 +292,10 @@ export default function AuthScreen() {
                         <MessageCircle className="text-blue-600 shrink-0 mt-0.5" size={16} />
                         <p className="text-[11px] text-blue-800 leading-relaxed font-medium">
                           <span className="font-bold block text-blue-900 mb-0.5 uppercase tracking-wide text-[10px]">WhatsApp Required</span>
-                          Please use a number that is active on WhatsApp so landlords can contact you effortlessly.
+                          {formData.role === 'student' 
+                            ? "Please use a number that is active on WhatsApp so landlords can contact you effortlessly."
+                            : "Please use a number that is active on WhatsApp so students can contact you about your lodges."
+                          }
                         </p>
                     </div>
 
