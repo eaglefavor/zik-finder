@@ -13,6 +13,9 @@ export default function BottomNav() {
 
   if (!user) return null;
 
+  // Hide BottomNav on Lodge Detail pages to allow room for the specific action bar
+  if (pathname.startsWith('/lodge/')) return null;
+
   const studentTabs = [
     { label: 'Explore', icon: Search, path: '/' },
     { label: 'Saved', icon: Heart, path: '/favorites' },
