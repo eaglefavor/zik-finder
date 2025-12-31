@@ -27,6 +27,7 @@ export interface Lodge {
   description: string;
   price: number; // Kept for display/sorting (min price)
   location: string;
+  landmark?: string;
   amenities: string[];
   image_urls: string[];
   status: 'available' | 'taken';

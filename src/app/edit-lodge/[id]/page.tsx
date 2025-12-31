@@ -4,7 +4,7 @@ import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, Save, Plus, Tras
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import Compressor from 'compressorjs';
-import { ROOM_TYPE_PRESETS } from '@/lib/constants';
+import { ROOM_TYPE_PRESETS, AREA_LANDMARKS } from '@/lib/constants';
 import { toast } from 'sonner';
 import { useRouter, useParams } from 'next/navigation';
 import { useRef, useState, useMemo, useEffect } from 'react';
@@ -29,6 +29,7 @@ export default function EditLodge() {
   const [formData, setFormData] = useState({
     title: '',
     location: 'Ifite',
+    landmark: 'School Gate',
     description: '',
     amenities: [] as string[],
     image_urls: [] as string[]
@@ -60,6 +61,7 @@ export default function EditLodge() {
         setFormData({
           title: lodge.title,
           location: lodge.location,
+          landmark: lodge.landmark || 'School Gate',
           description: lodge.description,
           amenities: lodge.amenities,
           image_urls: lodge.image_urls
@@ -254,19 +256,30 @@ export default function EditLodge() {
 
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Area / Location</label>
-              <div className="relative">
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <select 
-                  value={formData.location}
-                  onChange={e => setFormData({...formData, location: e.target.value})}
-                  className="w-full p-4 pl-12 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none appearance-none font-bold text-gray-900"
-                >
-                  <option value="Ifite">Ifite</option>
-                  <option value="Amansea">Amansea</option>
-                  <option value="Temp Site">Temp Site</option>
-                  <option value="Okpuno">Okpuno</option>
-                  <option value="Agu-Awka">Agu-Awka</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <select 
+                    value={formData.location}
+                    onChange={e => setFormData({...formData, location: e.target.value, landmark: AREA_LANDMARKS[e.target.value][0]})}
+                    className="w-full p-4 pl-12 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none appearance-none font-bold text-gray-900"
+                  >
+                    {Object.keys(AREA_LANDMARKS).map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="relative">
+                  <select 
+                    value={formData.landmark}
+                    onChange={e => setFormData({...formData, landmark: e.target.value})}
+                    className="w-full p-4 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none appearance-none font-bold text-gray-900"
+                  >
+                    {AREA_LANDMARKS[formData.location].map(lm => (
+                      <option key={lm} value={lm}>{lm}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 

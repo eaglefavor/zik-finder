@@ -46,7 +46,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // Also fetch the related units
     const { data, error } = await supabase
       .from('lodges')
-      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
+      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*), landmark')
       .order('created_at', { ascending: false });
 
     if (!error && data) {

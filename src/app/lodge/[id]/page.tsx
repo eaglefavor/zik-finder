@@ -29,13 +29,12 @@ export default function LodgeDetail() {
 
   useEffect(() => {
     // If lodge has units, select the first available one by default
-    if (lodge?.units && lodge.units.length > 0) {
-      const firstAvailable = lodge.units.find(u => u.available_units > 0);
-      if (firstAvailable && selectedUnit?.id !== firstAvailable.id) {
-        setTimeout(() => setSelectedUnit(firstAvailable), 0);
-      }
+    // FIX: Only set if selectedUnit is null to prevent overriding user selection on re-renders
+    if (lodge?.units && lodge.units.length > 0 && !selectedUnit) {
+      const firstAvailable = lodge.units.find(u => u.available_units > 0) || lodge.units[0];
+      setSelectedUnit(firstAvailable);
     }
-  }, [lodge, selectedUnit?.id]);
+  }, [lodge, selectedUnit]);
 
   if (!lodge) {
     return (
@@ -180,7 +179,7 @@ export default function LodgeDetail() {
 
         <div className="flex items-center gap-2 text-gray-500 mb-8 pb-6 border-b border-gray-100">
           <MapPin size={18} className="text-blue-500" />
-          <span className="text-sm">{lodge.location}, near UNIZIK School Gate</span>
+          <span className="text-sm">{lodge.location}{lodge.landmark ? `, near ${lodge.landmark}` : ''}</span>
         </div>
 
         {/* Room Types Section */}
