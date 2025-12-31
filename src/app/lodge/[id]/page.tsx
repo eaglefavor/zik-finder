@@ -61,9 +61,6 @@ export default function LodgeDetail() {
   useLodgeViewTracker(id as string);
 
   // SMART IMAGE ORDERING & METADATA
-  // 1. If a unit is selected, show its photos FIRST.
-  // 2. Then show the main lodge photos (excluding duplicates if any).
-  // 3. Add labels (e.g. "Standard Room", "Main Building")
   const galleryImages = useMemo(() => {
     if (!lodge) return [];
 
@@ -79,7 +76,6 @@ export default function LodgeDetail() {
     // B. Building Images
     if (lodge.image_urls) {
       lodge.image_urls.forEach(url => {
-        // Avoid adding the exact same URL twice if it exists in both lists
         if (!images.find(img => img.url === url)) {
           images.push({ url, type: 'building', label: 'Main Building' });
         }
@@ -128,13 +124,9 @@ export default function LodgeDetail() {
   };
 
   return (
-    <div className="pb-32 bg-white min-h-screen">
-      {/* 
-        PREMIUM CAROUSEL HEADER
-        - Swipeable (Framer Motion)
-        - Clear Badges (Unit vs Building) 
-      */}
-      <div className="relative h-[55vh] bg-gray-900 overflow-hidden" ref={galleryRef}>
+    <div className="pb-32 bg-gray-50 min-h-screen">
+      {/* PREMIUM CAROUSEL HEADER */}
+      <div className="relative h-[60vh] bg-gray-900 overflow-hidden" ref={galleryRef}>
         <AnimatePresence initial={false} custom={direction}>
           {galleryImages.length > 0 ? (
             <motion.img
@@ -170,14 +162,12 @@ export default function LodgeDetail() {
           )}
         </AnimatePresence>
 
-        {/* Gradient Overlay for Text Visibility */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 pointer-events-none" />
 
-        {/* Top Controls */}
         <div className="absolute top-0 left-0 right-0 p-4 pt-6 flex justify-between items-center z-20">
           <button 
             onClick={() => router.back()}
-            className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors active:scale-90"
+            className="p-3 bg-white/20 backdrop-blur-xl rounded-full text-white hover:bg-white/30 transition-colors active:scale-90 shadow-lg"
           >
             <ChevronLeft size={24} />
           </button>
@@ -185,14 +175,14 @@ export default function LodgeDetail() {
           <div className="flex gap-3">
             <button 
               onClick={handleShare}
-              className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-colors active:scale-90"
+              className="p-3 bg-white/20 backdrop-blur-xl rounded-full text-white hover:bg-white/30 transition-colors active:scale-90 shadow-lg"
             >
               <Share2 size={22} />
             </button>
             <button 
               onClick={() => toggleFavorite(lodge.id)}
               className={`p-3 rounded-full shadow-lg active:scale-90 transition-all ${
-                isFavorite ? 'bg-red-500 text-white' : 'bg-white/20 backdrop-blur-md text-white hover:bg-white/30'
+                isFavorite ? 'bg-red-500 text-white' : 'bg-white/20 backdrop-blur-xl text-white hover:bg-white/30'
               }`}
             >
               <Heart size={22} fill={isFavorite ? "currentColor" : "none"} />
@@ -200,26 +190,23 @@ export default function LodgeDetail() {
           </div>
         </div>
 
-        {/* Image Demarcation Badge */}
         {galleryImages.length > 0 && (
           <div className="absolute bottom-6 left-4 z-20 flex flex-col gap-2">
             <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10 shadow-sm ${
               currentImage?.type === 'unit' ? 'bg-blue-600/90 text-white' : 'bg-gray-900/60 text-gray-200'
             }`}>
               {currentImage?.type === 'unit' ? <BedDouble size={14} /> : <Building2 size={14} />}
-              <span className="text-xs font-bold uppercase tracking-wide">
+              <span className="text-xs font-black uppercase tracking-wide">
                 {currentImage?.label}
               </span>
             </div>
             
-            {/* Counter */}
             <div className="text-[10px] text-white/80 font-mono bg-black/40 px-2 py-0.5 rounded-md w-fit">
               {imageIndex + 1} / {galleryImages.length}
             </div>
           </div>
         )}
 
-        {/* Navigation Arrows (Desktop/Tablet) */}
         {galleryImages.length > 1 && (
           <>
             <button className="absolute top-1/2 left-4 -translate-y-1/2 p-2 rounded-full bg-black/20 text-white/70 hover:bg-black/40 hidden md:block z-10" onClick={() => paginate(-1)}>
@@ -232,118 +219,126 @@ export default function LodgeDetail() {
         )}
       </div>
 
-      <div className="px-5 py-8 -mt-10 bg-white rounded-t-[40px] relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+      <div className="px-5 py-8 -mt-10 bg-gray-50 rounded-t-[40px] relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] min-h-[50vh]">
         
         {/* Verification Status Banner */}
         {!lodge.profiles?.is_verified ? (
-          <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex gap-3 items-start">
+          <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex gap-3 items-start shadow-sm">
             <AlertTriangle className="text-orange-600 shrink-0 mt-0.5" size={20} />
             <div>
-              <h3 className="text-sm font-bold text-orange-900">Unverified Landlord</h3>
-              <p className="text-xs text-orange-800 mt-1 leading-relaxed">
+              <h3 className="text-sm font-black text-orange-900 uppercase tracking-tight">Unverified Landlord</h3>
+              <p className="text-xs text-orange-800 mt-1 leading-relaxed font-medium">
                 Please verify this lodge physically before making any payments. Do not transfer money in advance.
               </p>
             </div>
           </div>
         ) : (
-          <div className="mb-8 inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full">
+          <div className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full shadow-sm">
             <ShieldCheck className="text-green-600" size={16} />
-            <span className="text-xs font-bold text-green-800 uppercase tracking-wide">Verified Landlord</span>
+            <span className="text-xs font-black text-green-800 uppercase tracking-wide">Verified Landlord</span>
           </div>
         )}
 
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1 min-w-0 pr-4">
-            <h1 className="text-3xl font-black text-gray-900 leading-tight mb-2">
+            <h1 className="text-3xl font-black text-gray-900 leading-none mb-3">
               {lodge.title}
             </h1>
-            <div className="flex items-center gap-2 text-gray-500">
+            <div className="flex items-center gap-2 text-gray-500 bg-white w-fit px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm">
               <MapPin size={16} className="text-blue-500 shrink-0" />
-              <span className="text-sm font-medium truncate">{lodge.location}{lodge.landmark ? `, near ${lodge.landmark}` : ''}</span>
+              <span className="text-xs font-bold uppercase tracking-wide truncate">{lodge.location}{lodge.landmark ? `, near ${lodge.landmark}` : ''}</span>
             </div>
           </div>
         </div>
 
         {/* Pricing Block */}
-        <div className="mb-8 py-6 border-b border-gray-100">
+        <div className="mb-8 py-6 border-b border-gray-200">
           <div className="flex items-end gap-2">
-            <div className="text-4xl font-black text-blue-600 tracking-tight">
+            <div className="text-5xl font-black text-blue-600 tracking-tighter">
               {!selectedUnit && lodge.units && lodge.units.length > 1 ? (
                 `From ₦${Math.min(...lodge.units.map(u => u.price)).toLocaleString()}`
               ) : (
                 `₦${displayPrice.toLocaleString()}`
               )}
             </div>
-            <div className="text-sm text-gray-400 font-bold uppercase mb-1.5">/ Year</div>
+            <div className="text-sm text-gray-400 font-black uppercase mb-2 tracking-widest">/ Year</div>
           </div>
         </div>
 
         {/* Room Types Section */}
         {lodge.units && lodge.units.length > 0 && (
           <section className="mb-10">
-            <h2 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
-              <BedDouble size={20} className="text-gray-400" />
+            <h2 className="text-lg font-black text-gray-900 mb-5 flex items-center gap-2 uppercase tracking-tight">
+              <BedDouble size={20} className="text-blue-500" />
               Available Rooms
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {lodge.units.map((unit) => (
                 <button
                   key={unit.id}
                   onClick={() => {
                     setSelectedUnit(unit);
-                    setPage([0, 0]); // Reset gallery to first image
+                    setPage([0, 0]); 
                   }}
-                  className={`w-full text-left p-5 rounded-[24px] border-2 transition-all duration-300 relative overflow-hidden group ${
+                  className={`w-full text-left p-1 rounded-[28px] transition-all duration-300 relative group ${
                     selectedUnit?.id === unit.id 
-                      ? 'border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-100' 
-                      : 'border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 shadow-xl shadow-blue-200 scale-[1.02]' 
+                      : 'bg-white shadow-sm hover:shadow-md border border-gray-100'
                   }`}
                 >
-                  <div className="flex items-start justify-between relative z-10">
-                    <div className="flex items-center gap-4">
-                      {/* Selection Indicator */}
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                        selectedUnit?.id === unit.id ? 'border-blue-600 bg-blue-600' : 'border-gray-300'
-                      }`}>
-                         {selectedUnit?.id === unit.id && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
-                      </div>
+                  <div className={`p-5 rounded-[26px] h-full ${
+                    selectedUnit?.id === unit.id ? 'bg-white/10 backdrop-blur-sm' : 'bg-white'
+                  }`}>
+                    <div className="flex items-start justify-between relative z-10">
+                      <div className="flex items-center gap-4">
+                        {/* Selection Indicator */}
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-inner ${
+                          selectedUnit?.id === unit.id ? 'bg-white text-blue-600' : 'bg-gray-100 text-gray-300'
+                        }`}>
+                           <CheckCircle2 size={20} className={selectedUnit?.id === unit.id ? 'opacity-100' : 'opacity-0'} />
+                        </div>
 
-                      <div>
-                        <h3 className={`font-bold text-lg ${selectedUnit?.id === unit.id ? 'text-blue-900' : 'text-gray-900'}`}>
-                          {unit.name}
-                        </h3>
-                        <div className="flex flex-wrap gap-2 mt-1.5">
-                          {unit.available_units > 0 ? (
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-green-100 text-green-700">
-                              {unit.available_units} Left
+                        <div>
+                          <h3 className={`font-black text-lg ${selectedUnit?.id === unit.id ? 'text-white' : 'text-gray-900'}`}>
+                            {unit.name}
+                          </h3>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {unit.available_units > 0 ? (
+                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg ${
+                                selectedUnit?.id === unit.id ? 'bg-white/20 text-white' : 'bg-green-50 text-green-700'
+                              }`}>
+                                {unit.available_units} Left
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-gray-100 text-gray-500">
+                                Sold Out
+                              </span>
+                            )}
+                            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg ${
+                                selectedUnit?.id === unit.id ? 'bg-white/20 text-white' : 'bg-gray-50 text-gray-500 border border-gray-100'
+                            }`}>
+                               ₦{unit.price.toLocaleString()}
                             </span>
-                          ) : (
-                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md bg-gray-100 text-gray-500">
-                              Sold Out
-                            </span>
-                          )}
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-white border border-gray-100 text-gray-500">
-                             ₦{unit.price.toLocaleString()}
-                          </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Quick Action: View Photos */}
-                  {selectedUnit?.id === unit.id && unit.image_urls && unit.image_urls.length > 0 && (
-                     <div className="mt-4 pl-10">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                          }}
-                          className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest bg-white px-4 py-2 rounded-xl border border-blue-100 shadow-sm hover:bg-blue-50 transition-colors"
-                        >
-                          <Camera size={14} /> View {unit.name} Photos
-                        </button>
-                     </div>
-                  )}
+                    {/* Quick Action: View Photos */}
+                    {selectedUnit?.id === unit.id && unit.image_urls && unit.image_urls.length > 0 && (
+                       <div className="mt-4 pl-12">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-white px-4 py-2.5 rounded-xl shadow-lg active:scale-95 transition-transform"
+                          >
+                            <Camera size={14} /> View Photos
+                          </button>
+                       </div>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>
@@ -351,11 +346,11 @@ export default function LodgeDetail() {
         )}
 
         <section className="mb-10">
-          <h2 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
-            <Info size={20} className="text-gray-400" /> 
+          <h2 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2 uppercase tracking-tight">
+            <Info size={20} className="text-blue-500" /> 
             About this Lodge
           </h2>
-          <div className="bg-gray-50 p-6 rounded-[24px] border border-gray-100">
+          <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
             <p className="text-gray-600 leading-relaxed text-sm whitespace-pre-wrap font-medium">
               {lodge.description}
             </p>
@@ -363,14 +358,14 @@ export default function LodgeDetail() {
         </section>
 
         <section className="mb-24">
-          <h2 className="text-lg font-black text-gray-900 mb-4">Amenities</h2>
+          <h2 className="text-lg font-black text-gray-900 mb-4 uppercase tracking-tight">Amenities</h2>
           <div className="grid grid-cols-2 gap-3">
             {lodge.amenities.map((item) => (
-              <div key={item} className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <CheckCircle2 size={16} />
+              <div key={item} className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow group">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                  <CheckCircle2 size={18} />
                 </div>
-                <span className="text-sm font-bold text-gray-700">{item}</span>
+                <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">{item}</span>
               </div>
             ))}
           </div>
@@ -378,9 +373,9 @@ export default function LodgeDetail() {
       </div>
 
       {/* Floating Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-gray-100 z-50 flex gap-3 pb-8 xs:pb-4">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-gray-100 z-50 flex gap-3 pb-8 xs:pb-4 shadow-2xl">
         <button 
-          className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100 group"
           disabled={isCalling}
           onClick={async () => {
             setIsCalling(true);
@@ -402,12 +397,12 @@ export default function LodgeDetail() {
             setTimeout(() => setIsCalling(false), 2000);
           }}
         >
-          {isCalling ? <Loader2 className="animate-spin" size={20} /> : <Phone size={20} />}
+          {isCalling ? <Loader2 className="animate-spin" size={20} /> : <Phone size={20} className="group-hover:rotate-12 transition-transform" />}
           <span className="uppercase tracking-widest text-xs font-black">Call</span>
         </button>
 
         <button 
-          className="flex-[1.5] flex items-center justify-center gap-2 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-xl shadow-green-200 active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100"
+          className="flex-[1.5] flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl font-bold shadow-xl shadow-green-200 active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100 group"
           disabled={isMessaging}
           onClick={async () => {
             setIsMessaging(true);
@@ -432,7 +427,7 @@ export default function LodgeDetail() {
             setTimeout(() => setIsMessaging(false), 2000);
           }}
         >
-          {isMessaging ? <Loader2 className="animate-spin" size={20} /> : <MessageCircle size={20} />}
+          {isMessaging ? <Loader2 className="animate-spin" size={20} /> : <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />}
           <span className="uppercase tracking-widest text-xs font-black">WhatsApp</span>
         </button>
       </div>
