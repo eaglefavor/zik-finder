@@ -16,8 +16,27 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ZikLodge",
-  description: "Home Starts Here",
+  metadataBase: new URL('https://zik-finder.vercel.app'),
+  title: {
+    default: "ZikLodge | Find Student Accommodation in Awka",
+    template: "%s | ZikLodge"
+  },
+  description: "The easiest way to find and book lodges, apartments, and off-campus accommodation for UNIZIK students in Awka. Verified listings and direct landlord contact.",
+  keywords: ["UNIZIK", "Awka", "Lodge", "Accommodation", "Student Housing", "Rent", "Apartment", "Real Estate", "Hostel", "Off-campus"],
+  authors: [{ name: "ZikLodge Team" }],
+  openGraph: {
+    title: "ZikLodge | Find Student Accommodation in Awka",
+    description: "Secure your perfect lodge today. Verified listings, direct landlord contact, and student-friendly prices.",
+    url: 'https://zik-finder.vercel.app',
+    siteName: 'ZikLodge',
+    locale: 'en_NG',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: "ZikLodge | Home Starts Here",
+    description: "Find your next lodge in Awka with ease.",
+  },
   manifest: "/manifest.json",
 };
 
