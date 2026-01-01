@@ -55,7 +55,7 @@ export default function Home() {
   const [loadingStatusId, setLoadingStatusId] = useState<string | null>(null);
 
   // Infinite Scroll Logic
-  const observer = useRef<IntersectionObserver>();
+  const observer = useRef<IntersectionObserver | null>(null);
   const lastLodgeRef = useCallback((node: HTMLDivElement) => {
     if (isLodgesLoading) return;
     if (observer.current) observer.current.disconnect();
