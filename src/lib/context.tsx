@@ -108,8 +108,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
+        setIsLoading(true); // Start loading while we fetch profile
         const userId = session.user.id;
-        fetchProfile(userId);
+        fetchProfile(userId).finally(() => setIsLoading(false));
         
         // Re-subscribe if user changes
         if (profileSubscription) supabase.removeChannel(profileSubscription);
@@ -130,6 +131,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
         setRole('student');
+        setIsLoading(false); // No session, stop loading
         if (profileSubscription) supabase.removeChannel(profileSubscription);
       }
     });

@@ -16,17 +16,6 @@ export default function AuthScreen() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
-  // Self-healing: Check if we actually have a session but are stuck on AuthScreen
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        window.location.reload();
-      }
-    };
-    checkSession();
-  }, []);
-  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
