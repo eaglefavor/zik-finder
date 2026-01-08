@@ -445,9 +445,9 @@ export default function Home() {
                   
                   {lodge.units && lodge.units.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-8">
-                      {Array.from(new Set(lodge.units.map(u => u.name))).slice(0, 3).map(name => (
-                        <span key={name} className="px-3 py-1.5 bg-gray-50 text-gray-600 text-[10px] font-black uppercase tracking-tighter rounded-xl border border-gray-100">
-                          {name}
+                      {Array.from(new Set(lodge.units.map(u => u.name))).slice(0, 3).map((name) => (
+                        <span key={name as string} className="px-3 py-1.5 bg-gray-50 text-gray-600 text-[10px] font-black uppercase tracking-tighter rounded-xl border border-gray-100">
+                          {name as string}
                         </span>
                       ))}
                       {new Set(lodge.units.map(u => u.name)).size > 3 && (
