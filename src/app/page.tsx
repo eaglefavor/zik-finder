@@ -96,10 +96,9 @@ export default function Home() {
     setLoadingCallId(lodge.id);
     if (user) {
       try {
-        await supabase.from('notifications').insert({
-          user_id: lodge.landlord_id,
-          type: 'info',
-          link: `/lodge/${lodge.id}`
+        await supabase.rpc('send_lodge_inquiry', {
+          p_lodge_id: lodge.id,
+          p_inquiry_type: 'call'
         });
       } catch (err: unknown) { 
         console.error('Failed to notify landlord of call:', err);
@@ -114,12 +113,9 @@ export default function Home() {
     setLoadingMsgId(lodge.id);
     if (user) {
       try {
-        await supabase.from('notifications').insert({
-          user_id: lodge.landlord_id,
-          title: 'WhatsApp Inquiry! 💬',
-          message: `A student clicked to message you about "${lodge.title}" (Dashboard).`,
-          type: 'info',
-          link: `/lodge/${lodge.id}`
+        await supabase.rpc('send_lodge_inquiry', {
+          p_lodge_id: lodge.id,
+          p_inquiry_type: 'whatsapp'
         });
       } catch (err: unknown) { 
         console.error('Failed to notify landlord of WhatsApp inquiry:', err);

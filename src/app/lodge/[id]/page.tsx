@@ -381,12 +381,9 @@ export default function LodgeDetail() {
             setIsCalling(true);
             if (user && lodge) {
               try {
-                await supabase.from('notifications').insert({
-                  user_id: lodge.landlord_id,
-                  title: 'New Lead! 📞',
-                  message: `A student just clicked to call you about "${lodge.title}".`,
-                  type: 'info',
-                  link: `/lodge/${lodge.id}`
+                await supabase.rpc('send_lodge_inquiry', {
+                  p_lodge_id: lodge.id,
+                  p_inquiry_type: 'call'
                 });
               } catch (err: unknown) {
                 console.error('Failed to notify landlord', err);
@@ -408,12 +405,9 @@ export default function LodgeDetail() {
             setIsMessaging(true);
             if (user && lodge) {
               try {
-                await supabase.from('notifications').insert({
-                  user_id: lodge.landlord_id,
-                  title: 'WhatsApp Inquiry! 💬',
-                  message: `A student is messaging you about "${lodge.title}".`,
-                  type: 'info',
-                  link: `/lodge/${lodge.id}`
+                await supabase.rpc('send_lodge_inquiry', {
+                  p_lodge_id: lodge.id,
+                  p_inquiry_type: 'whatsapp'
                 });
               } catch (err: unknown) {
                 console.error('Failed to notify landlord', err);
