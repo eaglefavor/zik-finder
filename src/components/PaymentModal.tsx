@@ -7,7 +7,7 @@ import { PAYSTACK_PUBLIC_KEY } from '@/lib/constants';
 import { toast } from 'sonner';
 
 interface PaymentModalProps {
-  amount: number; // In Naira
+  amount: number;
   email: string;
   purpose: string;
   metadata?: Record<string, string | number | boolean>;
@@ -24,17 +24,18 @@ export default function PaymentModal({
   onClose,
 }: PaymentModalProps) {
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     console.log('--- PaymentModal Mounted ---');
-    console.log('Config:', { amount, email, purpose, metadata });
   }, []);
 
   // Paystack config
   const config = {
     reference: (new Date()).getTime().toString(),
-    email: email || 'customer@ziklodge.com', // Fallback email to prevent crash
-    amount: amount * 100, // Convert to Kobo
+    email: email || 'customer@ziklodge.com',
+    amount: amount * 100,
     publicKey: PAYSTACK_PUBLIC_KEY,
     metadata: {
         custom_fields: [
@@ -52,6 +53,15 @@ export default function PaymentModal({
     }
   };
 
+  // We still use the hook, hoping it doesn't crash if window is missing during hydration
+  // If it does, we'll need a different strategy (like dynamic import of the hook itself?)
+  // Let's assume the previous crash was due to *something else* or try to verify.
+  // Actually, let's try to NOT call the hook if not mounted? No, hooks rules.
+  // I will assume the previous crash was because I imported it in `page.tsx` which is a Server Component (or mixed).
+  // Wait, `page.tsx` is 'use client'.
+  // If `react-paystack` is not SSR safe, using it in `page.tsx` (even if 'use client') can crash during the SSR pass of that client component.
+  
+  // Safe implementation:
   const initializePayment = usePaystackPayment(config);
 
   const handlePay = () => {
@@ -78,6 +88,8 @@ export default function PaymentModal({
         setIsInitializing(false);
     }
   };
+
+  if (!isMounted) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">

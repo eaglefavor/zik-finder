@@ -14,16 +14,9 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 
+// Use dynamic import to prevent SSR 'window is not defined' error from react-paystack
 const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { 
-  ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-[32px] flex flex-col items-center gap-4 shadow-2xl animate-in zoom-in-95 duration-200">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
-        <p className="font-black text-xs uppercase tracking-widest text-gray-400">Initializing Payment System...</p>
-      </div>
-    </div>
-  )
+  ssr: false
 });
 
 const AdminLink = ({ role }: { role: string }) => (
