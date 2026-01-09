@@ -20,3 +20,6 @@ export const AREA_LANDMARKS: { [key: string]: string[] } = {
 };
 
 export const AMENITIES = ['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'];
+
+export const PAYSTACK_PUBLIC_KEY = 'pk_test_82413050351ea3c4639266f8b2be963a4ccfefe1';
+
