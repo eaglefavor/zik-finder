@@ -12,12 +12,7 @@ import AuthScreen from '@/components/AuthScreen';
 import { Lodge } from '@/lib/types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import dynamic from 'next/dynamic';
-
-// Use dynamic import to prevent SSR 'window is not defined' error from react-paystack
-const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { 
-  ssr: false
-});
+import PaymentModal from '@/components/PaymentModal';
 
 const AdminLink = ({ role }: { role: string }) => (
   role === 'admin' ? (

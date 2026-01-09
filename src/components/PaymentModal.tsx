@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePaystackPayment } from 'react-paystack';
 import { X, ShieldCheck, Loader2 } from 'lucide-react';
 import { PAYSTACK_PUBLIC_KEY } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -26,64 +25,56 @@ export default function PaymentModal({
   const [isInitializing, setIsInitializing] = useState(false);
 
   useEffect(() => {
-    console.log('--- PaymentModal Mounted ---');
+    console.log('--- PaymentModal Mounted (Inline Script Version) ---');
   }, []);
 
-  // Paystack config
-  const config = {
-    reference: (new Date()).getTime().toString(),
-    email: email || 'customer@ziklodge.com',
-    amount: amount * 100,
-    publicKey: PAYSTACK_PUBLIC_KEY,
-    metadata: {
-        custom_fields: [
+  const handlePay = () => {
+    if (!email) {
+      toast.error("Valid email required for payment.");
+      return;
+    }
+
+    if (typeof window === 'undefined' || !(window as any).PaystackPop) {
+      toast.error("Payment system not ready. Please refresh the page.");
+      return;
+    }
+
+    setIsInitializing(true);
+
+    try {
+      const handler = (window as any).PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: email || 'customer@ziklodge.com',
+        amount: amount * 100, // Kobo
+        currency: 'NGN',
+        metadata: {
+          custom_fields: [
             {
-                display_name: "Purpose",
-                variable_name: "purpose",
-                value: purpose
+              display_name: "Purpose",
+              variable_name: "purpose",
+              value: purpose
             },
             ...Object.entries(metadata || {}).map(([key, value]) => ({
-                display_name: key,
-                variable_name: key,
-                value: String(value)
+              display_name: key,
+              variable_name: key,
+              value: String(value)
             }))
-        ]
-    }
-  };
+          ]
+        },
+        callback: (response: { reference: string }) => {
+          setIsInitializing(false);
+          onSuccess(response.reference);
+        },
+        onClose: () => {
+          setIsInitializing(false);
+        }
+      });
 
-  // We still use the hook, hoping it doesn't crash if window is missing during hydration
-  // If it does, we'll need a different strategy (like dynamic import of the hook itself?)
-  // Let's assume the previous crash was due to *something else* or try to verify.
-  // Actually, let's try to NOT call the hook if not mounted? No, hooks rules.
-  // I will assume the previous crash was because I imported it in `page.tsx` which is a Server Component (or mixed).
-  // Wait, `page.tsx` is 'use client'.
-  // If `react-paystack` is not SSR safe, using it in `page.tsx` (even if 'use client') can crash during the SSR pass of that client component.
-  
-  // Safe implementation:
-  const initializePayment = usePaystackPayment(config);
-
-  const handlePay = () => {
-    if (!config.email) {
-        toast.error("Valid email required for payment.");
-        return;
-    }
-    
-    setIsInitializing(true);
-    try {
-        initializePayment({
-            onSuccess: (reference: { reference: string } | string) => {
-                setIsInitializing(false);
-                const ref = typeof reference === 'string' ? reference : reference.reference;
-                onSuccess(ref);
-            },
-            onClose: () => {
-                setIsInitializing(false);
-            }
-        });
+      handler.openIframe();
     } catch (err) {
-        console.error('Paystack initialization error:', err);
-        toast.error("Could not start payment system. Please refresh.");
-        setIsInitializing(false);
+      console.error('Paystack Inline Error:', err);
+      toast.error("Payment failed to initialize.");
+      setIsInitializing(false);
     }
   };
 
