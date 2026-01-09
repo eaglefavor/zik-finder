@@ -59,8 +59,6 @@ export default function Home() {
   const [loadingStatusId, setLoadingStatusId] = useState<string | null>(null);
   const [promotingLodge, setPromotingLodge] = useState<Lodge | null>(null);
 
-  console.log('Current promotingLodge state:', promotingLodge?.id);
-
   const handlePromoteSuccess = async (reference: string) => {
     if (!promotingLodge) return;
 
@@ -335,10 +333,7 @@ export default function Home() {
                       </button>
 
                       <button 
-                        onClick={() => {
-                          console.log('Promoting lodge:', lodge.id);
-                          setPromotingLodge(lodge);
-                        }}
+                        onClick={() => setPromotingLodge(lodge)}
                         className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 active:scale-[0.98] transition-all"
                       >
                         <Zap size={14} className="fill-white" /> 
