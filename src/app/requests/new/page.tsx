@@ -7,8 +7,10 @@ import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
 import { AREA_LANDMARKS } from '@/lib/constants';
-import PaymentModal from '@/components/PaymentModal';
 import { supabase } from '@/lib/supabase';
+import dynamic from 'next/dynamic';
+
+const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
 
 const ROOM_TYPES = [
   'Standard Self-con',

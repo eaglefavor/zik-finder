@@ -86,7 +86,7 @@ export interface MonetizationTransaction {
   currency: string;
   reference: string;
   purpose: 'verification_fee' | 'urgent_request' | 'promoted_listing';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   status: 'pending' | 'success' | 'failed';
   created_at: string;
 }

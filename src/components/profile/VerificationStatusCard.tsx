@@ -6,7 +6,9 @@ import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 import { Profile } from '@/lib/types';
 import { toast } from 'sonner';
-import PaymentModal from '@/components/PaymentModal';
+import dynamic from 'next/dynamic';
+
+const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
 
 interface VerificationStatusCardProps {
   user: Profile; 
@@ -22,13 +24,7 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
   });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      checkVerificationStatus();
-    }
-  }, [user]);
-
-  const checkVerificationStatus = async () => {
+  const checkVerificationStatus = React.useCallback(async () => {
     if (!user) return;
     
     // First check if already verified in profile
@@ -59,7 +55,13 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
     } else {
       setVerificationStatus('none');
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      checkVerificationStatus();
+    }
+  }, [user, checkVerificationStatus]);
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {

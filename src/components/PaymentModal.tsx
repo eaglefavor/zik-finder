@@ -8,7 +8,7 @@ interface PaymentModalProps {
   amount: number; // In Naira
   email: string;
   purpose: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
   onSuccess: (reference: string) => void;
   onClose: () => void;
 }
@@ -39,7 +39,7 @@ export default function PaymentModal({
             ...Object.entries(metadata || {}).map(([key, value]) => ({
                 display_name: key,
                 variable_name: key,
-                value: value
+                value: String(value)
             }))
         ]
     }
@@ -50,7 +50,7 @@ export default function PaymentModal({
   const handlePay = () => {
     setIsInitializing(true);
     initializePayment({
-        onSuccess: (reference: any) => {
+        onSuccess: (reference: { reference: string } | string) => {
             setIsInitializing(false);
             // Verify structure of Paystack response
             const ref = typeof reference === 'string' ? reference : reference.reference;
