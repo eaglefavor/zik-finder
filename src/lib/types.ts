@@ -53,7 +53,6 @@ export interface LodgeRequest {
   location: string; // Keep for legacy
   locations?: string[];
   description: string;
-  is_urgent?: boolean; // Monetization: Urgent request
   created_at: string;
   expires_at: string;
 }

@@ -5,9 +5,10 @@ import { useData } from '@/lib/data-context';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon } from 'lucide-react';
+import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { MonetizationTransaction } from '@/lib/types';
 
 interface VerificationDoc {
   id: string;
@@ -27,9 +28,17 @@ export default function AdminPage() {
   const { lodges, deleteLodge, updateLodgeStatus } = useData();
   const router = useRouter();
   
-  const [activeTab, setActiveTab] = useState<'stats' | 'verifications' | 'lodges' | 'broadcast'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'verifications' | 'lodges' | 'broadcast' | 'finance'>('stats');
   const [docs, setDocs] = useState<VerificationDoc[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Finance State
+  const [transactions, setTransactions] = useState<MonetizationTransaction[]>([]);
+  const [revenueStats, setRevenueStats] = useState({
+    total: 0,
+    verification: 0,
+    today: 0
+  });
 
   // Broadcast state
   const [broadcast, setBroadcast] = useState({
@@ -55,6 +64,42 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error('Failed to fetch usage stats', err);
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    const { data, error } = await supabase
+        .from('monetization_transactions')
+        .select('*')
+        .eq('status', 'success')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Error fetching transactions:', error);
+        return;
+    }
+
+    if (data) {
+        setTransactions(data as MonetizationTransaction[]);
+        
+        // Calculate Stats
+        let total = 0;
+        let verification = 0;
+        let today = 0;
+        const now = new Date();
+
+        data.forEach((tx: MonetizationTransaction) => {
+            const amount = Number(tx.amount);
+            total += amount;
+            if (tx.purpose === 'verification_fee') verification += amount;
+
+            const txDate = new Date(tx.created_at);
+            if (txDate.toDateString() === now.toDateString()) {
+                today += amount;
+            }
+        });
+
+        setRevenueStats({ total, verification, today });
     }
   }, []);
 
@@ -90,6 +135,12 @@ export default function AdminPage() {
       }, 0);
     }
   }, [user, role, authLoading, router, fetchPendingDocs, fetchUsage]);
+
+  useEffect(() => {
+    if (activeTab === 'finance') {
+        fetchTransactions();
+    }
+  }, [activeTab, fetchTransactions]);
 
   // Helper to format bytes
   const formatBytes = (bytes: number) => {
@@ -273,29 +324,35 @@ export default function AdminPage() {
       </div>
 
       {/* Admin Tabs */}
-      <div className="flex bg-gray-100 p-1 rounded-2xl mb-8">
+      <div className="flex flex-wrap bg-gray-100 p-1 rounded-2xl mb-8">
         <button 
           onClick={() => setActiveTab('stats')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'stats' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'stats' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
         >
           <LayoutDashboard size={16} /> Stats
         </button>
         <button 
           onClick={() => setActiveTab('verifications')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'verifications' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'verifications' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
         >
           <CheckCircle size={16} /> Verify
           {docs.length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
         </button>
         <button 
           onClick={() => setActiveTab('lodges')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'lodges' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'lodges' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
         >
           <Building size={16} /> Lodges
         </button>
         <button 
+          onClick={() => setActiveTab('finance')}
+          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'finance' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+        >
+          <Banknote size={16} /> Revenue
+        </button>
+        <button 
           onClick={() => setActiveTab('broadcast')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'broadcast' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'broadcast' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
         >
           <Megaphone size={16} /> Alert
         </button>
@@ -430,6 +487,65 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'finance' && (
+            <div className="space-y-6">
+                {/* Revenue Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-50 border border-green-100 p-5 rounded-[24px]">
+                        <p className="text-[10px] uppercase font-black tracking-widest text-green-600 mb-1">Total Revenue</p>
+                        <p className="text-2xl font-black text-gray-900">₦{revenueStats.total.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-100 p-5 rounded-[24px]">
+                        <p className="text-[10px] uppercase font-black tracking-widest text-blue-600 mb-1">Verification</p>
+                        <p className="text-2xl font-black text-gray-900">₦{revenueStats.verification.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-100 p-5 rounded-[24px]">
+                        <p className="text-[10px] uppercase font-black tracking-widest text-gray-500 mb-1">Today</p>
+                        <p className="text-2xl font-black text-gray-900">₦{revenueStats.today.toLocaleString()}</p>
+                    </div>
+                </div>
+
+                {/* Transactions List */}
+                <div className="bg-white border border-gray-100 rounded-[32px] overflow-hidden shadow-sm">
+                    <div className="p-6 border-b border-gray-50">
+                        <h3 className="font-bold text-gray-900">Recent Transactions</h3>
+                    </div>
+                    <div className="max-h-[500px] overflow-y-auto">
+                        {transactions.length === 0 ? (
+                            <div className="p-10 text-center text-gray-400 text-sm font-medium">No transactions yet.</div>
+                        ) : (
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-gray-50 text-gray-500 font-bold text-[10px] uppercase tracking-widest sticky top-0">
+                                    <tr>
+                                        <th className="p-4">Reference</th>
+                                        <th className="p-4">Type</th>
+                                        <th className="p-4">Amount</th>
+                                        <th className="p-4">Date</th>
+                                        <th className="p-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {transactions.map((tx) => (
+                                        <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
+                                            <td className="p-4 font-mono text-xs text-gray-600">{tx.reference.substring(0, 12)}...</td>
+                                            <td className="p-4 capitalize font-bold text-gray-800">{tx.purpose.replace('_', ' ')}</td>
+                                            <td className="p-4 font-bold text-green-600">₦{tx.amount.toLocaleString()}</td>
+                                            <td className="p-4 text-gray-500 text-xs">{new Date(tx.created_at).toLocaleDateString()}</td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${tx.status === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                                                    {tx.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            </div>
         )}
 
         {activeTab === 'broadcast' && (

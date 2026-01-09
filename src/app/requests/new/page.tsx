@@ -2,15 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Send, MapPin, BadgeDollarSign, Home, AlertCircle, X, Check, Loader2, Zap } from 'lucide-react';
+import { ChevronLeft, Send, MapPin, BadgeDollarSign, Home, AlertCircle, X, Check, Loader2 } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
 import { AREA_LANDMARKS } from '@/lib/constants';
-import { supabase } from '@/lib/supabase';
-import dynamic from 'next/dynamic';
-
-const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
 
 const ROOM_TYPES = [
   'Standard Self-con',
@@ -29,8 +25,6 @@ export default function NewRequest() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [isUrgent, setIsUrgent] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   
   const [formData, setFormData] = useState({
     locations: [] as string[],
@@ -51,45 +45,6 @@ export default function NewRequest() {
     }));
   };
 
-  const processSubmission = async (paymentRef?: string) => {
-    setLoading(true);
-
-    const min = parseInt(formData.minBudget) || 0;
-    const max = parseInt(formData.maxBudget) || 0;
-
-    // Log payment if exists
-    if (paymentRef && user) {
-        await supabase.from('monetization_transactions').insert({
-            user_id: user.id,
-            amount: 200,
-            reference: paymentRef,
-            purpose: 'urgent_request',
-            status: 'success'
-        });
-    }
-
-    const { success, error } = await addRequest({
-      locations: formData.locations,
-      min_budget: min,
-      max_budget: max,
-      description: `Looking for: ${formData.room_type}. ${formData.description}`,
-      location: formData.locations.join(', '), // legacy
-      budget_range: `₦${min.toLocaleString()} - ₦${max.toLocaleString()}`, // legacy
-      is_urgent: isUrgent && !!paymentRef // Only mark urgent if paid
-    });
-
-    setLoading(false);
-    setShowPaymentModal(false);
-    
-    if (success) {
-      setSubmitted(true);
-      if (paymentRef) toast.success("Urgent Request Posted! 🚀");
-      setTimeout(() => router.push('/market'), 2000);
-    } else {
-      toast.error('Failed to post request: ' + error);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -104,20 +59,37 @@ export default function NewRequest() {
       return;
     }
 
-    if (isUrgent) {
-        setShowPaymentModal(true);
+    setLoading(true);
+
+    const min = parseInt(formData.minBudget) || 0;
+    const max = parseInt(formData.maxBudget) || 0;
+
+    const { success, error } = await addRequest({
+      locations: formData.locations,
+      min_budget: min,
+      max_budget: max,
+      description: `Looking for: ${formData.room_type}. ${formData.description}`,
+      location: formData.locations.join(', '), // legacy
+      budget_range: `₦${min.toLocaleString()} - ₦${max.toLocaleString()}`, // legacy
+    });
+
+    setLoading(false);
+    
+    if (success) {
+      setSubmitted(true);
+      setTimeout(() => router.push('/market'), 2000);
     } else {
-        await processSubmission();
+      toast.error('Failed to post request: ' + error);
     }
   };
 
   if (submitted) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-6 text-center">
-        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 animate-bounce ${isUrgent ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
-          {isUrgent ? <Zap size={40} /> : <Send size={40} />}
+        <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6 animate-bounce">
+          <Send size={40} />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{isUrgent ? 'Urgent Request Live!' : 'Request Posted!'}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Request Posted!</h1>
         <p className="text-gray-500">
           Landlords in this area have been notified. Check your messages soon.
         </p>
@@ -126,17 +98,6 @@ export default function NewRequest() {
   }
 
   return (
-    <>
-    {showPaymentModal && user && (
-        <PaymentModal 
-            amount={200}
-            email={user.email || 'student@ziklodge.com'}
-            purpose="urgent_request"
-            onSuccess={processSubmission}
-            onClose={() => setShowPaymentModal(false)}
-        />
-    )}
-
     <div className="px-4 py-6">
       <header className="flex items-center gap-4 mb-8">
         <button onClick={() => router.back()} className="p-2 bg-white rounded-full shadow-sm border border-gray-100 active:scale-90 transition-transform">
@@ -240,45 +201,18 @@ export default function NewRequest() {
                </div>
             )}
           </div>
-
-          {/* Urgent Request Toggle */}
-          <div 
-            onClick={() => setIsUrgent(!isUrgent)}
-            className={`cursor-pointer p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
-                isUrgent ? 'bg-orange-50 border-orange-500 ring-2 ring-orange-500/10' : 'bg-white border-gray-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUrgent ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                    <Zap size={20} className={isUrgent ? 'fill-current' : ''} />
-                </div>
-                <div>
-                    <p className={`font-bold ${isUrgent ? 'text-orange-700' : 'text-gray-700'}`}>Mark as Urgent</p>
-                    <p className="text-xs text-gray-500">Get notified 2x faster • <span className="font-bold">₦200</span></p>
-                </div>
-            </div>
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                isUrgent ? 'bg-orange-500 border-orange-500' : 'border-gray-200'
-            }`}>
-                {isUrgent && <Check size={14} className="text-white" />}
-            </div>
-          </div>
-
         </div>
 
         <button 
           type="submit"
           disabled={loading || formData.description.length < 10 || formData.locations.length === 0}
-          className={`w-full py-4 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:shadow-none transition-all active:scale-[0.98] ${
-            isUrgent ? 'bg-orange-600 shadow-orange-200' : 'bg-blue-600 shadow-blue-200'
-          }`}
+          className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:shadow-none transition-all active:scale-[0.98]"
         >
           {loading ? (
-            <><Loader2 className="animate-spin" size={20} /> Processing...</>
+            <><Loader2 className="animate-spin" size={20} /> Posting...</>
           ) : (
             <>
-              {isUrgent ? <Zap size={20} className="fill-current" /> : <Send size={20} />} 
-              {isUrgent ? 'Pay ₦200 & Post' : 'Post Request'}
+              <Send size={20} /> Post Request
             </>
           )}
         </button>
@@ -329,6 +263,5 @@ export default function NewRequest() {
         </div>
       )}
     </div>
-    </>
   );
 }
