@@ -333,11 +333,21 @@ export default function Home() {
                       </button>
 
                       <button 
-                        onClick={() => setPromotingLodge(lodge)}
-                        className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 active:scale-[0.98] transition-all"
+                        onClick={() => {
+                          if (promotingLodge?.id === lodge.id) return;
+                          setPromotingLodge(lodge);
+                        }}
+                        disabled={!!promotingLodge}
+                        className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 active:scale-[0.98] transition-all disabled:opacity-70"
                       >
-                        <Zap size={14} className="fill-white" /> 
-                        {lodge.promoted_until && new Date(lodge.promoted_until) > new Date() ? 'Extend Promotion (₦1,000)' : 'Boost Listing (₦1,000)'}
+                        {promotingLodge?.id === lodge.id ? (
+                          <><Loader2 className="animate-spin" size={14} /> Preparing Modal...</>
+                        ) : (
+                          <>
+                            <Zap size={14} className="fill-white" /> 
+                            {lodge.promoted_until && new Date(lodge.promoted_until) > new Date() ? 'Extend Promotion (₦1,000)' : 'Boost Listing (₦1,000)'}
+                          </>
+                        )}
                       </button>
                     </div>
                   </motion.div>
