@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 import { Profile } from '@/lib/types';
 import { toast } from 'sonner';
+import PaymentModal from '@/components/PaymentModal';
 
 interface VerificationStatusCardProps {
   user: Profile; 
@@ -19,6 +20,7 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
     id: null,
     selfie: null
   });
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -89,27 +91,43 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
     }
   };
 
-  const handleSubmitVerification = async () => {
-    if (!selectedFiles.id || !selectedFiles.selfie) return;
+  const handleInitiateVerification = () => {
+    if (!selectedFiles.id || !selectedFiles.selfie) {
+        toast.error('Please select both ID and Selfie first.');
+        return;
+    }
+    setShowPaymentModal(true);
+  };
 
+  const handlePaymentSuccess = async (reference: string) => {
+    setShowPaymentModal(false);
     setUploading(true);
 
     try {
+        // Log transaction first (Best effort)
+        await supabase.from('monetization_transactions').insert({
+            user_id: user.id,
+            amount: 500,
+            reference: reference,
+            purpose: 'verification_fee',
+            status: 'success'
+        });
+
       // 1. Upload ID
-      const idExt = selectedFiles.id.name.split('.').pop();
+      const idExt = selectedFiles.id!.name.split('.').pop();
       const idPath = `${user.id}/id-${Math.random().toString(36).substring(2)}.${idExt}`;
       const { error: idError } = await supabase.storage
         .from('secure-docs')
-        .upload(idPath, selectedFiles.id);
+        .upload(idPath, selectedFiles.id!);
 
       if (idError) throw idError;
 
       // 2. Upload Selfie
-      const selfieExt = selectedFiles.selfie.name.split('.').pop();
+      const selfieExt = selectedFiles.selfie!.name.split('.').pop();
       const selfiePath = `${user.id}/selfie-${Math.random().toString(36).substring(2)}.${selfieExt}`;
       const { error: selfieError } = await supabase.storage
         .from('secure-docs')
-        .upload(selfiePath, selectedFiles.selfie);
+        .upload(selfiePath, selectedFiles.selfie!);
 
       if (selfieError) throw selfieError;
 
@@ -149,7 +167,9 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
           landlord_id: user.id,
           id_card_path: idPath,
           selfie_path: selfiePath,
-          status: 'pending'
+          status: 'pending',
+          payment_status: 'success',
+          payment_reference: reference
         });
 
       if (dbError) {
@@ -157,7 +177,7 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
       }
 
       setVerificationStatus('pending');
-      toast.success('Documents uploaded successfully! We will review your submission shortly.');
+      toast.success('Payment successful & Documents uploaded! Review pending.');
       setSelectedFiles({ id: null, selfie: null }); // Reset
     } catch (error: unknown) {
       console.error('Error uploading documents:', error);
@@ -170,6 +190,18 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
   if (!user) return null;
 
   return (
+    <>
+        {showPaymentModal && (
+            <PaymentModal
+                amount={500}
+                email={user.email || 'user@ziklodge.com'}
+                purpose="verification_fee"
+                metadata={{ userId: user.id }}
+                onSuccess={handlePaymentSuccess}
+                onClose={() => setShowPaymentModal(false)}
+            />
+        )}
+
     <div className={`p-5 rounded-3xl border transition-colors ${
       verificationStatus === 'verified'
         ? 'bg-green-50 border-green-100' 
@@ -279,16 +311,16 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
               </div>
 
               <button 
-                onClick={handleSubmitVerification}
+                onClick={handleInitiateVerification}
                 disabled={uploading || !selectedFiles.id || !selectedFiles.selfie}
-                className="w-full flex items-center justify-center gap-2 mt-2 bg-blue-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
+                className="w-full flex items-center justify-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
               >
                 {uploading ? (
                   <>
                     <Loader2 className="animate-spin" size={16} /> Uploading...
                   </>
                 ) : (
-                  <>{verificationStatus === 'rejected' ? 'Resubmit Verification' : 'Submit for Verification'}</>
+                  <>{verificationStatus === 'rejected' ? 'Pay ₦500 & Resubmit Verification' : 'Pay ₦500 & Submit Verification'}</>
                 )}
               </button>
             </div>
@@ -296,5 +328,6 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
         </div>
       </div>
     </div>
+    </>
   );
 }

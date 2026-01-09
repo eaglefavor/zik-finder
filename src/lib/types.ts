@@ -31,6 +31,7 @@ export interface Lodge {
   amenities: string[];
   image_urls: string[];
   status: 'available' | 'taken';
+  is_official_photos?: boolean; // Monetization: Verified photos
   views?: number;
   created_at: string;
   // Joined data
@@ -52,6 +53,7 @@ export interface LodgeRequest {
   location: string; // Keep for legacy
   locations?: string[];
   description: string;
+  is_urgent?: boolean; // Monetization: Urgent request
   created_at: string;
   expires_at: string;
 }
@@ -64,5 +66,27 @@ export interface Notification {
   type: 'info' | 'success' | 'warning' | 'error';
   is_read: boolean;
   link?: string;
+  created_at: string;
+}
+
+export interface VerificationDoc {
+  id: string;
+  landlord_id: string;
+  id_card_path: string;
+  status: 'pending' | 'approved';
+  payment_reference?: string;
+  payment_status?: 'pending' | 'success' | 'failed';
+  created_at: string;
+}
+
+export interface MonetizationTransaction {
+  id: string;
+  user_id: string;
+  amount: number;
+  currency: string;
+  reference: string;
+  purpose: 'verification_fee' | 'urgent_request' | 'promoted_listing';
+  metadata?: Record<string, any>;
+  status: 'pending' | 'success' | 'failed';
   created_at: string;
 }
