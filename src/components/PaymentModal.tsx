@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePaystackPayment } from 'react-paystack';
 import { X, ShieldCheck, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PaymentModalProps {
   amount: number; // In Naira
@@ -48,6 +49,12 @@ export default function PaymentModal({
   const initializePayment = usePaystackPayment(config);
 
   const handlePay = () => {
+    if (!config.publicKey) {
+        toast.error("Payment system configuration error. Please contact support.");
+        console.error("Paystack Public Key is missing. Set NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY in your environment variables.");
+        return;
+    }
+
     setIsInitializing(true);
     initializePayment({
         onSuccess: (reference: { reference: string } | string) => {
