@@ -51,8 +51,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [hasMoreLodges, setHasMoreLodges] = useState(true);
   const [isLodgesLoading, setIsLodgesLoading] = useState(false);
 
-  const formatLodgeData = (data: any[]) => {
-    return data.map((l) => ({
+  const formatLodgeData = (data: unknown[]) => {
+    return (data as (Lodge & { profile_data?: import('./types').Profile; units_data?: import('./types').LodgeUnit[]; lodge_units?: import('./types').LodgeUnit[] })[]).map((l) => ({
       ...l,
       profiles: l.profile_data || l.profiles,
       units: l.units_data || l.lodge_units || []

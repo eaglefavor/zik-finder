@@ -76,7 +76,7 @@ export default function Home() {
       
       // Refresh lodges to show the new status
       await fetchInitialLodges();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Promotion error:', err);
       toast.error('Failed to activate promotion. Please contact support.');
     } finally {
