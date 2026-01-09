@@ -12,6 +12,9 @@ import AuthScreen from '@/components/AuthScreen';
 import { Lodge } from '@/lib/types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+
+const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
 
 const AdminLink = ({ role }: { role: string }) => (
   role === 'admin' ? (
@@ -45,6 +48,7 @@ export default function Home() {
     toggleFavorite, 
     favorites, 
     viewGrowth,
+    fetchInitialLodges,
     fetchMoreLodges,
     isLodgesLoading,
     hasMoreLodges
@@ -53,6 +57,32 @@ export default function Home() {
   const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
   const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
   const [loadingStatusId, setLoadingStatusId] = useState<string | null>(null);
+  const [promotingLodge, setPromotingLodge] = useState<Lodge | null>(null);
+
+  const handlePromoteSuccess = async (reference: string) => {
+    if (!promotingLodge) return;
+
+    try {
+      const { data, error } = await supabase.rpc('promote_lodge', {
+        p_lodge_id: promotingLodge.id,
+        p_payment_reference: reference
+      });
+
+      if (error) throw error;
+
+      toast.success('Lodge promoted successfully!', {
+        description: 'Your listing is now at the top of the feed for 7 days.'
+      });
+      
+      // Refresh lodges to show the new status
+      await fetchInitialLodges();
+    } catch (err: any) {
+      console.error('Promotion error:', err);
+      toast.error('Failed to activate promotion. Please contact support.');
+    } finally {
+      setPromotingLodge(null);
+    }
+  };
 
   // Infinite Scroll Logic
   const observer = useRef<IntersectionObserver | null>(null);
@@ -252,6 +282,12 @@ export default function Home() {
                             <Eye size={12} className="text-blue-400" />
                             <span className="text-[10px] font-black">{lodge.views?.toLocaleString() || 0} Views</span>
                           </div>
+                          {lodge.promoted_until && new Date(lodge.promoted_until) > new Date() && (
+                            <div className="flex items-center gap-1 text-amber-500">
+                              <Zap size={12} className="fill-amber-500" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">Featured</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -283,9 +319,26 @@ export default function Home() {
                       </div>
                     )}
 
-                    <div className="flex gap-3 pt-2">
-                      <Link href={`/edit-lodge/${lodge.id}`} className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-gray-100 border border-gray-100"><Edit3 size={14} /> Edit Details</Link>
-                      <button onClick={() => handleStatusUpdate(lodge.id, lodge.status)} disabled={loadingStatusId === lodge.id} className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${loadingStatusId === lodge.id ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : lodge.status === 'available' ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'}`}>{loadingStatusId === lodge.id ? <><Loader2 className="animate-spin" size={14} /> Updating...</> : lodge.status === 'available' ? <><X size={14} /> Mark Taken</> : <><CheckCircle size={14} /> Mark Public</>}</button>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Link href={`/edit-lodge/${lodge.id}`} className="flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-gray-100 border border-gray-100">
+                        <Edit3 size={14} /> Edit
+                      </Link>
+                      
+                      <button 
+                        onClick={() => handleStatusUpdate(lodge.id, lodge.status)} 
+                        disabled={loadingStatusId === lodge.id} 
+                        className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${loadingStatusId === lodge.id ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : lodge.status === 'available' ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'}`}
+                      >
+                        {loadingStatusId === lodge.id ? <><Loader2 className="animate-spin" size={14} /> ...</> : lodge.status === 'available' ? <><X size={14} /> Hide</> : <><CheckCircle size={14} /> Show</>}
+                      </button>
+
+                      <button 
+                        onClick={() => setPromotingLodge(lodge)}
+                        className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 active:scale-[0.98] transition-all"
+                      >
+                        <Zap size={14} className="fill-white" /> 
+                        {lodge.promoted_until && new Date(lodge.promoted_until) > new Date() ? 'Extend Promotion (₦1,000)' : 'Boost Listing (₦1,000)'}
+                      </button>
                     </div>
                   </motion.div>
                 ))
@@ -341,6 +394,7 @@ export default function Home() {
             const isLastLodge = index === lodges.length - 1;
             const isFavorite = favorites.includes(lodge.id);
             const isVerified = lodge.profiles?.is_verified === true;
+            const isPromoted = lodge.promoted_until && new Date(lodge.promoted_until) > new Date();
             const hasPhone = !!lodge.profiles?.phone_number;
             
             const allCardImages = [
@@ -355,7 +409,9 @@ export default function Home() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white rounded-[40px] overflow-hidden shadow-sm border border-gray-100 relative group"
+                className={`bg-white rounded-[40px] overflow-hidden shadow-sm border relative group ${
+                  isPromoted ? 'border-amber-200 ring-2 ring-amber-500/10' : 'border-gray-100'
+                }`}
               >
                 <div className="relative h-64 xs:h-72 w-full bg-gray-100 group">
                   <div className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar">
@@ -375,10 +431,15 @@ export default function Home() {
                   </div>
 
                   <div className="absolute bottom-5 left-5 flex flex-col gap-2 pointer-events-none">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <div className="px-3 py-1.5 bg-blue-600/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
                         {lodge.location}
                       </div>
+                      {isPromoted && (
+                        <div className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg border border-white/20">
+                          <Zap size={12} className="fill-white" /> Featured
+                        </div>
+                      )}
                       {isVerified && (
                         <div className="flex items-center gap-1 px-3 py-1.5 bg-green-500/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
                           <CheckCircle size={12} className="fill-white/20" /> Verified
@@ -520,6 +581,17 @@ export default function Home() {
           <h3 className="text-xl font-black text-gray-900">No lodges available</h3>
           <p className="text-gray-500 text-sm max-w-[220px] mt-2 leading-relaxed">We couldn&apos;t find any active listings. Check back later!</p>
         </div>
+      )}
+
+      {promotingLodge && (
+        <PaymentModal
+          amount={1000}
+          email={user?.email || ''}
+          purpose="promoted_listing"
+          metadata={{ lodge_id: promotingLodge.id }}
+          onSuccess={handlePromoteSuccess}
+          onClose={() => setPromotingLodge(null)}
+        />
       )}
     </div>
   );

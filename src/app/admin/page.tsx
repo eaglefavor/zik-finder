@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [revenueStats, setRevenueStats] = useState({
     total: 0,
     verification: 0,
+    promoted: 0,
     today: 0
   });
 
@@ -85,6 +86,7 @@ export default function AdminPage() {
         // Calculate Stats
         let total = 0;
         let verification = 0;
+        let promoted = 0;
         let today = 0;
         const now = new Date();
 
@@ -92,6 +94,7 @@ export default function AdminPage() {
             const amount = Number(tx.amount);
             total += amount;
             if (tx.purpose === 'verification_fee') verification += amount;
+            if (tx.purpose === 'promoted_listing') promoted += amount;
 
             const txDate = new Date(tx.created_at);
             if (txDate.toDateString() === now.toDateString()) {
@@ -99,7 +102,7 @@ export default function AdminPage() {
             }
         });
 
-        setRevenueStats({ total, verification, today });
+        setRevenueStats({ total, verification, promoted, today });
     }
   }, []);
 
@@ -492,18 +495,22 @@ export default function AdminPage() {
         {activeTab === 'finance' && (
             <div className="space-y-6">
                 {/* Revenue Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-green-50 border border-green-100 p-5 rounded-[24px]">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-green-600 mb-1">Total Revenue</p>
-                        <p className="text-2xl font-black text-gray-900">₦{revenueStats.total.toLocaleString()}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-green-50 border border-green-100 p-4 rounded-[24px]">
+                        <p className="text-[9px] uppercase font-black tracking-widest text-green-600 mb-1">Total</p>
+                        <p className="text-xl font-black text-gray-900">₦{revenueStats.total.toLocaleString()}</p>
                     </div>
-                    <div className="bg-blue-50 border border-blue-100 p-5 rounded-[24px]">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-blue-600 mb-1">Verification</p>
-                        <p className="text-2xl font-black text-gray-900">₦{revenueStats.verification.toLocaleString()}</p>
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-[24px]">
+                        <p className="text-[9px] uppercase font-black tracking-widest text-blue-600 mb-1">Verify</p>
+                        <p className="text-xl font-black text-gray-900">₦{revenueStats.verification.toLocaleString()}</p>
                     </div>
-                    <div className="bg-gray-50 border border-gray-100 p-5 rounded-[24px]">
-                        <p className="text-[10px] uppercase font-black tracking-widest text-gray-500 mb-1">Today</p>
-                        <p className="text-2xl font-black text-gray-900">₦{revenueStats.today.toLocaleString()}</p>
+                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-[24px]">
+                        <p className="text-[9px] uppercase font-black tracking-widest text-amber-600 mb-1">Boosts</p>
+                        <p className="text-xl font-black text-gray-900">₦{revenueStats.promoted.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-gray-50 border border-gray-100 p-4 rounded-[24px]">
+                        <p className="text-[9px] uppercase font-black tracking-widest text-gray-500 mb-1">Today</p>
+                        <p className="text-xl font-black text-gray-900">₦{revenueStats.today.toLocaleString()}</p>
                     </div>
                 </div>
 

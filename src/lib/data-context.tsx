@@ -51,40 +51,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [hasMoreLodges, setHasMoreLodges] = useState(true);
   const [isLodgesLoading, setIsLodgesLoading] = useState(false);
 
-  const formatLodgeData = (data: unknown[]) => {
-    return (data as unknown as (Lodge & { lodge_units?: LodgeUnit[] })[]).map((l) => ({
+  const formatLodgeData = (data: any[]) => {
+    return data.map((l) => ({
       ...l,
-      profiles: Array.isArray(l.profiles) ? l.profiles[0] : (l.profiles as unknown as { phone_number: string; is_verified: boolean }),
-      units: l.lodge_units || [] // Assign fetched units or empty array
+      profiles: l.profile_data || l.profiles,
+      units: l.units_data || l.lodge_units || []
     })) as unknown as Lodge[];
   }
 
   const fetchInitialLodges = async () => {
     setIsLodgesLoading(true);
-    let { data, error } = await supabase
-      .from('lodges')
-      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
-      .order('created_at', { ascending: false })
-      .range(0, LODGE_PAGE_SIZE - 1);
-
-    // Fallback logic remains the same for initial fetch
-    if (error) {
-      console.warn('Falling back to legacy lodges fetch:', error.message);
-      const fallback = await supabase
-        .from('lodges')
-        .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified)')
-        .order('created_at', { ascending: false })
-        .limit(LODGE_PAGE_SIZE);
-      
-      data = fallback.data;
-      error = fallback.error;
-    }
+    const { data, error } = await supabase.rpc('get_lodges_feed', {
+      page_offset: 0,
+      page_limit: LODGE_PAGE_SIZE
+    });
 
     if (!error && data) {
       const formatted = formatLodgeData(data);
       setLodges(formatted);
       setLodgesPage(1);
       setHasMoreLodges(data.length === LODGE_PAGE_SIZE);
+    } else if (error) {
+      console.error('Error fetching initial lodges:', error.message);
+      toast.error("Failed to load lodges");
     }
     setIsLodgesLoading(false);
   };
@@ -93,16 +82,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (isLodgesLoading || !hasMoreLodges) return;
     setIsLodgesLoading(true);
 
-    const from = lodgesPage * LODGE_PAGE_SIZE;
-    const to = from + LODGE_PAGE_SIZE - 1;
+    const offset = lodgesPage * LODGE_PAGE_SIZE;
 
-    const { data, error } = await supabase
-      .from('lodges')
-      .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
-      .order('created_at', { ascending: false })
-      .range(from, to);
+    const { data, error } = await supabase.rpc('get_lodges_feed', {
+      page_offset: offset,
+      page_limit: LODGE_PAGE_SIZE
+    });
 
     if (error) {
+      console.error('Error fetching more lodges:', error.message);
       toast.error("Failed to load more lodges");
     }
 

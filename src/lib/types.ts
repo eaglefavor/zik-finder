@@ -22,24 +22,24 @@ export interface LodgeUnit {
 
 export interface Lodge {
   id: string;
-  landlord_id: string;
+  created_at: string;
   title: string;
   description: string;
-  price: number; // Kept for display/sorting (min price)
+  price: number;
   location: string;
-  landmark?: string;
-  amenities: string[];
   image_urls: string[];
+  landlord_id: string;
   status: 'available' | 'taken';
-  is_official_photos?: boolean; // Monetization: Verified photos
+  amenities: string[];
+  landmark?: string;
+  promoted_until?: string; // ISO timestamp
+  
+  // Joins
+  profiles?: Profile;
+  units?: LodgeUnit[];
+  
+  // Computed
   views?: number;
-  created_at: string;
-  // Joined data
-  profiles?: {
-    phone_number: string;
-    is_verified: boolean;
-  };
-  units?: LodgeUnit[]; // New: List of room types
 }
 
 export interface LodgeRequest {
