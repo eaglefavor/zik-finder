@@ -244,12 +244,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const loadData = async () => {
+    let mounted = true;
+
+    const loadCriticalData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchInitialLodges(), refreshRequests(), refreshFavorites(), refreshUnreadCount(), refreshViewGrowth()]);
-      setIsLoading(false);
+      
+      // 1. Critical Data (Blocking UI)
+      await Promise.all([
+        fetchInitialLodges(),
+        refreshFavorites(),
+        refreshUnreadCount()
+      ]);
+      
+      if (mounted) setIsLoading(false);
+
+      // 2. Non-Critical Data (Lazy Load)
+      // Requests are only needed for the Market page
+      refreshRequests(); 
+      
+      // View Growth is only needed for Landlords
+      if (user) refreshViewGrowth();
     };
-    loadData();
+
+    loadCriticalData();
 
     if (user) {
       const channel = supabase
@@ -272,6 +289,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         supabase.removeChannel(channel);
       };
     }
+
+    return () => { mounted = false; };
   }, [user]);
 
   const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => {
@@ -346,28 +365,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (error) return { success: false, error: error.message };
 
-    if (oldLodge && lodgeData.price && lodgeData.price < oldLodge.price) {
-      try {
-        const { data: favoritedBy } = await supabase
-          .from('favorites')
-          .select('user_id')
-          .eq('lodge_id', id);
-
-        if (favoritedBy && favoritedBy.length > 0) {
-          const alerts = favoritedBy.map(fav => ({
-            user_id: fav.user_id,
-            title: 'Price Drop! 💸',
-            message: `The rent for "${oldLodge.title}" has been reduced to ₦${lodgeData.price?.toLocaleString()}.`,
-            type: 'info',
-            link: `/lodge/${id}`
-          }));
-          await supabase.from('notifications').insert(alerts);
-        }
-      } catch (err) {
-        console.error('Failed to send price drop notifications:', err);
-      }
-    }
-    
     await fetchInitialLodges();
     return { success: true };
   };
@@ -422,37 +419,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .eq('id', id);
 
     if (!error) {
-      if (available_units > 0 && available_units <= 2) {
-        try {
-          const { data } = await supabase
-            .from('lodge_units')
-            .select('lodge_id, name, lodges(title)')
-            .eq('id', id)
-            .single();
-
-          const unitData = data as { lodge_id: string, name: string, lodges: { title: string } | null } | null;
-
-          if (unitData) {
-            const { data: favoritedBy } = await supabase
-              .from('favorites')
-              .select('user_id')
-              .eq('lodge_id', unitData.lodge_id);
-
-            if (favoritedBy && favoritedBy.length > 0) {
-              const alerts = favoritedBy.map(fav => ({
-                user_id: fav.user_id,
-                title: 'Hurry! ⏳',
-                message: `Only ${available_units} room${available_units > 1 ? 's' : ''} left for the ${unitData.name} at "${unitData.lodges?.title || 'the lodge'}".`,
-                type: 'warning',
-                link: `/lodge/${unitData.lodge_id}`
-              }));
-              await supabase.from('notifications').insert(alerts);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to send availability alerts:', err);
-        }
-      }
       await fetchInitialLodges();
     }
   };
@@ -543,40 +509,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (error) return { success: false, error: error.message };
 
-    try {
-      const matchLocation = requestData.locations && requestData.locations.length > 0 
-        ? requestData.locations[0].split(' (')[0] 
-        : requestData.location?.split(' (')[0] || 'Any Location';
-      
-      let query = supabase.from('lodges').select('landlord_id');
-      
-      if (matchLocation !== 'Any Location') {
-        query = query.eq('location', matchLocation);
-      }
-
-      const { data: lodgesInArea } = await query;
-
-      if (lodgesInArea && lodgesInArea.length > 0) {
-        const landlordIds = Array.from(new Set(lodgesInArea.map(l => l.landlord_id)));
-        
-        const notifications = landlordIds.map(id => ({
-          user_id: id,
-          title: 'New Student Request! 🎯',
-          message: `A student is looking for a lodge in ${matchLocation}. Check the Market to see if you have a match!`,
-          type: 'info',
-          link: '/market'
-        }));
-
-        const { error: insertError } = await supabase.from('notifications').insert(notifications);
-        
-        if (insertError) {
-          console.error('NOTIFICATION INSERT FAILED:', insertError);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to send notifications for request:', err);
-    }
-    
     await refreshRequests();
     return { success: true };
   };

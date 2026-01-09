@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import VerificationStatusCard from '@/components/profile/VerificationStatusCard';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 export default function ProfilePage() {
   const { user, role, logout } = useAppContext();
@@ -106,9 +107,9 @@ export default function ProfilePage() {
         <section className="bg-white p-6 xs:p-8 rounded-[32px] xs:rounded-[40px] border border-gray-100 shadow-sm relative overflow-hidden group">
           <div className="relative z-10 flex flex-col items-center text-center">
             <div className="relative mb-6">
-              <div className="w-28 h-28 xs:w-32 xs:h-32 bg-gradient-to-br from-blue-50 to-blue-100 rounded-[40px] flex items-center justify-center text-blue-600 text-4xl font-black border-4 border-white shadow-xl overflow-hidden ring-1 ring-blue-50">
+              <div className="relative w-28 h-28 xs:w-32 xs:h-32 bg-gradient-to-br from-blue-50 to-blue-100 rounded-[40px] flex items-center justify-center text-blue-600 text-4xl font-black border-4 border-white shadow-xl overflow-hidden ring-1 ring-blue-50">
                 {user.avatar_url ? (
-                  <img src={user.avatar_url} alt={user.name || 'User'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <Image src={user.avatar_url} fill className="object-cover group-hover:scale-110 transition-transform duration-700" alt={user.name || 'User'} />
                 ) : (
                   (user.name || 'U')[0]
                 )}

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 export default function MarketRequests() {
   const { role, user, isLoading } = useAppContext();
@@ -470,8 +471,8 @@ export default function MarketRequests() {
                       onClick={() => handleMatchNotify(lodge.id)}
                       className="w-full flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-3xl transition-all text-left group disabled:opacity-50"
                     >
-                      <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-200 shrink-0 border-2 border-white shadow-sm">
-                        <img src={lodge.image_urls[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                      <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-gray-200 shrink-0 border-2 border-white shadow-sm">
+                        <Image src={lodge.image_urls[0]} fill className="object-cover group-hover:scale-110 transition-transform duration-500" alt={lodge.title} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-900 truncate text-base">{lodge.title}</p>

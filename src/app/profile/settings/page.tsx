@@ -7,6 +7,7 @@ import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges';
@@ -126,9 +127,9 @@ export default function AccountSettingsPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col items-center mb-8">
           <div className="relative">
-            <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-md overflow-hidden">
+            <div className="relative w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-3xl font-bold border-4 border-white shadow-md overflow-hidden">
               {previewUrl ? (
-                <img src={previewUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <Image src={previewUrl} fill className="object-cover" alt="Avatar" />
               ) : (
                 (formData.name || 'U')[0]
               )}

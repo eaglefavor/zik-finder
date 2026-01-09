@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useRouter, useParams } from 'next/navigation';
 import { useRef, useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges';
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dhpvia1ae';
@@ -327,7 +328,7 @@ export default function EditLodge() {
                   exit={{ scale: 0.8, opacity: 0 }}
                   className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group border border-gray-100 shadow-inner"
                 >
-                  <img src={img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                  <Image src={img} fill className="object-cover group-hover:scale-110 transition-transform duration-500" alt="Lodge" />
                   <button 
                     onClick={() => setFormData(p => ({...p, image_urls: p.image_urls.filter((_, i) => i !== idx)}))}
                     className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 backdrop-blur-md"

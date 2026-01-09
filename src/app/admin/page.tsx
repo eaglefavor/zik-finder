@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 interface VerificationDoc {
   id: string;
@@ -402,7 +403,9 @@ export default function AdminPage() {
               <div className="space-y-3">
                 {lodges.map(l => (
                   <div key={l.id} className="bg-white p-4 rounded-[24px] border border-gray-100 flex items-center gap-4 shadow-sm">
-                    <img src={l.image_urls[0]} className="w-12 h-12 rounded-xl object-cover" alt="" />
+                    <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0">
+                      <Image src={l.image_urls[0]} fill className="object-cover" alt={l.title} />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-gray-900 truncate">{l.title}</div>
                       <div className="text-[10px] text-gray-400 font-bold uppercase">{l.location} • ₦{l.price.toLocaleString()}</div>

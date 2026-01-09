@@ -9,6 +9,7 @@ import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 import { ROOM_TYPE_PRESETS, AREA_LANDMARKS } from '@/lib/constants';
 
@@ -423,7 +424,7 @@ export default function PostLodge() {
                   <button onClick={() => handleDeleteUnit(unit.tempId)} className="p-2 text-red-400 bg-red-50 rounded-full hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
-                  {unit.image_urls.map((img, i) => <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100"><img src={img} className="w-full h-full object-cover" alt="" /><button onClick={() => setUnits(prev => prev.map(u => u.tempId === unit.tempId ? {...u, image_urls: u.image_urls.filter((_, idx) => idx !== i)} : u))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><X size={10} /></button></div>)}
+                  {unit.image_urls.map((img, i) => <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100"><Image src={img} fill className="object-cover" alt={unit.name} /><button onClick={() => setUnits(prev => prev.map(u => u.tempId === unit.tempId ? {...u, image_urls: u.image_urls.filter((_, idx) => idx !== i)} : u))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"><X size={10} /></button></div>)}
                   {unit.image_urls.length < 4 && (
                     <div onClick={() => unitFileInputRefs.current[unit.tempId]?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-xl flex items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-colors">
                       {uploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
@@ -486,7 +487,7 @@ export default function PostLodge() {
             <h3 className="text-lg font-bold mb-2">Lodge Photo Gallery</h3>
             <p className="text-sm text-gray-500 mb-6">Upload general photos of the compound, gate, and hallway.</p>
             <div className="grid grid-cols-3 gap-3">
-              {generalImages.map((img, i) => <div key={i} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100"><img src={img} className="w-full h-full object-cover" alt="" /><button onClick={() => setGeneralImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12} /></button></div>)}
+              {generalImages.map((img, i) => <div key={i} className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100"><Image src={img} fill className="object-cover" alt="Lodge" /><button onClick={() => setGeneralImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"><X size={12} /></button></div>)}
               {generalImages.length < 10 && (
                 <div onClick={() => fileInputRef.current?.click()} className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-50 transition-all active:scale-95">
                   {uploading ? <Loader2 className="animate-spin" size={24} /> : <><Camera size={24} /><span className="text-[10px] font-bold">ADD PHOTO</span></>}

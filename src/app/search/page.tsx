@@ -6,6 +6,7 @@ import { useData } from '@/lib/data-context';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ROOM_TYPE_PRESETS, AREA_LANDMARKS, AMENITIES } from '@/lib/constants';
+import Image from 'next/image';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
@@ -235,8 +236,8 @@ export default function SearchPage() {
                 key={lodge.id}
                 className="flex items-start gap-4 p-3 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-[0.99] transition-all"
               >
-                <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0 relative">
-                  <img src={lodge.image_urls[0]} className="w-full h-full object-cover" alt="" />
+                <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                  <Image src={lodge.image_urls[0]} fill className="object-cover" alt={lodge.title} />
                   {/* Status Badges */}
                   {lodge.units?.reduce((acc, u) => acc + u.available_units, 0) === 0 && (
                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">

@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { Lodge } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -122,13 +123,14 @@ export default function FavoritesPage() {
                   <div className="relative h-64 xs:h-72 w-full bg-gray-100 group">
                     <div className="flex h-full overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar">
                       {allCardImages.map((img, idx) => (
-                        <div key={idx} className="w-full h-full shrink-0 snap-start">
+                        <div key={idx} className="w-full h-full shrink-0 snap-start relative">
                           <Link href={`/lodge/${lodge.id}`}>
-                            <img 
+                            <Image 
                               src={img} 
                               alt={lodge.title}
-                              loading={idx === 0 ? "eager" : "lazy"}
-                              className="w-full h-full object-cover group-active:scale-105 transition-transform duration-700"
+                              fill
+                              priority={idx === 0}
+                              className="object-cover group-active:scale-105 transition-transform duration-700"
                             />
                           </Link>
                         </div>
