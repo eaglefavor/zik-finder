@@ -18,9 +18,9 @@ const PaymentModal = dynamic(() => import('@/components/PaymentModal'), {
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white p-8 rounded-[32px] flex flex-col items-center gap-4 shadow-2xl">
+      <div className="bg-white p-8 rounded-[32px] flex flex-col items-center gap-4 shadow-2xl animate-in zoom-in-95 duration-200">
         <Loader2 className="animate-spin text-blue-600" size={32} />
-        <p className="font-black text-xs uppercase tracking-widest text-gray-400">Loading Payment System...</p>
+        <p className="font-black text-xs uppercase tracking-widest text-gray-400">Initializing Payment System...</p>
       </div>
     </div>
   )

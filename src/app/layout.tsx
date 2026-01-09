@@ -63,9 +63,9 @@ export default function RootLayout({
             <BottomNav />
           </DataProvider>
         </AppProvider>
-        <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="lazyOnload" />
-        <Script id="eruda-init" strategy="lazyOnload">
-          {`eruda.init();`}
+        <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="afterInteractive" />
+        <Script id="eruda-init" strategy="afterInteractive">
+          {`if (typeof window !== 'undefined' && window.eruda) eruda.init();`}
         </Script>
       </body>
     </html>

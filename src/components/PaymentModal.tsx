@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePaystackPayment } from 'react-paystack';
 import { X, ShieldCheck, Loader2 } from 'lucide-react';
 import { PAYSTACK_PUBLIC_KEY } from '@/lib/constants';
@@ -24,6 +24,11 @@ export default function PaymentModal({
   onClose,
 }: PaymentModalProps) {
   const [isInitializing, setIsInitializing] = useState(false);
+
+  useEffect(() => {
+    console.log('--- PaymentModal Mounted ---');
+    console.log('Config:', { amount, email, purpose, metadata });
+  }, []);
 
   // Paystack config
   const config = {
