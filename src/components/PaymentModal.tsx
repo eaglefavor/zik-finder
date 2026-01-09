@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { usePaystackPayment } from 'react-paystack';
 import { X, ShieldCheck, Loader2 } from 'lucide-react';
 import { PAYSTACK_PUBLIC_KEY } from '@/lib/constants';
+import { toast } from 'sonner';
 
 interface PaymentModalProps {
   amount: number; // In Naira
@@ -27,7 +28,7 @@ export default function PaymentModal({
   // Paystack config
   const config = {
     reference: (new Date()).getTime().toString(),
-    email,
+    email: email || 'customer@ziklodge.com', // Fallback email to prevent crash
     amount: amount * 100, // Convert to Kobo
     publicKey: PAYSTACK_PUBLIC_KEY,
     metadata: {
@@ -49,18 +50,28 @@ export default function PaymentModal({
   const initializePayment = usePaystackPayment(config);
 
   const handlePay = () => {
+    if (!config.email) {
+        toast.error("Valid email required for payment.");
+        return;
+    }
+    
     setIsInitializing(true);
-    initializePayment({
-        onSuccess: (reference: { reference: string } | string) => {
-            setIsInitializing(false);
-            // Verify structure of Paystack response
-            const ref = typeof reference === 'string' ? reference : reference.reference;
-            onSuccess(ref);
-        },
-        onClose: () => {
-            setIsInitializing(false);
-        }
-    });
+    try {
+        initializePayment({
+            onSuccess: (reference: { reference: string } | string) => {
+                setIsInitializing(false);
+                const ref = typeof reference === 'string' ? reference : reference.reference;
+                onSuccess(ref);
+            },
+            onClose: () => {
+                setIsInitializing(false);
+            }
+        });
+    } catch (err) {
+        console.error('Paystack initialization error:', err);
+        toast.error("Could not start payment system. Please refresh.");
+        setIsInitializing(false);
+    }
   };
 
   return (
