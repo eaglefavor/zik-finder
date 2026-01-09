@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Lodge, Profile, LodgeRequest, LodgeUnit } from './types';
+import { Lodge, LodgeRequest, LodgeUnit } from './types';
 import { supabase } from './supabase';
 import { useAppContext } from './context';
 import { toast } from 'sonner';
@@ -51,7 +51,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [hasMoreLodges, setHasMoreLodges] = useState(true);
   const [isLodgesLoading, setIsLodgesLoading] = useState(false);
 
-  const formatLodgeData = (data: any[]) => {
+  const formatLodgeData = (data: unknown[]) => {
     return (data as unknown as (Lodge & { lodge_units?: LodgeUnit[] })[]).map((l) => ({
       ...l,
       profiles: Array.isArray(l.profiles) ? l.profiles[0] : (l.profiles as unknown as { phone_number: string; is_verified: boolean }),
@@ -96,7 +96,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const from = lodgesPage * LODGE_PAGE_SIZE;
     const to = from + LODGE_PAGE_SIZE - 1;
 
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from('lodges')
       .select('*, profiles!lodges_landlord_id_fkey(phone_number, is_verified), lodge_units(*)')
       .order('created_at', { ascending: false })
