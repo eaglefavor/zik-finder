@@ -37,8 +37,8 @@ export default function PaymentModal({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const handlePay = () => {
