@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ShieldCheck, Loader2 } from 'lucide-react';
 import { PAYSTACK_PUBLIC_KEY } from '@/lib/constants';
 import { toast } from 'sonner';
@@ -33,9 +34,11 @@ export default function PaymentModal({
   onClose,
 }: PaymentModalProps) {
   const [isInitializing, setIsInitializing] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    console.log('--- PaymentModal Mounted (Inline Script Version) ---');
+    setMounted(true);
+    return () => setMounted(false);
   }, []);
 
   const handlePay = () => {
@@ -88,9 +91,11 @@ export default function PaymentModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80">
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-red-500">
+  if (!mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-indigo-500 animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
         <div className="bg-indigo-600 px-6 py-6 text-center text-white">
@@ -140,6 +145,7 @@ export default function PaymentModal({
             </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
