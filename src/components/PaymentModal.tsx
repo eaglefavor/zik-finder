@@ -6,7 +6,7 @@ import { PAYSTACK_PUBLIC_KEY } from '@/lib/constants';
 import { toast } from 'sonner';
 
 interface PaystackPop {
-  setup: (config: any) => { openIframe: () => void };
+  setup: (config: Record<string, unknown>) => { openIframe: () => void };
 }
 
 declare global {
