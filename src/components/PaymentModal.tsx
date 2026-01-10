@@ -5,6 +5,16 @@ import { X, ShieldCheck, Loader2 } from 'lucide-react';
 import { PAYSTACK_PUBLIC_KEY } from '@/lib/constants';
 import { toast } from 'sonner';
 
+interface PaystackPop {
+  setup: (config: any) => { openIframe: () => void };
+}
+
+declare global {
+  interface Window {
+    PaystackPop?: PaystackPop;
+  }
+}
+
 interface PaymentModalProps {
   amount: number;
   email: string;
@@ -34,7 +44,7 @@ export default function PaymentModal({
       return;
     }
 
-    if (typeof window === 'undefined' || !(window as any).PaystackPop) {
+    if (typeof window === 'undefined' || !window.PaystackPop) {
       toast.error("Payment system not ready. Please refresh the page.");
       return;
     }
@@ -42,7 +52,7 @@ export default function PaymentModal({
     setIsInitializing(true);
 
     try {
-      const handler = (window as any).PaystackPop.setup({
+      const handler = window.PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: email || 'customer@ziklodge.com',
         amount: amount * 100, // Kobo
@@ -55,9 +65,9 @@ export default function PaymentModal({
               value: purpose
             },
             ...Object.entries(metadata || {}).map(([key, value]) => ({
-              display_name: key,
-              variable_name: key,
-              value: String(value)
+                display_name: key,
+                variable_name: key,
+                value: String(value)
             }))
           ]
         },
