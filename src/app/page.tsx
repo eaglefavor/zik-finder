@@ -592,14 +592,19 @@ export default function Home() {
       )}
 
       {promotingLodge && (
-        <PaymentModal
-          amount={1000}
-          email={user?.email || ''}
-          purpose="promoted_listing"
-          metadata={{ lodge_id: promotingLodge.id }}
-          onSuccess={handlePromoteSuccess}
-          onClose={() => setPromotingLodge(null)}
-        />
+        <>
+          <div className="fixed top-0 left-0 z-[99999] bg-red-500 text-white p-4 font-bold">
+            DEBUG: MODAL ACTIVE for {promotingLodge.id}
+          </div>
+          <PaymentModal
+            amount={1000}
+            email={user?.email || ''}
+            purpose="promoted_listing"
+            metadata={{ lodge_id: promotingLodge.id }}
+            onSuccess={handlePromoteSuccess}
+            onClose={() => setPromotingLodge(null)}
+          />
+        </>
       )}
     </div>
   );
