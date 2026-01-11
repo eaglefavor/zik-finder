@@ -23,6 +23,7 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
     selfie: null
   });
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingReference, setPendingReference] = useState<string | null>(null);
 
   const checkVerificationStatus = React.useCallback(async () => {
     if (!user) return;
@@ -104,6 +105,7 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
   const handlePaymentSuccess = async (reference: string) => {
     setShowPaymentModal(false);
     setUploading(true);
+    setPendingReference(null); // Clear pending ref as we are processing it
 
     try {
       // 1. Upload ID
@@ -144,7 +146,8 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
       setSelectedFiles({ id: null, selfie: null }); // Reset
     } catch (error: unknown) {
       console.error('Error uploading documents:', error);
-      toast.error('Error uploading documents: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      setPendingReference(reference); // Save reference for retry
+      toast.error('Submission failed, but payment was received. Please click "Retry Submission".');
     } finally {
       setUploading(false);
     }
@@ -208,12 +211,15 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
                   : 'Upload a valid ID (NIN, Drivers License, etc.) to get the verified badge.'}
           </p>
           
-          {(verificationStatus === 'none' || verificationStatus === 'rejected') && (
+          {(verificationStatus === 'none' || verificationStatus === 'rejected' || pendingReference) && (
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between mb-2">
                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Required Documents</p>
-                 {verificationStatus === 'rejected' && (
+                 {verificationStatus === 'rejected' && !pendingReference && (
                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">Resubmission Required</span>
+                 )}
+                 {pendingReference && (
+                    <span className="text-[10px] bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-bold">Retry Required</span>
                  )}
               </div>
               
@@ -234,11 +240,13 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
                   className="hidden" 
                   accept=".jpg,.jpeg,.png"
                   onChange={(e) => handleFileSelect(e, 'id')}
+                  disabled={!!pendingReference}
                 />
                 <label 
                   htmlFor="id-upload"
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                    selectedFiles.id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    pendingReference ? 'bg-gray-50 text-gray-400 cursor-not-allowed' :
+                    selectedFiles.id ? 'bg-green-100 text-green-700 cursor-pointer' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer'
                   }`}
                 >
                   {selectedFiles.id ? 'Selected' : 'Select'}
@@ -262,30 +270,50 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
                   className="hidden" 
                   accept=".jpg,.jpeg,.png"
                   onChange={(e) => handleFileSelect(e, 'selfie')}
+                  disabled={!!pendingReference}
                 />
                 <label 
                   htmlFor="selfie-upload"
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                    selectedFiles.selfie ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    pendingReference ? 'bg-gray-50 text-gray-400 cursor-not-allowed' :
+                    selectedFiles.selfie ? 'bg-green-100 text-green-700 cursor-pointer' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer'
                   }`}
                 >
                   {selectedFiles.selfie ? 'Selected' : 'Select'}
                 </label>
               </div>
 
-              <button 
-                onClick={handleInitiateVerification}
-                disabled={uploading || !selectedFiles.id || !selectedFiles.selfie}
-                className="w-full flex items-center justify-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="animate-spin" size={16} /> Uploading...
-                  </>
-                ) : (
-                  <>{verificationStatus === 'rejected' ? 'Pay ₦500 & Resubmit Verification' : 'Pay ₦500 & Submit Verification'}</>
-                )}
-              </button>
+              <div className="flex gap-2">
+                  {pendingReference ? (
+                    <button 
+                        onClick={() => handlePaymentSuccess(pendingReference)}
+                        disabled={uploading}
+                        className="flex-1 flex items-center justify-center gap-2 mt-2 bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-amber-200 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
+                    >
+                        {uploading ? (
+                            <>
+                                <Loader2 className="animate-spin" size={16} /> Retrying...
+                            </>
+                        ) : (
+                            'Retry Submission (Already Paid)'
+                        )}
+                    </button>
+                  ) : (
+                    <button 
+                        onClick={handleInitiateVerification}
+                        disabled={uploading || !selectedFiles.id || !selectedFiles.selfie}
+                        className="flex-1 flex items-center justify-center gap-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 disabled:shadow-none"
+                    >
+                        {uploading ? (
+                        <>
+                            <Loader2 className="animate-spin" size={16} /> Uploading...
+                        </>
+                        ) : (
+                        <>{verificationStatus === 'rejected' ? 'Pay ₦500 & Resubmit Verification' : 'Pay ₦500 & Submit Verification'}</>
+                        )}
+                    </button>
+                  )}
+              </div>
             </div>
           )}
         </div>
