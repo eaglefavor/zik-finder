@@ -161,7 +161,7 @@ export default function AdminPage() {
     return 'bg-blue-600';
   };
 
-  const handleApprove = async (docId: string, landlordId: string) => {
+  const handleApprove = async (docId: string, landlordId: string, paths: string[]) => {
     toast.info('Approve this landlord?', {
       description: 'This will verify their identity and allow them to post listings.',
       action: {
@@ -199,6 +199,17 @@ export default function AdminPage() {
 
             if (notifyError) console.error('Failed to notify landlord:', notifyError);
 
+            // 4. Delete images from Storage (Cleanup)
+            if (paths.length > 0) {
+                const { error: deleteError } = await supabase.storage
+                    .from('secure-docs')
+                    .remove(paths);
+                
+                if (deleteError) {
+                    console.error('Failed to cleanup verification docs:', deleteError);
+                }
+            }
+
             toast.success('Landlord verified successfully!');
           }
 
@@ -209,7 +220,7 @@ export default function AdminPage() {
     });
   };
 
-  const handleReject = async (docId: string, landlordId: string) => {
+  const handleReject = async (docId: string, landlordId: string, paths: string[]) => {
     const reason = prompt('Please enter the reason for rejection (e.g. Image blurry, name mismatch):');
     if (reason === null) return; // Cancelled
     if (!reason.trim()) {
@@ -238,6 +249,17 @@ export default function AdminPage() {
       });
 
       if (notifyError) console.error('Failed to notify landlord:', notifyError);
+
+      // Delete images from Storage (Cleanup)
+      if (paths.length > 0) {
+        const { error: deleteError } = await supabase.storage
+            .from('secure-docs')
+            .remove(paths);
+        
+        if (deleteError) {
+            console.error('Failed to cleanup verification docs:', deleteError);
+        }
+      }
 
       toast.success('Verification rejected.');
       await fetchPendingDocs();
@@ -446,8 +468,8 @@ export default function AdminPage() {
                         {doc.selfie_path && <button onClick={() => getSignedUrl(doc.selfie_path!)} className="flex-1 flex items-center justify-center gap-2 py-3 bg-purple-50 text-purple-600 rounded-2xl text-xs font-bold active:scale-95 transition-all"><ExternalLink size={14} /> Selfie</button>}
                     </div>
                     <div className="flex gap-2 mt-2">
-                        <button onClick={() => handleReject(doc.id, doc.landlord_id)} className="flex-1 py-4 border border-red-100 text-red-600 rounded-2xl text-sm font-bold active:scale-95 transition-all">Reject</button>
-                        <button onClick={() => handleApprove(doc.id, doc.landlord_id)} className="flex-[2] py-4 bg-green-600 text-white rounded-2xl text-sm font-bold active:scale-95 transition-all shadow-lg shadow-green-100">Approve Landlord</button>
+                        <button onClick={() => handleReject(doc.id, doc.landlord_id, [doc.id_card_path, doc.selfie_path].filter(Boolean) as string[])} className="flex-1 py-4 border border-red-100 text-red-600 rounded-2xl text-sm font-bold active:scale-95 transition-all">Reject</button>
+                        <button onClick={() => handleApprove(doc.id, doc.landlord_id, [doc.id_card_path, doc.selfie_path].filter(Boolean) as string[])} className="flex-[2] py-4 bg-green-600 text-white rounded-2xl text-sm font-bold active:scale-95 transition-all shadow-lg shadow-green-100">Approve Landlord</button>
                     </div>
                   </div>
                 </div>
