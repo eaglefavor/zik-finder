@@ -53,37 +53,24 @@ BEGIN
   END IF;
 
   -- 3. Manage Verification Docs
-  DELETE FROM verification_docs 
-  WHERE landlord_id = p_user_id AND status = 'rejected';
+  -- Clean slate: Remove any existing docs for this landlord to prevent duplicates/conflicts
+  DELETE FROM verification_docs WHERE landlord_id = p_user_id;
 
   INSERT INTO verification_docs (
     landlord_id,
     id_card_path,
-    id_card_url,
     selfie_path,
-    selfie_url,
     status,
     payment_status,
     payment_reference
   ) VALUES (
     p_user_id,
     p_id_card_path,
-    NULL,
     p_selfie_path,
-    NULL,
     'pending',
     'success',
     p_payment_reference
-  )
-  ON CONFLICT (landlord_id) 
-  DO UPDATE SET
-    id_card_path = EXCLUDED.id_card_path,
-    selfie_path = EXCLUDED.selfie_path,
-    status = 'pending',
-    payment_status = 'success',
-    payment_reference = EXCLUDED.payment_reference,
-    rejection_reason = NULL,
-    created_at = NOW();
+  );
 
   RETURN jsonb_build_object('success', true);
 END;
