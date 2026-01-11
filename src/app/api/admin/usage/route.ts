@@ -48,31 +48,30 @@ export async function GET(request: Request) {
     let supabaseSize = 0;
 
     // 2. Fetch Cloudinary Usage
-    try {
-      const result = await cloudinary.api.usage();
-      if (result) {
-        storage_usage = result.storage?.usage || 0;
-        if (result.storage?.limit) plan_limit = result.storage.limit;
+    if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
+      try {
+        const result = await cloudinary.api.usage();
+        if (result) {
+          storage_usage = result.storage?.usage || 0;
+          if (result.storage?.limit) plan_limit = result.storage.limit;
+        }
+      } catch (err: unknown) {
+        console.error('Cloudinary Usage Error:', err instanceof Error ? err.message : err);
+        // Don't fail, just keep 0
       }
-    } catch (err: unknown) {
-      console.error('Cloudinary Usage Error:', err instanceof Error ? err.message : err);
-      // Don't fail, just keep 0
+    } else {
+      console.warn('Skipping Cloudinary stats: Missing API credentials');
     }
 
-    // 3. Fetch Supabase Usage
+    // 3. Fetch Supabase Usage via RPC
     try {
-      // Accessing the storage schema
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: files, error: storageError } = await (supabase as unknown as SupabaseClient<any, 'storage'>)
-        .from('objects')
-        .select('metadata');
-
-      if (!storageError && files && Array.isArray(files)) {
-        supabaseSize = files.reduce((acc: number, file: { metadata?: { size?: number } }) => {
-          return acc + (file.metadata?.size || 0);
-        }, 0);
-      } else {
-        console.error('Supabase Storage Query Error:', storageError);
+      const { data: stats, error: rpcError } = await supabase.rpc('get_storage_stats');
+      
+      if (rpcError) {
+        console.error('Supabase Stats RPC Error:', rpcError);
+      } else if (stats) {
+        // stats is { total_bytes: number, file_count: number }
+        supabaseSize = stats.total_bytes || 0;
       }
     } catch (err: unknown) {
       console.error('Supabase Usage Calculation Error:', err instanceof Error ? err.message : err);
@@ -85,7 +84,7 @@ export async function GET(request: Request) {
       },
       supabase: {
         used: supabaseSize,
-        limit: 1024 * 1024 * 1024
+        limit: 1024 * 1024 * 1024 // 1GB default
       }
     });
 
