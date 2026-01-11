@@ -61,12 +61,16 @@ export default function Home() {
     if (!promotingLodge) return;
 
     try {
-      const { data, error } = await supabase.rpc('promote_lodge', {
-        p_lodge_id: promotingLodge.id,
-        p_payment_reference: reference
+      const { data, error } = await supabase.functions.invoke('verify-payment', {
+        body: {
+          reference,
+          type: 'promoted_listing',
+          metadata: { lodge_id: promotingLodge.id }
+        }
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success('Lodge promoted successfully!', {
         description: 'Your listing is now at the top of the feed for 7 days.'
@@ -76,7 +80,7 @@ export default function Home() {
       await fetchInitialLodges();
     } catch (err: unknown) {
       console.error('Promotion error:', err);
-      toast.error('Failed to activate promotion. Please contact support.');
+      toast.error('Failed to activate promotion. Payment verification failed.');
     } finally {
       setPromotingLodge(null);
     }

@@ -124,17 +124,23 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
 
       if (selfieError) throw selfieError;
 
-      // 3. Record in DB via RPC (Atomic Transaction)
-      const { error: rpcError } = await supabase.rpc('submit_landlord_verification', {
-        p_payment_reference: reference,
-        p_id_card_path: idPath,
-        p_selfie_path: selfiePath
+      // 3. Record in DB via Edge Function (Verifies Payment First)
+      const { data, error: funcError } = await supabase.functions.invoke('verify-payment', {
+        body: {
+          reference,
+          type: 'verification_fee',
+          metadata: {
+            id_card_path: idPath,
+            selfie_path: selfiePath
+          }
+        }
       });
 
-      if (rpcError) throw rpcError;
+      if (funcError) throw funcError;
+      if (data?.error) throw new Error(data.error);
 
       setVerificationStatus('pending');
-      toast.success('Payment successful & Documents uploaded! Review pending.');
+      toast.success('Payment verified & Documents uploaded! Review pending.');
       setSelectedFiles({ id: null, selfie: null }); // Reset
     } catch (error: unknown) {
       console.error('Error uploading documents:', error);
