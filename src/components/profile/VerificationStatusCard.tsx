@@ -132,6 +132,7 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
           reference,
           type: 'verification_fee',
           metadata: {
+            user_id: user.id,
             id_card_path: idPath,
             selfie_path: selfiePath
           }

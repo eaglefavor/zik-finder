@@ -65,7 +65,10 @@ export default function Home() {
         body: {
           reference,
           type: 'promoted_listing',
-          metadata: { lodge_id: promotingLodge.id }
+          metadata: { 
+            lodge_id: promotingLodge.id,
+            user_id: user?.id
+          }
         }
       });
 
