@@ -48,6 +48,7 @@ export default function PostLodge() {
     price: number;
     total_units: number;
     image_urls: string[];
+    pricing_category: string;
   }
 
   const [generalImages, setGeneralImages] = useState<string[]>([]);
@@ -55,7 +56,8 @@ export default function PostLodge() {
   const [newUnit, setNewUnit] = useState({
     name: '',
     price: '',
-    total_units: '1'
+    total_units: '1',
+    pricing_category: 'self_con'
   });
   const [showCustomType, setShowCustomType] = useState(false);
 
@@ -191,9 +193,10 @@ export default function PostLodge() {
       name: newUnit.name,
       price: parseInt(newUnit.price),
       total_units: parseInt(newUnit.total_units) || 1,
-      image_urls: []
+      image_urls: [],
+      pricing_category: newUnit.pricing_category
     }]);
-    setNewUnit({ name: '', price: '', total_units: '1' });
+    setNewUnit({ name: '', price: '', total_units: '1', pricing_category: 'self_con' });
     setShowCustomType(false);
   };
 
@@ -217,7 +220,8 @@ export default function PostLodge() {
       price: u.price,
       total_units: u.total_units,
       available_units: u.total_units,
-      image_urls: u.image_urls
+      image_urls: u.image_urls,
+      pricing_category: u.pricing_category
     }));
 
     const minPrice = units.length > 0 ? Math.min(...units.map(u => u.price)) : 0;
@@ -462,6 +466,19 @@ export default function PostLodge() {
                   <input type="text" placeholder="e.g. Master Bedroom Apartment" value={newUnit.name} onChange={e => setNewUnit({...newUnit, name: e.target.value})} className="w-full p-4 bg-white border border-blue-200 rounded-2xl text-sm outline-none shadow-sm font-bold" autoFocus />
                 </div>
               )}
+
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Pricing Category (For Fee Calculation)</label>
+                <select 
+                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 appearance-none shadow-sm font-bold"
+                  value={newUnit.pricing_category}
+                  onChange={(e) => setNewUnit({...newUnit, pricing_category: e.target.value})}
+                >
+                  <option value="single">Single Room (₦80k+)</option>
+                  <option value="self_con">Self-Contained (₦250k+)</option>
+                  <option value="flat">Flat / Apartment (₦500k+)</option>
+                </select>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

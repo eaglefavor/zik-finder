@@ -18,6 +18,7 @@ export interface LodgeUnit {
   total_units: number;
   available_units: number;
   image_urls: string[];
+  pricing_category?: string;
 }
 
 export interface Lodge {
