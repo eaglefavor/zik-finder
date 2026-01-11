@@ -3,15 +3,14 @@
 ## Phase 1: Launch & Traction (0 - 6 Months)
 *Focus: Trust & Convenience*
 
-- [ ] **Landlord Verification Fee**
+- [x] **Landlord Verification Fee**
     - **Concept:** One-time fee for ID/Selfie verification processing.
     - **Value:** "Verified" badge increases student trust and CTR.
     - **Tech:** Payment gateway integration before setting `verification_docs.status = 'approved'`.
 
-- [ ] **"Urgent" Student Requests**
+- [ ] **"Urgent" Student Requests (CANCELLED)**
     - **Concept:** Fee for students to mark requests as "Urgent".
-    - **Value:** Faster response times via prioritized channels.
-    - **Tech:** Add `is_urgent` to `requests`; Trigger SMS/WhatsApp notifications.
+    - **Reason:** Low demand expected; complicating the schema. Removed in Phase 1.
 
 - [ ] **Lodge Photography Service**
     - **Concept:** Paid service for professional lodge photos.

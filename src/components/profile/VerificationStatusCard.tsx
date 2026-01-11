@@ -106,15 +106,6 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
     setUploading(true);
 
     try {
-        // Log transaction first (Best effort)
-        await supabase.from('monetization_transactions').insert({
-            user_id: user.id,
-            amount: 500,
-            reference: reference,
-            purpose: 'verification_fee',
-            status: 'success'
-        });
-
       // 1. Upload ID
       const idExt = selectedFiles.id!.name.split('.').pop();
       const idPath = `${user.id}/id-${Math.random().toString(36).substring(2)}.${idExt}`;
@@ -133,50 +124,14 @@ export default function VerificationStatusCard({ user }: VerificationStatusCardP
 
       if (selfieError) throw selfieError;
 
-      // 3. Record in DB
-      // If re-submitting, delete old rejected entries and their files
-      if (verificationStatus === 'rejected') {
-         // Fetch old paths first
-         const { data: oldDocs } = await supabase
-           .from('verification_docs')
-           .select('id_card_path, selfie_path')
-           .eq('landlord_id', user.id)
-           .eq('status', 'rejected');
+      // 3. Record in DB via RPC (Atomic Transaction)
+      const { error: rpcError } = await supabase.rpc('submit_landlord_verification', {
+        p_payment_reference: reference,
+        p_id_card_path: idPath,
+        p_selfie_path: selfiePath
+      });
 
-         if (oldDocs && oldDocs.length > 0) {
-           const pathsToDelete: string[] = [];
-           oldDocs.forEach(doc => {
-             if (doc.id_card_path) pathsToDelete.push(doc.id_card_path);
-             if (doc.selfie_path) pathsToDelete.push(doc.selfie_path);
-           });
-           
-           if (pathsToDelete.length > 0) {
-             const { error: removeError } = await supabase.storage
-               .from('secure-docs')
-               .remove(pathsToDelete);
-             
-             if (removeError) console.error('Error removing old files:', removeError);
-           }
-         }
-
-         // Delete the DB row
-         await supabase.from('verification_docs').delete().eq('landlord_id', user.id).eq('status', 'rejected');
-      }
-
-      const { error: dbError } = await supabase
-        .from('verification_docs')
-        .insert({
-          landlord_id: user.id,
-          id_card_path: idPath,
-          selfie_path: selfiePath,
-          status: 'pending',
-          payment_status: 'success',
-          payment_reference: reference
-        });
-
-      if (dbError) {
-        throw dbError;
-      }
+      if (rpcError) throw rpcError;
 
       setVerificationStatus('pending');
       toast.success('Payment successful & Documents uploaded! Review pending.');
