@@ -13,10 +13,6 @@ import Image from 'next/image';
 
 import { ROOM_TYPE_PRESETS, AREA_LANDMARKS } from '@/lib/constants';
 
-import dynamic from 'next/dynamic';
-
-const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
-
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
@@ -36,12 +32,6 @@ export default function PostLodge() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [newlyCreatedLodgeId, setNewlyCreatedLodgeId] = useState<string | null>(null);
   
-  // Payment State
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [feeBreakdown, setFeeBreakdown] = useState<any>(null);
-  const [calculatingFee, setCalculatingFee] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  
   // Step 1: Basic Info
   const [formData, setFormData] = useState({
     title: '',
@@ -58,7 +48,6 @@ export default function PostLodge() {
     price: number;
     total_units: number;
     image_urls: string[];
-    pricing_category: string;
   }
 
   const [generalImages, setGeneralImages] = useState<string[]>([]);
@@ -66,8 +55,7 @@ export default function PostLodge() {
   const [newUnit, setNewUnit] = useState({
     name: '',
     price: '',
-    total_units: '1',
-    pricing_category: 'self_con'
+    total_units: '1'
   });
   const [showCustomType, setShowCustomType] = useState(false);
 
@@ -203,10 +191,9 @@ export default function PostLodge() {
       name: newUnit.name,
       price: parseInt(newUnit.price),
       total_units: parseInt(newUnit.total_units) || 1,
-      image_urls: [],
-      pricing_category: newUnit.pricing_category
+      image_urls: []
     }]);
-    setNewUnit({ name: '', price: '', total_units: '1', pricing_category: 'self_con' });
+    setNewUnit({ name: '', price: '', total_units: '1' });
     setShowCustomType(false);
   };
 
@@ -224,22 +211,18 @@ export default function PostLodge() {
   const handleSubmit = async () => {
     if (!user) return;
     
-    setUploading(true);
-
     // Prepare units for DB
     const finalUnits = units.map(u => ({
       name: u.name,
       price: u.price,
       total_units: u.total_units,
       available_units: u.total_units,
-      image_urls: u.image_urls,
-      pricing_category: u.pricing_category
+      image_urls: u.image_urls
     }));
 
     const minPrice = units.length > 0 ? Math.min(...units.map(u => u.price)) : 0;
 
-    try {
-      // 1. Create Lodge (Hidden/Unverified)
+    const action = async () => {
       const { success, error } = await addLodge({
         title: formData.title,
         price: minPrice,
@@ -248,7 +231,7 @@ export default function PostLodge() {
         description: formData.description,
         image_urls: generalImages.length > 0 ? generalImages : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'],
         amenities: formData.amenities,
-        status: 'available', // Will be unverified initially
+        status: 'available',
       }, finalUnits);
 
       if (!success) throw new Error(error);
@@ -259,62 +242,25 @@ export default function PostLodge() {
       // Get the ID of the newly created lodge
       const { data } = await supabase.from('lodges').select('id').eq('landlord_id', user.id).eq('title', formData.title).order('created_at', { ascending: false }).limit(1).single();
       
-      if (!data) throw new Error("Lodge creation failed lookup");
-      setNewlyCreatedLodgeId(data.id);
-
-      // 2. Calculate Fee
-      setCalculatingFee(true);
-      const { data: feeData, error: feeError } = await supabase.rpc('calculate_listing_fee', { p_lodge_id: data.id });
-      
-      if (feeError) throw feeError;
-      setFeeBreakdown(feeData);
-      setCalculatingFee(false);
-
-      // 3. Move to Payment Step
-      setStep(4);
-
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleListingFeePayment = async (reference: string) => {
-    if (!newlyCreatedLodgeId || !user) return;
-    setShowPaymentModal(false);
-    setUploading(true); // Re-use uploading state for activation spinner
-
-    try {
-      const { data, error } = await supabase.functions.invoke('verify-payment', {
-        body: {
-          reference,
-          type: 'listing_fee',
-          metadata: { 
-            lodge_id: newlyCreatedLodgeId,
-            user_id: user.id
-          }
-        }
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data) setNewlyCreatedLodgeId(data.id);
 
       await supabase.from('notifications').insert({
         user_id: user.id,
         title: 'Lodge Published! 🎉',
         message: `Your lodge "${formData.title}" is now live and visible to students.`, 
         type: 'success',
-        link: `/lodge/${newlyCreatedLodgeId}`
+        link: data ? `/lodge/${data.id}` : '/profile'
       });
       
       setIsSubmitted(true);
-    } catch (err: unknown) {
-      console.error('Activation Error:', err);
-      toast.error('Payment successful but activation failed. Please contact support.');
-    } finally {
-      setUploading(false);
-    }
+      return formData.title;
+    };
+
+    toast.promise(action(), {
+      loading: 'Publishing your listing...',
+      success: (name) => `Lodge "${name}" is now live!`,
+      error: (err) => `Failed to publish: ${err.message}`
+    });
   };
 
   const shareToWhatsApp = () => {
@@ -517,19 +463,6 @@ export default function PostLodge() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Pricing Category (For Fee Calculation)</label>
-                <select 
-                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 appearance-none shadow-sm font-bold"
-                  value={newUnit.pricing_category}
-                  onChange={(e) => setNewUnit({...newUnit, pricing_category: e.target.value})}
-                >
-                  <option value="single">Single Room (₦80k+)</option>
-                  <option value="self_con">Self-Contained (₦250k+)</option>
-                  <option value="flat">Flat / Apartment (₦500k+)</option>
-                </select>
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Price (₦)</label>
@@ -565,71 +498,6 @@ export default function PostLodge() {
           </div>
           <div className="flex gap-4 pt-4"><button onClick={() => setStep(2)} className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Back</button><button onClick={handleSubmit} disabled={uploading} className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50">{uploading ? 'Publishing Lodge...' : 'Publish Listing'}</button></div>
         </div>
-      )}
-
-      {step === 4 && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-right duration-300">
-          <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm text-center">
-            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <ShieldAlert size={32} />
-            </div>
-            <h2 className="text-xl font-black text-gray-900">Activate Your Listing</h2>
-            <p className="text-sm text-gray-500 mb-6">Pay the annual listing fee to verify and publish your lodge.</p>
-
-            {calculatingFee ? (
-              <div className="py-10 flex flex-col items-center gap-2">
-                <Loader2 className="animate-spin text-blue-600" size={32} />
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Calculating Fee...</span>
-              </div>
-            ) : feeBreakdown ? (
-              <div className="bg-gray-50 rounded-2xl p-4 mb-6 text-left space-y-3">
-                <div className="flex justify-between items-center pb-2 border-b border-gray-200">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Unit Breakdown</span>
-                </div>
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {feeBreakdown.breakdown.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{item.unit_name} <span className="text-xs text-gray-400">({item.cap_applied ? 'Capped' : '5%'})</span></span>
-                    <span className="font-bold text-gray-900">₦{item.fee.toLocaleString()}</span>
-                  </div>
-                ))}
-                
-                {feeBreakdown.discount_percent > 0 && (
-                  <div className="flex justify-between text-sm text-green-600 font-bold pt-2 border-t border-gray-200">
-                    <span>Volume Discount ({(feeBreakdown.discount_percent * 100)}%)</span>
-                    <span>-</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                  <span className="text-sm font-black text-gray-900 uppercase tracking-widest">Total Fee</span>
-                  <span className="text-2xl font-black text-blue-600">₦{feeBreakdown.total_fee.toLocaleString()}</span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-red-500 font-bold">Error calculating fee.</p>
-            )}
-
-            <button 
-              onClick={() => setShowPaymentModal(true)}
-              disabled={!feeBreakdown}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 active:scale-95 transition-all disabled:opacity-50"
-            >
-              Pay & Activate
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showPaymentModal && feeBreakdown && (
-        <PaymentModal
-          amount={feeBreakdown.total_fee}
-          email={user?.email || ''}
-          purpose="listing_fee"
-          metadata={{ lodge_id: newlyCreatedLodgeId || '', user_id: user?.id || '' }}
-          onSuccess={handleListingFeePayment}
-          onClose={() => setShowPaymentModal(false)}
-        />
       )}
     </div>
   );

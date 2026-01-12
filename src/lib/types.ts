@@ -18,7 +18,6 @@ export interface LodgeUnit {
   total_units: number;
   available_units: number;
   image_urls: string[];
-  pricing_category?: string;
 }
 
 export interface Lodge {
@@ -85,7 +84,7 @@ export interface MonetizationTransaction {
   amount: number;
   currency: string;
   reference: string;
-  purpose: 'verification_fee' | 'urgent_request' | 'promoted_listing' | 'listing_fee';
+  purpose: 'verification_fee' | 'urgent_request' | 'promoted_listing';
   metadata?: Record<string, unknown>;
   status: 'pending' | 'success' | 'failed';
   created_at: string;
