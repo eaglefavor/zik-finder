@@ -46,8 +46,6 @@ export default function LodgeDetail() {
   const [[page, direction], setPage] = useState([0, 0]);
   const [selectedUnit, setSelectedUnit] = useState<LodgeUnit | null>(null);
   
-  const [isCalling, setIsCalling] = useState(false);
-  const [isMessaging, setIsMessaging] = useState(false);
   const [leadStatus, setLeadStatus] = useState<'none' | 'pending' | 'unlocked'>('none');
   const [contactInfo, setContactInfo] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
