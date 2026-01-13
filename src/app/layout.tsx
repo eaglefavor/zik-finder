@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/context";
 import { DataProvider } from "@/lib/data-context";
+import { ZipsProvider } from "@/lib/zips-context";
 import BottomNav from "@/components/BottomNav";
 
 const geistSans = Geist({
@@ -56,11 +57,13 @@ export default function RootLayout({
       >
         <AppProvider>
           <DataProvider>
-            <Toaster position="top-center" richColors />
-            <main className="min-h-screen pb-24">
-              {children}
-            </main>
-            <BottomNav />
+            <ZipsProvider>
+              <Toaster position="top-center" richColors />
+              <main className="min-h-screen pb-24">
+                {children}
+              </main>
+              <BottomNav />
+            </ZipsProvider>
           </DataProvider>
         </AppProvider>
         

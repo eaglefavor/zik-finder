@@ -2,11 +2,12 @@
 
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
+import { supabase } from '@/lib/supabase';
 import { RequestSkeleton } from '@/components/Skeleton';
-import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, CheckCircle, X, Loader2, ChevronRight, Search, Filter, Sparkles, Send, ArrowUpAz, ArrowDownAz } from 'lucide-react';
+import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, CheckCircle, X, Loader2, ChevronRight, Search, Filter, Sparkles, Send, ArrowUpAz, ArrowDownAz, Unlock } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
@@ -18,6 +19,63 @@ export default function MarketRequests() {
   const [isNotifying, setIsNotifying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'budget_low' | 'budget_high'>('newest');
+  
+  // ZIPS: Unlocked Requests State
+  const [unlockedRequests, setUnlockedRequests] = useState<Record<string, string>>({}); // requestId -> phone_number
+  const [unlockingId, setUnlockingId] = useState<string | null>(null);
+
+  // Helper to calculate cost
+  const getUnlockCost = (budget: number) => {
+    if (budget >= 700000) return 20;
+    if (budget >= 300000) return 15;
+    return 10;
+  };
+
+  // Fetch unlocked requests on mount
+  useEffect(() => {
+    if (user && (role === 'landlord' || role === 'admin')) {
+      const fetchUnlocked = async () => {
+        const { data } = await supabase
+          .from('leads')
+          .select('request_id, profiles!leads_student_id_fkey(phone_number)')
+          .eq('landlord_id', user.id)
+          .eq('type', 'request_unlock')
+          .eq('status', 'unlocked');
+        
+        if (data) {
+          const map: Record<string, string> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.forEach((lead: any) => {
+            if (lead.request_id) map[lead.request_id] = lead.profiles?.phone_number;
+          });
+          setUnlockedRequests(map);
+        }
+      };
+      fetchUnlocked();
+    }
+  }, [user, role]);
+
+  const handleUnlock = async (request: typeof requests[0]) => {
+    if (!user) return;
+    
+    setUnlockingId(request.id);
+    try {
+      const { data, error } = await supabase.rpc('unlock_student_request', { p_request_id: request.id });
+      
+      if (error) throw error;
+      if (data.success) {
+        toast.success(`Unlocked! Balance: ${data.remaining_balance} Credits`);
+        setUnlockedRequests(prev => ({ ...prev, [request.id]: data.phone_number }));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error('Unlock failed: ' + (err as any).message);
+    } finally {
+      setUnlockingId(null);
+    }
+  };
 
   // Landlord's active lodges
   const landlordLodges = useMemo(() => 
@@ -374,22 +432,33 @@ export default function MarketRequests() {
                       >
                         <Sparkles size={14} /> I have a match
                       </button>
-                      <button 
-                        onClick={() => {
-                          if (!user?.is_verified && role !== 'admin') {
-                            toast.error('Verification Required', {
-                              description: 'You must be a verified landlord to contact students.'
-                            });
-                            return;
-                          }
-                          if (request.student_phone) {
-                            window.open(`https://wa.me/234${request.student_phone.substring(1)}?text=Hello ${request.student_name}, I saw your request on ZikLodge for a lodge in ${request.location}. I have something available.`);
-                          }
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 py-3.5 xs:py-4 bg-white text-green-600 border-2 border-green-50 rounded-xl xs:rounded-2xl font-black text-[10px] xs:text-xs uppercase tracking-widest active:scale-95 transition-all hover:bg-green-50 shadow-sm"
-                      >
-                        <MessageCircle size={14} /> WhatsApp
-                      </button>
+                      
+                      {unlockedRequests[request.id] ? (
+                        <button 
+                          onClick={() => {
+                            if (!user?.is_verified && role !== 'admin') {
+                              toast.error('Verification Required', { description: 'You must be a verified landlord to contact students.' });
+                              return;
+                            }
+                            window.open(`https://wa.me/234${unlockedRequests[request.id].substring(1)}?text=Hello ${request.student_name}, I saw your request on ZikLodge for a lodge in ${request.location}. I have something available.`);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-3.5 xs:py-4 bg-white text-green-600 border-2 border-green-50 rounded-xl xs:rounded-2xl font-black text-[10px] xs:text-xs uppercase tracking-widest active:scale-95 transition-all hover:bg-green-50 shadow-sm"
+                        >
+                          <MessageCircle size={14} /> WhatsApp
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleUnlock(request)}
+                          disabled={unlockingId === request.id}
+                          className="flex-1 flex items-center justify-center gap-2 py-3.5 xs:py-4 bg-white text-gray-700 border-2 border-gray-100 rounded-xl xs:rounded-2xl font-black text-[10px] xs:text-xs uppercase tracking-widest active:scale-95 transition-all hover:bg-gray-50 shadow-sm"
+                        >
+                          {unlockingId === request.id ? <Loader2 className="animate-spin" size={14} /> : <Unlock size={14} />}
+                          Unlock 
+                          <span className="ml-1 text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100">
+                            {getUnlockCost(request.max_budget || request.min_budget || 0)} Cr
+                          </span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </motion.div>

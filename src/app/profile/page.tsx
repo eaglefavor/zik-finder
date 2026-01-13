@@ -2,7 +2,7 @@
 
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
-import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, ChevronRight, User as UserIcon, Mail, Phone, ChevronLeft, Sparkles, Trash2 } from 'lucide-react';
+import { ShieldCheck, LogOut, Settings, HelpCircle, Bell, Lock, ChevronRight, User as UserIcon, Mail, Phone, ChevronLeft, Sparkles, Trash2, Banknote, Unlock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import VerificationStatusCard from '@/components/profile/VerificationStatusCard';
@@ -155,6 +155,29 @@ export default function ProfilePage() {
           >
             <VerificationStatusCard user={user} />
           </motion.div>
+        )}
+
+        {/* Business Tools for Landlords */}
+        {role === 'landlord' && (
+          <section className="space-y-3">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-6 mb-4">Business Tools</h3>
+            <div className="bg-white rounded-[32px] xs:rounded-[40px] border border-gray-100 overflow-hidden shadow-sm">
+              <MenuButton 
+                icon={Banknote} 
+                label="Wallet & Credits" 
+                onClick={() => router.push('/wallet')} 
+                color="text-green-600"
+                bgColor="bg-green-50"
+              />
+              <MenuButton 
+                icon={Unlock} 
+                label="Unlocked Leads" 
+                onClick={() => router.push('/profile/leads')}
+                color="text-blue-600"
+                bgColor="bg-blue-50"
+              />
+            </div>
+          </section>
         )}
 
         {/* Menu Section */}

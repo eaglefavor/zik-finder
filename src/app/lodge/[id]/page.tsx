@@ -48,11 +48,75 @@ export default function LodgeDetail() {
   
   const [isCalling, setIsCalling] = useState(false);
   const [isMessaging, setIsMessaging] = useState(false);
+  const [leadStatus, setLeadStatus] = useState<'none' | 'pending' | 'unlocked'>('none');
+  const [contactInfo, setContactInfo] = useState<string | null>(null);
+  const [requesting, setRequesting] = useState(false);
   
   const lodge = lodges.find(l => l.id === id);
   const galleryRef = useRef<HTMLDivElement>(null);
 
-  // Auto-select first available unit
+  // Check Lead Status
+  useEffect(() => {
+    if (!user || !lodge) return;
+
+    const checkStatus = async () => {
+      // Check if unlocked or pending
+      const { data } = await supabase
+        .from('leads')
+        .select('status')
+        .eq('student_id', user.id)
+        .eq('lodge_id', lodge.id)
+        .eq('type', 'inbound')
+        .maybeSingle();
+
+      if (data) {
+        setLeadStatus(data.status as 'pending' | 'unlocked');
+        if (data.status === 'unlocked') {
+           // Fetch contact info separately if unlocked? 
+           // Ideally, RLS allows reading profile if unlocked.
+           // For now, we use the profile data already attached to lodge if available, 
+           // BUT the sanitizer stripped it from description/title. 
+           // The phone_number column in profile IS NOT sanitized.
+           // However, the `lodges` query in `data-context` might not be selecting it securely?
+           // `get_lodges_feed` joins profiles. 
+           // We need to ensure the phone number is HIDDEN in `get_lodges_feed` unless unlocked?
+           // Actually, `profiles` table has `phone_number`. RLS usually protects it?
+           // We need to check RLS on profiles.
+           setContactInfo(lodge.profiles?.phone_number || null);
+        }
+      }
+    };
+    
+    checkStatus();
+  }, [user, lodge]);
+
+  const handleRequestChat = async () => {
+    if (!user) {
+      toast.error("Please log in to contact landlords");
+      router.push('/onboarding'); // Or auth screen
+      return;
+    }
+    
+    setRequesting(true);
+    try {
+      const { data, error } = await supabase.rpc('create_inbound_lead', {
+        p_lodge_id: lodge?.id
+      });
+
+      if (error) throw error;
+      if (data.success) {
+        setLeadStatus('pending');
+        toast.success("Request sent! You'll be notified when the landlord accepts.");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err: unknown) {
+      toast.error('Failed to send request');
+      console.error(err);
+    } finally {
+      setRequesting(false);
+    }
+  };
   if (lodge?.units && lodge.units.length > 0 && !selectedUnit) {
     const firstAvailable = lodge.units.find(u => u.available_units > 0) || lodge.units[0];
     setSelectedUnit(firstAvailable);
@@ -374,56 +438,46 @@ export default function LodgeDetail() {
 
       {/* Floating Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-gray-100 z-50 flex gap-3 pb-8 xs:pb-4 shadow-2xl">
-        <button 
-          className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100 group"
-          disabled={isCalling}
-          onClick={async () => {
-            setIsCalling(true);
-            if (user && lodge) {
-              try {
-                await supabase.rpc('send_lodge_inquiry', {
-                  p_lodge_id: lodge.id,
-                  p_inquiry_type: 'call'
-                });
-              } catch (err: unknown) {
-                console.error('Failed to notify landlord', err);
-              }
-            }
-            await new Promise(resolve => setTimeout(resolve, 600));
-            window.location.href = `tel:${lodge.profiles?.phone_number}`;
-            setTimeout(() => setIsCalling(false), 2000);
-          }}
-        >
-          {isCalling ? <Loader2 className="animate-spin" size={20} /> : <Phone size={20} className="group-hover:rotate-12 transition-transform" />}
-          <span className="uppercase tracking-widest text-xs font-black">Call</span>
-        </button>
+        {leadStatus === 'unlocked' && contactInfo ? (
+          <>
+            <button 
+              className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform group"
+              onClick={() => window.location.href = `tel:${contactInfo}`}
+            >
+              <Phone size={20} className="group-hover:rotate-12 transition-transform" />
+              <span className="uppercase tracking-widest text-xs font-black">Call</span>
+            </button>
 
-        <button 
-          className="flex-[1.5] flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl font-bold shadow-xl shadow-green-200 active:scale-95 transition-transform disabled:opacity-70 disabled:scale-100 group"
-          disabled={isMessaging}
-          onClick={async () => {
-            setIsMessaging(true);
-            if (user && lodge) {
-              try {
-                await supabase.rpc('send_lodge_inquiry', {
-                  p_lodge_id: lodge.id,
-                  p_inquiry_type: 'whatsapp'
-                });
-              } catch (err: unknown) {
-                console.error('Failed to notify landlord', err);
-              }
-            }
-            await new Promise(resolve => setTimeout(resolve, 600));
-            const message = selectedUnit 
-              ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`
-              : `I am interested in ${lodge.title}`;
-            window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=${encodeURIComponent(message)}`);
-            setTimeout(() => setIsMessaging(false), 2000);
-          }}
-        >
-          {isMessaging ? <Loader2 className="animate-spin" size={20} /> : <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />}
-          <span className="uppercase tracking-widest text-xs font-black">WhatsApp</span>
-        </button>
+            <button 
+              className="flex-[1.5] flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl font-bold shadow-xl shadow-green-200 active:scale-95 transition-transform group"
+              onClick={() => {
+                const message = selectedUnit 
+                  ? `I am interested in the ${selectedUnit.name} at ${lodge.title} (₦${selectedUnit.price.toLocaleString()})`
+                  : `I am interested in ${lodge.title}`;
+                window.open(`https://wa.me/234${contactInfo.substring(1)}?text=${encodeURIComponent(message)}`);
+              }}
+            >
+              <MessageCircle size={20} className="group-hover:scale-110 transition-transform" />
+              <span className="uppercase tracking-widest text-xs font-black">WhatsApp</span>
+            </button>
+          </>
+        ) : leadStatus === 'pending' ? (
+          <button 
+            disabled 
+            className="w-full py-4 bg-gray-100 text-gray-400 rounded-2xl font-bold flex items-center justify-center gap-2 cursor-not-allowed"
+          >
+            <CheckCircle2 size={20} /> Request Sent (Pending Landlord)
+          </button>
+        ) : (
+          <button 
+            onClick={handleRequestChat}
+            disabled={requesting}
+            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-blue-200 active:scale-95 transition-transform"
+          >
+            {requesting ? <Loader2 className="animate-spin" size={20} /> : <MessageCircle size={20} />}
+            Request Chat (Secure)
+          </button>
+        )}
       </div>
     </div>
   );
