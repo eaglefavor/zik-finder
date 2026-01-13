@@ -334,14 +334,14 @@ export default function AdminPage() {
 
   const handleResolveReport = async (reportId: string) => {
     toast.info('Mark as Resolved?', {
-      description: 'This implies you have taken action (e.g. warned landlord or suspended listing).',
+      description: 'This will permanently remove the report record.',
       action: {
-        label: 'Resolve',
+        label: 'Resolve & Delete',
         onClick: async () => {
-          const { error } = await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId);
+          const { error } = await supabase.from('reports').delete().eq('id', reportId);
           if (error) toast.error(error.message);
           else {
-            toast.success('Report marked as resolved');
+            toast.success('Report resolved and deleted');
             fetchReports();
           }
         }
@@ -350,10 +350,10 @@ export default function AdminPage() {
   };
 
   const handleDismissReport = async (reportId: string) => {
-    const { error } = await supabase.from('reports').update({ status: 'dismissed' }).eq('id', reportId);
+    const { error } = await supabase.from('reports').delete().eq('id', reportId);
     if (error) toast.error(error.message);
     else {
-      toast.success('Report dismissed');
+      toast.success('Report dismissed and deleted');
       fetchReports();
     }
   };
@@ -363,23 +363,23 @@ export default function AdminPage() {
     if (!reason) return;
 
     toast.error('PERMANENTLY BAN this Landlord?', {
-      description: 'This will hide all their lodges and disable their account.',
+      description: 'This will hide all their lodges, disable their account, and delete the report.',
       action: {
         label: 'BAN FOREVER',
         onClick: async () => {
           // 1. Hide all lodges
           await supabase.from('lodges').update({ status: 'taken' }).eq('landlord_id', landlordId);
           
-          // 2. Mark profile as unverified and add note
+          // 2. Mark profile as unverified
           await supabase.from('profiles').update({ is_verified: false }).eq('id', landlordId);
           
           // 3. Update wallet (Negative Score)
           await supabase.from('landlord_wallets').update({ z_score: -100 }).eq('landlord_id', landlordId);
 
-          // 4. Resolve report
-          await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId);
+          // 4. Delete report
+          await supabase.from('reports').delete().eq('id', reportId);
 
-          toast.success('Landlord Banned and Lodges Hidden');
+          toast.success('Landlord Banned and Report Deleted');
           fetchReports();
         }
       }
