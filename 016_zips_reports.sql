@@ -20,13 +20,11 @@ ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 -- Policies
 CREATE POLICY "Users can create reports" 
 ON public.reports FOR INSERT 
-WITH CHECK (auth.uid() = reporter_id);
+WITH CHECK (auth.uid() = reporter_id OR is_admin());
 
 CREATE POLICY "Admins can view all reports" 
 ON public.reports FOR SELECT 
-USING (
-  (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'admin'
-);
+USING (is_admin());
 
 -- 2. Report Handler (Trigger)
 CREATE OR REPLACE FUNCTION handle_new_report()
@@ -37,7 +35,7 @@ DECLARE
 BEGIN
   -- Determine Penalty
   IF NEW.reason = 'scam' THEN
-     v_score_penalty := -100; -- Immediate Ban Threshold check
+     v_score_penalty := -100; 
   ELSIF NEW.reason = 'misleading' THEN
      v_score_penalty := -20;
   ELSIF NEW.reason = 'rude' THEN
@@ -55,17 +53,23 @@ BEGIN
   SELECT is_silently_flagged INTO v_is_flagged FROM public.lodges WHERE id = NEW.lodge_id;
   
   IF v_is_flagged AND NEW.reason IN ('scam', 'misleading') THEN
-     -- Auto-Suspend
+     -- Auto-Suspend Lodge
      UPDATE public.lodges 
      SET status = 'taken',
-         is_listing_verified = FALSE,
          admin_note = 'Auto-suspended via ZIPS Kill Switch. Report received on flagged listing.'
      WHERE id = NEW.lodge_id;
+
+     -- Strip Landlord Verification (Authority)
+     UPDATE public.profiles 
+     SET is_verified = FALSE 
+     WHERE id = NEW.landlord_id;
+
+     -- Strip Wallet Verification
+     UPDATE public.landlord_wallets 
+     SET is_verified = FALSE 
+     WHERE landlord_id = NEW.landlord_id;
   END IF;
 
-  -- Notify Admin (Insert into notifications for an Admin user? 
-  -- Or just let Admin check dashboard. For now, we assume Dashboard.)
-  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
