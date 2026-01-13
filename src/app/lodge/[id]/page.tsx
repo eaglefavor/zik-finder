@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle, Camera, Loader2, Share2, ChevronRight, BedDouble, Building2 } from 'lucide-react';
+import { ChevronLeft, MapPin, ShieldCheck, Phone, MessageCircle, Info, CheckCircle2, Heart, AlertTriangle, Camera, Loader2, Share2, ChevronRight, BedDouble, Building2, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
@@ -10,6 +10,9 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { LodgeUnit } from '@/lib/types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
+import dynamic from 'next/dynamic';
+
+const ReviewModal = dynamic(() => import('@/components/ReviewModal'), { ssr: false });
 
 import { useLodgeViewTracker } from '@/lib/useLodgeViewTracker';
 
@@ -49,6 +52,7 @@ export default function LodgeDetail() {
   const [leadStatus, setLeadStatus] = useState<'none' | 'pending' | 'unlocked'>('none');
   const [contactInfo, setContactInfo] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   
   const lodge = lodges.find(l => l.id === id);
   const galleryRef = useRef<HTMLDivElement>(null);
@@ -417,6 +421,15 @@ export default function LodgeDetail() {
               {lodge.description}
             </p>
           </div>
+
+          {leadStatus === 'unlocked' && (
+            <button 
+              onClick={() => setShowReviewModal(true)}
+              className="mt-4 w-full py-3 bg-amber-50 text-amber-700 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border border-amber-100 active:scale-95 transition-all"
+            >
+              <Star size={16} /> Rate & Review this Landlord
+            </button>
+          )}
         </section>
 
         <section className="mb-24">
@@ -494,6 +507,14 @@ export default function LodgeDetail() {
           </button>
         )}
       </div>
+
+      {showReviewModal && (
+        <ReviewModal 
+          lodgeId={lodge.id} 
+          onClose={() => setShowReviewModal(false)}
+          onSuccess={() => setShowReviewModal(false)}
+        />
+      )}
     </div>
   );
 }
