@@ -47,6 +47,26 @@ export default function AdminPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Finance State
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [revenueStats, setRevenueStats] = useState({
+    total: 0,
+    verification: 0,
+    promoted: 0,
+    today: 0
+  });
+
+  const [broadcast, setBroadcast] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error',
+    target: 'all' as 'all' | 'landlord' | 'student'
+  });
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
+
+  const [usage, setUsage] = useState<{ cloudinary: { used: number, limit: number }, supabase: { used: number, limit: number } } | null>(null);
+
   const fetchUsage = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -731,7 +751,7 @@ export default function AdminPage() {
                   </div>
 
                   <button 
-                    onClick={() => handleResolveReport(report.id, report.lodge_id)}
+                    onClick={() => handleResolveReport(report.id)}
                     className="w-full py-4 border-2 border-green-50 text-green-600 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-green-50 transition-all active:scale-[0.98]"
                   >
                     Mark as Resolved
