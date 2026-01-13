@@ -11,6 +11,7 @@ import { LodgeUnit } from '@/lib/types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 
 const ReviewModal = dynamic(() => import('@/components/ReviewModal'), { ssr: false });
 
@@ -53,9 +54,30 @@ export default function LodgeDetail() {
   const [contactInfo, setContactInfo] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingReviews, setLoadingHistory] = useState(false);
   
   const lodge = lodges.find(l => l.id === id);
   const galleryRef = useRef<HTMLDivElement>(null);
+
+  // Fetch Reviews
+  const fetchReviews = async () => {
+    if (!id) return;
+    setLoadingHistory(true);
+    const { data } = await supabase
+      .from('reviews')
+      .select('*, profiles(name, avatar_url)')
+      .eq('lodge_id', id)
+      .order('created_at', { ascending: false });
+    
+    if (data) setReviews(data);
+    setLoadingHistory(false);
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [id]);
 
   // Check Lead Status
   useEffect(() => {
@@ -432,6 +454,62 @@ export default function LodgeDetail() {
           )}
         </section>
 
+        {/* Reviews Section */}
+        <section className="mb-10">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tight">
+              <Star size={20} className="text-amber-500 fill-amber-500" />
+              Student Reviews
+            </h2>
+            {reviews.length > 0 && (
+              <div className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 border border-amber-100">
+                <Star size={12} className="fill-amber-700" />
+                {(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} ({reviews.length})
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {loadingReviews ? (
+              <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-gray-300" /></div>
+            ) : reviews.length === 0 ? (
+              <div className="bg-white p-8 rounded-[32px] border border-dashed border-gray-200 text-center">
+                <p className="text-gray-400 font-medium text-sm">No reviews yet. Be the first to rate!</p>
+              </div>
+            ) : (
+              reviews.map((review) => (
+                <div key={review.id} className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden relative border border-gray-100">
+                        {review.profiles?.avatar_url ? (
+                          <Image src={review.profiles.avatar_url} fill className="object-cover" alt="" />
+                        ) : (
+                          <span className="text-[10px] font-bold text-gray-400">{(review.profiles?.name || 'U')[0]}</span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-black text-gray-900">{review.profiles?.name || 'Student'}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{new Date(review.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} size={10} className={review.rating >= s ? 'fill-amber-400 text-amber-400' : 'text-gray-200'} />
+                      ))}
+                    </div>
+                  </div>
+                  {review.comment && (
+                    <p className="text-sm text-gray-600 font-medium leading-relaxed italic border-l-2 border-gray-100 pl-3">
+                      &quot;{review.comment}&quot;
+                    </p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
         <section className="mb-24">
           <h2 className="text-lg font-black text-gray-900 mb-4 uppercase tracking-tight">Amenities</h2>
           <div className="grid grid-cols-2 gap-3">
@@ -512,7 +590,10 @@ export default function LodgeDetail() {
         <ReviewModal 
           lodgeId={lodge.id} 
           onClose={() => setShowReviewModal(false)}
-          onSuccess={() => setShowReviewModal(false)}
+          onSuccess={() => {
+            setShowReviewModal(false);
+            fetchReviews();
+          }}
         />
       )}
     </div>
