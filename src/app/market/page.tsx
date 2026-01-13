@@ -224,9 +224,11 @@ export default function MarketRequests() {
         <div className="flex justify-between items-start mb-5">
           <div className="min-w-0 pr-2">
             <h1 className="text-2xl xs:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-              Marketplace <Sparkles className="text-blue-500 fill-blue-500 shrink-0" size={18} />
+              {role === 'student' ? 'Requests' : 'Marketplace'} <Sparkles className="text-blue-500 fill-blue-500 shrink-0" size={18} />
             </h1>
-            <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5 truncate">Connect with students looking for lodges</p>
+            <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5 truncate">
+              {role === 'student' ? 'See what others are asking for' : 'Connect with students looking for lodges'}
+            </p>
           </div>
           {role === 'student' && (
             <Link 

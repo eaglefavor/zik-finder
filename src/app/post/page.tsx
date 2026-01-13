@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw, Plus, Trash2, Share2, Eye, CheckCircle } from 'lucide-react';
+import { Camera, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw, Plus, Trash2, Share2, Eye, CheckCircle, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
@@ -11,7 +11,7 @@ import Compressor from 'compressorjs';
 import { toast } from 'sonner';
 import Image from 'next/image';
 
-import { ROOM_TYPE_PRESETS, AREA_LANDMARKS } from '@/lib/constants';
+import { ROOM_TYPE_PRESETS, AREA_LANDMARKS, MARKET_FLOORS } from '@/lib/constants';
 
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
@@ -384,8 +384,14 @@ export default function PostLodge() {
               <input 
                 type="text" 
                 value={formData.address} 
-                onChange={e => setFormData({...formData, address: e.target.value})} 
-                placeholder="e.g. No 15, Amoka Street" 
+                onChange={e => {
+                   const val = e.target.value;
+                   if (/\d/.test(val) && val.length > formData.address.length) {
+                      toast.warning("For safety, please avoid house numbers. Use descriptive locations.");
+                   }
+                   setFormData({...formData, address: val});
+                }} 
+                placeholder="e.g. Near Bukas Junction (No house numbers)" 
                 className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium" 
               />
             </div>
@@ -473,6 +479,13 @@ export default function PostLodge() {
                   <input type="number" placeholder="Qty" value={newUnit.total_units} onChange={e => setNewUnit({...newUnit, total_units: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm text-center font-bold" />
                 </div>
               </div>
+
+              {newUnit.price && newUnit.name && MARKET_FLOORS[newUnit.name] && Number(newUnit.price) < MARKET_FLOORS[newUnit.name] && (
+                 <div className="flex items-center gap-2 p-3 bg-amber-50 text-amber-700 rounded-xl text-xs font-bold border border-amber-100 animate-in fade-in slide-in-from-top-1">
+                    <AlertTriangle size={16} className="shrink-0" />
+                    <span>Price seems low for {newUnit.name}. Suspicious listings may be flagged.</span>
+                 </div>
+              )}
               <button type="button" onClick={handleAddUnit} disabled={!newUnit.name || !newUnit.price} className="w-full py-4 bg-blue-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-100 disabled:opacity-50 active:scale-95 transition-transform"><Plus size={20} /> Add this Room</button>
             </div>
           </div>

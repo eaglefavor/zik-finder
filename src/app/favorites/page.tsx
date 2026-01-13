@@ -6,7 +6,7 @@ import { LodgeSkeleton } from '@/components/Skeleton';
 import { MapPin, Phone, MessageCircle, Heart, ChevronLeft, CheckCircle, Loader2, Sparkles, Building2, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Lodge } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,8 +17,59 @@ export default function FavoritesPage() {
   const router = useRouter();
   const { user, isLoading: isUserLoading } = useAppContext();
   const { lodges, favorites, toggleFavorite, isLoading: isDataLoading } = useData();
-  const [loadingCallId, setLoadingCallId] = useState<string | null>(null);
-  const [loadingMsgId, setLoadingMsgId] = useState<string | null>(null);
+  const [studentLeads, setStudentLeads] = useState<Record<string, { status: string, phone?: string }>>({});
+  const [requestingId, setRequestingId] = useState<string | null>(null);
+
+  const fetchStudentLeads = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('leads')
+      .select('lodge_id, status, profiles!leads_landlord_id_fkey(phone_number)')
+      .eq('student_id', user.id)
+      .eq('type', 'inbound');
+    
+    if (data) {
+      const map: Record<string, { status: string, phone?: string }> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data.forEach((l: any) => {
+        map[l.lodge_id] = { 
+          status: l.status, 
+          phone: l.status === 'unlocked' ? l.profiles?.phone_number : undefined 
+        };
+      });
+      setStudentLeads(map);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchStudentLeads();
+  }, [fetchStudentLeads]);
+
+  const handleRequestChat = async (lodgeId: string) => {
+    if (!user) {
+      toast.error("Please log in to contact landlords");
+      return;
+    }
+    
+    setRequestingId(lodgeId);
+    try {
+      const { data, error } = await supabase.rpc('create_inbound_lead', {
+        p_lodge_id: lodgeId
+      });
+
+      if (error) throw error;
+      if (data.success) {
+        toast.success("Request sent! You'll be notified when the landlord accepts.");
+        await fetchStudentLeads();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err: unknown) {
+      toast.error('Failed to send request');
+    } finally {
+      setRequestingId(null);
+    }
+  };
 
   if (isUserLoading || isDataLoading) {
     return (
@@ -32,46 +83,6 @@ export default function FavoritesPage() {
       </div>
     );
   }
-
-  const handleCall = async (lodge: Lodge) => {
-    setLoadingCallId(lodge.id);
-    if (user) {
-      try {
-        await supabase.from('notifications').insert({
-          user_id: lodge.landlord_id,
-          type: 'info',
-          link: `/lodge/${lodge.id}`
-        });
-      } catch (err: unknown) { 
-        console.error('Failed to notify landlord of call:', err);
-        toast.error('Could not send notification to landlord');
-      }
-    }
-    await new Promise(r => setTimeout(r, 600));
-    window.location.href = `tel:${lodge.profiles?.phone_number}`;
-    setTimeout(() => setLoadingCallId(null), 2000);
-  };
-
-  const handleWhatsApp = async (lodge: Lodge) => {
-    setLoadingMsgId(lodge.id);
-    if (user) {
-      try {
-        await supabase.from('notifications').insert({
-          user_id: lodge.landlord_id,
-          title: 'WhatsApp Inquiry! 💬',
-          message: `A student clicked to message you about "${lodge.title}" (Favorites).`,
-          type: 'info',
-          link: `/lodge/${lodge.id}`
-        });
-      } catch (err: unknown) { 
-        console.error('Failed to notify landlord of WhatsApp inquiry:', err);
-        toast.error('Could not send notification to landlord');
-      }
-    }
-    await new Promise(r => setTimeout(r, 600));
-    window.open(`https://wa.me/234${lodge.profiles?.phone_number?.substring(1)}?text=Hello, I am interested in ${lodge.title}`);
-    setTimeout(() => setLoadingMsgId(null), 2000);
-  };
 
   // Filter lodges that are in the favorites list
   const favoriteLodges = lodges.filter(lodge => favorites.includes(lodge.id));
@@ -224,32 +235,42 @@ export default function FavoritesPage() {
                     
                     {hasPhone ? (
                       <div className="flex gap-3">
-                        <button 
-                          className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all ${
-                            loadingCallId === lodge.id ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white shadow-xl shadow-gray-200'
-                          }`}
-                          disabled={loadingCallId === lodge.id}
-                          onClick={() => handleCall(lodge)}
-                        >
-                          {loadingCallId === lodge.id ? (
-                            <><Loader2 className="animate-spin" size={16} /> Connecting</>
-                          ) : (
-                            <><Phone size={16} /> Call Now</>
-                          )}
-                        </button>
-                        <button 
-                          className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all ${
-                            loadingMsgId === lodge.id ? 'bg-green-100 text-green-600' : 'bg-green-600 text-white shadow-xl shadow-green-100 hover:bg-green-700'
-                          }`}
-                          disabled={loadingMsgId === lodge.id}
-                          onClick={() => handleWhatsApp(lodge)}
-                        >
-                          {loadingMsgId === lodge.id ? (
-                            <><Loader2 className="animate-spin" size={16} /> Opening</>
-                          ) : (
-                            <><MessageCircle size={16} /> WhatsApp</>
-                          )}
-                        </button>
+                        {studentLeads[lodge.id]?.status === 'unlocked' ? (
+                          <>
+                            <button 
+                              className="flex-1 flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
+                              onClick={() => window.location.href = `tel:${studentLeads[lodge.id].phone}`}
+                            >
+                              <Phone size={18} />
+                              <span className="uppercase tracking-widest text-[10px] font-black">Call</span>
+                            </button>
+                            <button 
+                              className="flex-1 flex items-center justify-center gap-2 py-4 bg-green-600 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-transform"
+                              onClick={() => {
+                                window.open(`https://wa.me/234${studentLeads[lodge.id].phone?.substring(1)}?text=Hello, I am interested in ${lodge.title} (from favorites)`);
+                              }}
+                            >
+                              <MessageCircle size={18} />
+                              <span className="uppercase tracking-widest text-[10px] font-black">WhatsApp</span>
+                            </button>
+                          </>
+                        ) : studentLeads[lodge.id]?.status === 'pending' ? (
+                          <button 
+                            disabled 
+                            className="w-full py-4 bg-gray-100 text-gray-400 rounded-2xl font-bold flex items-center justify-center gap-2 cursor-not-allowed text-[10px] uppercase tracking-widest"
+                          >
+                            <CheckCircle size={16} /> Request Sent
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleRequestChat(lodge.id)}
+                            disabled={requestingId === lodge.id}
+                            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-blue-200 active:scale-95 transition-transform text-[10px] uppercase tracking-widest"
+                          >
+                            {requestingId === lodge.id ? <Loader2 className="animate-spin" size={16} /> : <MessageCircle size={16} />}
+                            Request Chat
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="py-4 px-6 bg-gray-50 rounded-2xl text-center text-[10px] text-gray-400 font-black uppercase tracking-widest italic border border-dashed border-gray-200">

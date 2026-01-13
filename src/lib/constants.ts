@@ -23,3 +23,16 @@ export const AMENITIES = ['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'T
 
 export const PAYSTACK_PUBLIC_KEY = 'pk_test_82413050351ea3c4639266f8b2be963a4ccfefe1';
 
+export const MARKET_FLOORS: { [key: string]: number } = {
+  'Standard Self-con': 250000,
+  'Executive Self-con': 500000,
+  'Studio Apartment': 400000,
+  'Single Room': 150000,
+  'Face-Me-I-Face-You': 100000,
+  '1-Bedroom Flat': 250000,
+  '2-Bedroom Flat': 500000,
+  '3-Bedroom Flat': 800000,
+  'Penthouse': 2000000,
+  'Basement Room': 200000
+};
+
