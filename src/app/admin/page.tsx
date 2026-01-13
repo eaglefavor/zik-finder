@@ -5,10 +5,10 @@ import { useData } from '@/lib/data-context';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon, Banknote } from 'lucide-react';
+import Link from 'next/link';
+import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon, Banknote, AlertTriangle, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { MonetizationTransaction } from '@/lib/types';
 
 interface VerificationDoc {
   id: string;
@@ -23,34 +23,29 @@ interface VerificationDoc {
   };
 }
 
+interface Report {
+  id: string;
+  reporter_id: string;
+  lodge_id: string;
+  landlord_id: string;
+  reason: 'scam' | 'wrong_price' | 'misleading' | 'rude' | 'other';
+  details?: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  created_at: string;
+  reporter: { name: string; email: string };
+  landlord: { name: string; email: string };
+  lodge: { title: string; location: string; price: number; image_urls: string[]; status: string };
+}
+
 export default function AdminPage() {
   const { user, role, isLoading: authLoading } = useAppContext();
   const { lodges, deleteLodge, updateLodgeStatus } = useData();
   const router = useRouter();
   
-  const [activeTab, setActiveTab] = useState<'stats' | 'verifications' | 'lodges' | 'broadcast' | 'finance'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'verifications' | 'lodges' | 'broadcast' | 'finance' | 'reports'>('stats');
   const [docs, setDocs] = useState<VerificationDoc[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Finance State
-  const [transactions, setTransactions] = useState<MonetizationTransaction[]>([]);
-  const [revenueStats, setRevenueStats] = useState({
-    total: 0,
-    verification: 0,
-    promoted: 0,
-    today: 0
-  });
-
-  // Broadcast state
-  const [broadcast, setBroadcast] = useState({
-    title: '',
-    message: '',
-    type: 'info' as 'info' | 'success' | 'warning' | 'error',
-    target: 'all' as 'all' | 'landlord' | 'student'
-  });
-  const [sendingBroadcast, setSendingBroadcast] = useState(false);
-
-  const [usage, setUsage] = useState<{ cloudinary: { used: number, limit: number }, supabase: { used: number, limit: number } } | null>(null);
 
   const fetchUsage = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -81,7 +76,8 @@ export default function AdminPage() {
     }
 
     if (data) {
-        setTransactions(data as MonetizationTransaction[]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setTransactions(data as any[]);
         
         // Calculate Stats
         let total = 0;
@@ -90,7 +86,8 @@ export default function AdminPage() {
         let today = 0;
         const now = new Date();
 
-        data.forEach((tx: MonetizationTransaction) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data.forEach((tx: any) => {
             const amount = Number(tx.amount);
             total += amount;
             if (tx.purpose === 'verification_fee') verification += amount;
@@ -106,24 +103,37 @@ export default function AdminPage() {
     }
   }, []);
 
-  const fetchPendingDocs = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true);
-    const { data, error: fetchError } = await supabase
-      .from('verification_docs')
-      .select('*, profiles(name)')
+  const fetchReports = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*, reporter:profiles!reports_reporter_id_fkey(name, email), landlord:profiles!reports_landlord_id_fkey(name, email), lodge:lodges(title, location, price, image_urls, status)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
-    if (fetchError) {
-      console.error('Error fetching docs:', fetchError);
-    } else if (data) {
-      setDocs(data as unknown as VerificationDoc[]);
+    if (error) {
+      console.error('Error fetching reports:', error);
+    } else {
+      setReports(data as unknown as Report[]);
     }
+  }, []);
+
+  const fetchPendingDocs = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    
+    await Promise.all([
+        supabase
+          .from('verification_docs')
+          .select('*, profiles(name)')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .then(({ data }) => data && setDocs(data as unknown as VerificationDoc[])),
+        fetchReports()
+    ]);
     
     // Also refresh usage stats when refreshing the list
     await fetchUsage();
     if (!silent) setLoading(false);
-  }, [fetchUsage]);
+  }, [fetchUsage, fetchReports]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -302,6 +312,60 @@ export default function AdminPage() {
     });
   };
 
+  const handleResolveReport = async (reportId: string) => {
+    toast.info('Mark as Resolved?', {
+      description: 'This implies you have taken action (e.g. warned landlord or suspended listing).',
+      action: {
+        label: 'Resolve',
+        onClick: async () => {
+          const { error } = await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId);
+          if (error) toast.error(error.message);
+          else {
+            toast.success('Report marked as resolved');
+            fetchReports();
+          }
+        }
+      }
+    });
+  };
+
+  const handleDismissReport = async (reportId: string) => {
+    const { error } = await supabase.from('reports').update({ status: 'dismissed' }).eq('id', reportId);
+    if (error) toast.error(error.message);
+    else {
+      toast.success('Report dismissed');
+      fetchReports();
+    }
+  };
+
+  const handleBanLandlord = async (landlordId: string, reportId: string) => {
+    const reason = prompt('Reason for BAN:');
+    if (!reason) return;
+
+    toast.error('PERMANENTLY BAN this Landlord?', {
+      description: 'This will hide all their lodges and disable their account.',
+      action: {
+        label: 'BAN FOREVER',
+        onClick: async () => {
+          // 1. Hide all lodges
+          await supabase.from('lodges').update({ status: 'taken' }).eq('landlord_id', landlordId);
+          
+          // 2. Mark profile as unverified and add note
+          await supabase.from('profiles').update({ is_verified: false }).eq('id', landlordId);
+          
+          // 3. Update wallet (Negative Score)
+          await supabase.from('landlord_wallets').update({ z_score: -100 }).eq('landlord_id', landlordId);
+
+          // 4. Resolve report
+          await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId);
+
+          toast.success('Landlord Banned and Lodges Hidden');
+          fetchReports();
+        }
+      }
+    });
+  };
+
   const handleSendBroadcast = async () => {
     if (!broadcast.title || !broadcast.message) {
       toast.error('Please provide both title and message.');
@@ -368,6 +432,13 @@ export default function AdminPage() {
           className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'lodges' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
         >
           <Building size={16} /> Lodges
+        </button>
+        <button 
+          onClick={() => setActiveTab('reports')}
+          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${activeTab === 'reports' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+        >
+          <AlertTriangle size={16} /> Reports
+          {reports.length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full" />}
         </button>
         <button 
           onClick={() => setActiveTab('finance')}
@@ -575,6 +646,100 @@ export default function AdminPage() {
                     </div>
                 </div>
             </div>
+        )}
+
+        {activeTab === 'reports' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-2 px-1">Pending Investigation</h2>
+            {reports.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-[32px] border border-dashed border-gray-200 text-gray-400 font-bold shadow-sm">
+                No active reports.
+              </div>
+            ) : (
+              reports.map((report) => (
+                <div key={report.id} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-lg space-y-6 animate-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border border-red-100 mb-2 inline-block">
+                        {report.reason.replace('_', ' ')}
+                      </span>
+                      <h3 className="font-black text-gray-900 text-lg leading-tight">Reported by {report.reporter?.name}</h3>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter mt-1">Submitted: {new Date(report.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => handleDismissReport(report.id)} className="p-2.5 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-xl transition-colors" title="Dismiss Report">
+                            <EyeOff size={18} />
+                        </button>
+                    </div>
+                  </div>
+
+                  {report.details && (
+                    <div className="bg-gray-50 p-4 rounded-2xl text-sm italic text-gray-600 border-l-4 border-red-400 font-medium">
+                      &quot;{report.details}&quot;
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm relative overflow-hidden group">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Reported Lodge</h4>
+                        <div className="flex gap-4">
+                            <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-50 shadow-inner">
+                                <Image src={report.lodge.image_urls[0]} fill className="object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="font-black text-gray-900 truncate leading-tight">{report.lodge.title}</p>
+                                <p className="text-xs text-gray-500 font-medium mt-1">{report.lodge.location}</p>
+                                <p className="text-sm font-black text-blue-600 mt-2">₦{report.lodge.price.toLocaleString()}</p>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex gap-2">
+                            <button 
+                                onClick={() => updateLodgeStatus(report.lodge_id, report.lodge.status === 'available' ? 'taken' : 'available')}
+                                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                    report.lodge.status === 'available' ? 'bg-gray-900 text-white shadow-xl shadow-gray-200' : 'bg-green-600 text-white'
+                                }`}
+                            >
+                                {report.lodge.status === 'available' ? 'Suspend Listing' : 'Re-Activate'}
+                            </button>
+                            <Link href={`/lodge/${report.lodge_id}`} className="p-3 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
+                                <ExternalLink size={18} />
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm">
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Landlord Profile</h4>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-400 font-bold">Name</span>
+                                <span className="font-black text-gray-900">{report.landlord?.name}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-400 font-bold">Email</span>
+                                <span className="font-medium text-gray-900 truncate max-w-[150px]">{report.landlord?.email}</span>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex gap-2 pt-5 border-t border-gray-50">
+                            <button 
+                                onClick={() => handleBanLandlord(report.landlord_id, report.id)}
+                                className="flex-1 py-3.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-100 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                            >
+                                <UserX size={16} /> Ban Landlord
+                            </button>
+                        </div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => handleResolveReport(report.id, report.lodge_id)}
+                    className="w-full py-4 border-2 border-green-50 text-green-600 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-green-50 transition-all active:scale-[0.98]"
+                  >
+                    Mark as Resolved
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         )}
 
         {activeTab === 'broadcast' && (
