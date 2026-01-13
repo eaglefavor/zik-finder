@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Send, MapPin, BadgeDollarSign, Home, AlertCircle, X, Check, Loader2 } from 'lucide-react';
+import { ChevronLeft, Send, MapPin, BadgeDollarSign, Home, AlertCircle, X, Check, Loader2, Zap } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
@@ -31,7 +31,8 @@ export default function NewRequest() {
     room_type: 'Standard Self-con',
     minBudget: '',
     maxBudget: '',
-    description: ''
+    description: '',
+    is_urgent: false
   });
 
   const allAreas = useMemo(() => Object.keys(AREA_LANDMARKS), []);
@@ -71,6 +72,8 @@ export default function NewRequest() {
       description: `Looking for: ${formData.room_type}. ${formData.description}`,
       location: formData.locations.join(', '), // legacy
       budget_range: `₦${min.toLocaleString()} - ₦${max.toLocaleString()}`, // legacy
+      // @ts-expect-error - is_urgent added via migration
+      is_urgent: formData.is_urgent
     });
 
     setLoading(false);
@@ -180,6 +183,29 @@ export default function NewRequest() {
                   className="w-full p-4 pt-8 bg-white border border-gray-100 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none font-bold"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Urgency Toggle */}
+          <div 
+            onClick={() => setFormData({...formData, is_urgent: !formData.is_urgent})}
+            className={`p-5 rounded-3xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+              formData.is_urgent ? 'bg-red-50 border-red-200 shadow-lg shadow-red-100' : 'bg-white border-gray-100'
+            }`}
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
+                formData.is_urgent ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400'
+              }`}>
+                <Zap size={24} className={formData.is_urgent ? 'fill-white' : ''} />
+              </div>
+              <div>
+                <p className={`font-black text-sm uppercase tracking-tight ${formData.is_urgent ? 'text-red-600' : 'text-gray-900'}`}>I am in a hurry</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Need a lodge within 24-48 hours</p>
+              </div>
+            </div>
+            <div className={`w-12 h-6 rounded-full relative transition-colors ${formData.is_urgent ? 'bg-red-500' : 'bg-gray-200'}`}>
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all ${formData.is_urgent ? 'right-1' : 'left-1'}`} />
             </div>
           </div>
 
