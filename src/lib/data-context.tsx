@@ -24,7 +24,7 @@ interface DataContextType {
   toggleFavorite: (lodgeId: string) => Promise<void>;
   addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => Promise<{ success: boolean; error?: string }>;
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => Promise<{ success: boolean; error?: string }>;
-  updateLodgeStatus: (id: string, status: 'available' | 'taken') => Promise<void>;
+  updateLodgeStatus: (id: string, status: 'available' | 'taken' | 'suspended') => Promise<void>;
   addUnit: (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => Promise<void>;
   updateUnit: (id: string, unitData: Partial<{ name: string, price: number, total_units: number, available_units: number }>) => Promise<void>;
   updateUnitAvailability: (id: string, available_units: number) => Promise<void>;
@@ -357,7 +357,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const updateLodgeStatus = async (id: string, status: 'available' | 'taken') => {
+  const updateLodgeStatus = async (id: string, status: 'available' | 'taken' | 'suspended') => {
     if (!user) return;
 
     const updateAction = async () => {

@@ -342,8 +342,10 @@ export default function AdminPage() {
         label: 'Resolve & Delete',
         onClick: async () => {
           const { error } = await supabase.from('reports').delete().eq('id', reportId);
-          if (error) toast.error(error.message);
-          else {
+          if (error) {
+            console.error('Error resolving report:', error);
+            toast.error('Failed to resolve report: ' + error.message);
+          } else {
             toast.success('Report resolved and deleted');
             fetchReports();
           }
@@ -354,8 +356,10 @@ export default function AdminPage() {
 
   const handleDismissReport = async (reportId: string) => {
     const { error } = await supabase.from('reports').delete().eq('id', reportId);
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+        console.error('Error dismissing report:', error);
+        toast.error('Failed to dismiss report: ' + error.message);
+    } else {
       toast.success('Report dismissed and deleted');
       fetchReports();
     }
@@ -717,12 +721,12 @@ export default function AdminPage() {
                         </div>
                         <div className="mt-5 flex gap-2">
                             <button 
-                                onClick={() => updateLodgeStatus(report.lodge_id, report.lodge.status === 'available' ? 'taken' : 'available')}
+                                onClick={() => updateLodgeStatus(report.lodge_id, report.lodge.status === 'suspended' ? 'available' : 'suspended')}
                                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    report.lodge.status === 'available' ? 'bg-gray-900 text-white shadow-xl shadow-gray-200' : 'bg-green-600 text-white'
+                                    report.lodge.status === 'suspended' ? 'bg-green-600 text-white' : 'bg-gray-900 text-white shadow-xl shadow-gray-200'
                                 }`}
                             >
-                                {report.lodge.status === 'available' ? 'Suspend Listing' : 'Re-Activate'}
+                                {report.lodge.status === 'suspended' ? 'Re-Activate' : 'Suspend Listing'}
                             </button>
                             <Link href={`/lodge/${report.lodge_id}`} className="p-3 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center hover:bg-blue-100 transition-colors shadow-sm">
                                 <ExternalLink size={18} />

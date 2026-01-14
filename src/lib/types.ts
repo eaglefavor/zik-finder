@@ -29,7 +29,7 @@ export interface Lodge {
   location: string;
   image_urls: string[];
   landlord_id: string;
-  status: 'available' | 'taken';
+  status: 'available' | 'taken' | 'suspended';
   amenities: string[];
   landmark?: string;
   promoted_until?: string; // ISO timestamp
