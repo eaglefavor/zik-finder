@@ -188,7 +188,7 @@ export default function Home() {
   };
 
   if (role === 'landlord') {
-    const landlordLodges = useData().myLodges || lodges.filter(l => l.landlord_id === user.id);
+    const landlordLodges = myLodges || lodges.filter(l => l.landlord_id === user.id);
     const totalViews = landlordLodges.reduce((acc, curr) => acc + (curr.views || 0), 0);
 
     return (
