@@ -40,6 +40,7 @@ export default function Home() {
   const { user, role, isLoading: authLoading } = useAppContext();
   const { 
     lodges, 
+    myLodges,
     deleteLodge, 
     updateLodgeStatus, 
     updateUnitAvailability, 
@@ -187,7 +188,7 @@ export default function Home() {
   };
 
   if (role === 'landlord') {
-    const landlordLodges = lodges.filter(l => l.landlord_id === user.id);
+    const landlordLodges = useData().myLodges || lodges.filter(l => l.landlord_id === user.id);
     const totalViews = landlordLodges.reduce((acc, curr) => acc + (curr.views || 0), 0);
 
     return (

@@ -141,10 +141,10 @@ export default function LeadsPage() {
                         <div className="flex justify-between items-start mb-3">
                             <div>
                                 <h3 className="font-bold text-gray-900 text-lg">
-                                    {isUnlocked ? lead.profiles.name : 'Student Inquiry'}
+                                    {isUnlocked ? lead.profiles?.name || 'Unlocked Student' : 'Student Inquiry'}
                                 </h3>
                                 <p className="text-xs text-gray-500 font-medium flex items-center gap-1 mt-1">
-                                    <MapPin size={12} /> {lead.lodges.title}
+                                    <MapPin size={12} /> {lead.lodges?.title || 'Unknown Lodge'}
                                 </p>
                             </div>
                             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
@@ -152,7 +152,7 @@ export default function LeadsPage() {
                             </span>
                         </div>
 
-                        {isUnlocked ? (
+                        {isUnlocked && lead.profiles?.phone_number ? (
                             <div className="flex gap-3 mt-4 animate-in fade-in zoom-in duration-300">
                                 <a href={`tel:${lead.profiles.phone_number}`} className="flex-1 py-3 bg-gray-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2">
                                     <Phone size={14} /> Call
@@ -164,9 +164,10 @@ export default function LeadsPage() {
                         ) : (
                             <div className="mt-4">
                                 <div className="p-3 bg-gray-50 rounded-xl mb-3 flex justify-between items-center">
-                                    <span className="text-xs font-bold text-gray-500">Contact Hidden</span>
+                                    <span className="text-xs font-bold text-gray-500">{isUnlocked ? 'Contact Missing' : 'Contact Hidden'}</span>
                                     <Lock size={14} className="text-gray-400" />
                                 </div>
+                                {!isUnlocked && (
                                 <button 
                                     onClick={() => handleUnlock(lead)}
                                     disabled={unlockingId === lead.id}
@@ -175,6 +176,7 @@ export default function LeadsPage() {
                                     {unlockingId === lead.id ? <Loader2 className="animate-spin" size={14} /> : <Unlock size={14} />}
                                     Unlock for {cost} Credits
                                 </button>
+                                )}
                             </div>
                         )}
                     </div>

@@ -14,6 +14,7 @@ interface DataContextType {
   favorites: string[];
   unreadCount: number;
   viewGrowth: number;
+  myLodges: Lodge[]; // New: Own lodges for landlords
   isLoading: boolean;
   isLodgesLoading: boolean;
   hasMoreLodges: boolean;
@@ -40,6 +41,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAppContext();
   const [lodges, setLodges] = useState<Lodge[]>([]);
+  const [myLodges, setMyLodges] = useState<Lodge[]>([]); // New state
   const [requests, setRequests] = useState<LodgeRequest[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -58,6 +60,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       units: l.units_data || l.lodge_units || []
     })) as unknown as Lodge[];
   }
+
+  const fetchMyLodges = async () => {
+    if (!user || user.role !== 'landlord') return;
+    
+    // Fetch ALL my lodges (including suspended/taken)
+    const { data, error } = await supabase
+      .from('lodges')
+      .select('*, units:lodge_units(*)')
+      .eq('landlord_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      const formatted = (data as unknown as Lodge[]).map(l => ({
+        ...l,
+        image_urls: l.image_urls || [],
+        amenities: l.amenities || []
+      }));
+      setMyLodges(formatted);
+    }
+  };
 
   const fetchInitialLodges = async () => {
     setIsLodgesLoading(true);
@@ -240,6 +262,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // 1. Critical Data (Blocking UI)
       await Promise.all([
         fetchInitialLodges(),
+        fetchMyLodges(), // Add this
         refreshFavorites(),
         refreshUnreadCount()
       ]);
@@ -326,6 +349,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
     
     await fetchInitialLodges();
+    await fetchMyLodges();
     return { success: true };
   };
 
@@ -364,6 +388,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (error) return { success: false, error: error.message };
 
     await fetchInitialLodges();
+    await fetchMyLodges();
     return { success: true };
   };
 
@@ -391,6 +416,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       loading: 'Updating status...',
       success: (data) => {
         fetchInitialLodges();
+        fetchMyLodges(); // Refresh my list too
         return `Lodge marked as ${data}`;
       },
       error: (err) => `Failed to update: ${err.message}`
@@ -471,11 +497,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       await fetchInitialLodges();
+      await fetchMyLodges();
 
     } catch (error: unknown) {
       console.error('Error deleting lodge:', error);
       toast.error('Error deleting lodge: ' + (error instanceof Error ? error.message : 'Unknown error'));
       await fetchInitialLodges(); 
+      await fetchMyLodges();
     }
   };
 
@@ -606,6 +634,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   return (
     <DataContext.Provider value={{ 
       lodges, 
+      myLodges, // Expose this
       requests,
       favorites, 
       unreadCount,
