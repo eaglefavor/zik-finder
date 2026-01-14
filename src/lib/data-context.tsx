@@ -332,22 +332,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const updateLodge = async (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    const { data: oldLodge } = await supabase.from('lodges').select('price, title').eq('id', id).single();
-
-    let { error } = await supabase
+    let query = supabase
       .from('lodges')
       .update(lodgeData)
-      .eq('id', id)
-      .eq('landlord_id', user.id);
+      .eq('id', id);
+
+    // If not admin, restrict to own lodges
+    if (user.role !== 'admin') {
+      query = query.eq('landlord_id', user.id);
+    }
+
+    let { error } = await query;
 
     if (error) {
       console.warn('Falling back to legacy lodge update:', error.message);
       const { landmark: _, ...legacyData } = lodgeData as Record<string, unknown>;
-      const fallback = await supabase
+      
+      let fallbackQuery = supabase
         .from('lodges')
         .update(legacyData)
-        .eq('id', id)
-        .eq('landlord_id', user.id);
+        .eq('id', id);
+      
+      if (user.role !== 'admin') {
+        fallbackQuery = fallbackQuery.eq('landlord_id', user.id);
+      }
+
+      const fallback = await fallbackQuery;
       error = fallback.error;
     }
 
@@ -361,11 +371,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     const updateAction = async () => {
-      const { error } = await supabase
+      let query = supabase
         .from('lodges')
         .update({ status })
-        .eq('id', id)
-        .eq('landlord_id', user.id);
+        .eq('id', id);
+      
+      // If not admin, restrict to own lodges
+      if (user.role !== 'admin') {
+        query = query.eq('landlord_id', user.id);
+      }
+
+      const { error, data, count } = await query.select();
       
       if (error) throw error;
       return status;
