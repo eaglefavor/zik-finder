@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon, Banknote, AlertTriangle, UserX } from 'lucide-react';
+import { CheckCircle, Loader2, ExternalLink, Megaphone, Building, LayoutDashboard, Trash2, Eye, EyeOff, Send, Globe, Users as UsersIcon, Banknote, AlertTriangle, UserX, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 
@@ -422,7 +422,7 @@ export default function AdminPage() {
   const toggleLodgeSuspension = async (lodgeId: string, currentStatus: string, landlordId: string, lodgeTitle: string) => {
     const newStatus = currentStatus === 'suspended' ? 'available' : 'suspended';
     
-    await updateLodgeStatus(lodgeId, newStatus as any); // Cast for now until context types update propagates
+    await updateLodgeStatus(lodgeId, newStatus as 'available' | 'taken' | 'suspended');
 
     if (newStatus === 'suspended') {
       await supabase.from('notifications').insert({
