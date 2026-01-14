@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 
 const ReviewModal = dynamic(() => import('@/components/ReviewModal'), { ssr: false });
+const ReportModal = dynamic(() => import('@/components/ReportModal'), { ssr: false });
 
 import { useLodgeViewTracker } from '@/lib/useLodgeViewTracker';
 
@@ -54,6 +55,7 @@ export default function LodgeDetail() {
   const [contactInfo, setContactInfo] = useState<string | null>(null);
   const [requesting, setRequesting] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reviews, setReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingHistory] = useState(false);
@@ -526,15 +528,7 @@ export default function LodgeDetail() {
 
         <div className="flex justify-center mt-8 mb-20">
           <button 
-            onClick={() => {
-              const reason = prompt("Report Reason (Scam, Wrong Price, Misleading):");
-              if (reason) {
-                // In a real app, call an API here. 
-                // For ZIPS, we have triggers on 'reports' table insert, but we need to implement the insert.
-                // Assuming simple notification for now as placeholder.
-                toast.success("Report submitted. We will investigate.");
-              }
-            }}
+            onClick={() => setShowReportModal(true)}
             className="text-red-400 text-xs font-bold uppercase tracking-widest hover:text-red-600 transition-colors flex items-center gap-2"
           >
             <AlertTriangle size={14} /> Report Listing
@@ -594,6 +588,14 @@ export default function LodgeDetail() {
             setShowReviewModal(false);
             fetchReviews();
           }}
+        />
+      )}
+
+      {showReportModal && (
+        <ReportModal 
+          lodgeId={lodge.id}
+          landlordId={lodge.landlord_id}
+          onClose={() => setShowReportModal(false)}
         />
       )}
     </div>

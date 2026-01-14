@@ -30,21 +30,22 @@ export default function ReportModal({ lodgeId, landlordId, onClose }: ReportModa
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase.from('reports').insert({
-        lodge_id: lodgeId,
-        landlord_id: landlordId,
-        reporter_id: user.id,
-        reason,
-        details
+      const { data, error } = await supabase.rpc('submit_report', {
+        p_lodge_id: lodgeId,
+        p_landlord_id: landlordId,
+        p_reason: reason,
+        p_details: details
       });
 
       if (error) throw error;
+      if (data && !data.success) throw new Error(data.error || 'Unknown server error');
 
       toast.success('Report submitted. We will investigate.');
       onClose();
     } catch (err: unknown) {
       console.error('Report error:', err);
-      toast.error('Failed to submit report');
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      toast.error('Failed to submit report: ' + errorMessage);
     } finally {
       setIsSubmitting(false);
     }

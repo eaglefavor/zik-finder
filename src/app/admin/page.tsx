@@ -124,11 +124,14 @@ export default function AdminPage() {
   }, []);
 
   const fetchReports = useCallback(async () => {
+    console.log('Fetching reports...');
     const { data, error } = await supabase
       .from('reports')
       .select('*, reporter:profiles!reports_reporter_id_fkey(name, email), landlord:profiles!reports_landlord_id_fkey(name, email), lodge:lodges(title, location, price, image_urls, status)')
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
+
+    console.log('Reports fetch result:', { data, error });
 
     if (error) {
       console.error('Error fetching reports:', error);
