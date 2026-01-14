@@ -298,9 +298,10 @@ export default function Home() {
                         </div>
                         <div className="flex items-center gap-3 mt-3">
                           <div className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${
-                            lodge.status === 'available' ? 'bg-green-50 border-green-100 text-green-600' : 'bg-red-50 border-red-100 text-red-600'
+                            lodge.status === 'suspended' ? 'bg-red-100 border-red-200 text-red-600' :
+                            lodge.status === 'available' ? 'bg-green-50 border-green-100 text-green-600' : 'bg-gray-50 border-gray-200 text-gray-500'
                           }`}>
-                            {lodge.status === 'available' ? 'Public' : 'Hidden'}
+                            {lodge.status === 'suspended' ? 'SUSPENDED' : lodge.status === 'available' ? 'Public' : 'Hidden'}
                           </div>
                           <div className="flex items-center gap-1 text-gray-400">
                             <Eye size={12} className="text-blue-400" />
@@ -350,10 +351,22 @@ export default function Home() {
                       
                       <button 
                         onClick={() => handleStatusUpdate(lodge.id, lodge.status)} 
-                        disabled={loadingStatusId === lodge.id} 
-                        className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${loadingStatusId === lodge.id ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : lodge.status === 'available' ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'}`}
+                        disabled={loadingStatusId === lodge.id || lodge.status === 'suspended'} 
+                        className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${
+                          loadingStatusId === lodge.id 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            : lodge.status === 'suspended'
+                              ? 'bg-red-100 text-red-600 border border-red-200 cursor-not-allowed'
+                              : lodge.status === 'available' 
+                                ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' 
+                                : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'
+                        }`}
                       >
-                        {loadingStatusId === lodge.id ? <><Loader2 className="animate-spin" size={14} /> ...</> : lodge.status === 'available' ? <><X size={14} /> Hide</> : <><CheckCircle size={14} /> Show</>}
+                        {loadingStatusId === lodge.id ? <><Loader2 className="animate-spin" size={14} /> ...</> 
+                          : lodge.status === 'suspended' ? <><ShieldCheck size={14} /> Suspended</>
+                          : lodge.status === 'available' ? <><X size={14} /> Hide</> 
+                          : <><CheckCircle size={14} /> Show</>
+                        }
                       </button>
 
                       <button 

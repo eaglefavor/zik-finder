@@ -419,6 +419,25 @@ export default function AdminPage() {
     }
   };
 
+  const toggleLodgeSuspension = async (lodgeId: string, currentStatus: string, landlordId: string, lodgeTitle: string) => {
+    const newStatus = currentStatus === 'suspended' ? 'available' : 'suspended';
+    
+    await updateLodgeStatus(lodgeId, newStatus as any); // Cast for now until context types update propagates
+
+    if (newStatus === 'suspended') {
+      await supabase.from('notifications').insert({
+        user_id: landlordId,
+        title: 'Listing Suspended ⚠️',
+        message: `Your lodge "${lodgeTitle}" has been suspended by an admin for violating our policies. Please contact support.`,
+        type: 'error',
+        link: '/profile' // Direct them to dashboard to see the suspended status
+      });
+      toast.success('Lodge suspended and landlord notified.');
+    } else {
+      toast.success('Lodge re-activated.');
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -592,11 +611,11 @@ export default function AdminPage() {
                     </div>
                     <div className="flex gap-1">
                       <button 
-                        onClick={() => updateLodgeStatus(l.id, l.status === 'available' ? 'taken' : 'available')}
-                        className={`p-2 rounded-full ${l.status === 'available' ? 'text-green-500 bg-green-50' : 'text-gray-400 bg-gray-50'}`}
-                        title={l.status === 'available' ? 'Public' : 'Hidden'}
+                        onClick={() => toggleLodgeSuspension(l.id, l.status, l.landlord_id, l.title)}
+                        className={`p-2 rounded-full ${l.status === 'available' ? 'text-green-500 bg-green-50' : l.status === 'suspended' ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}
+                        title={l.status === 'available' ? 'Public' : l.status === 'suspended' ? 'Suspended' : 'Hidden'}
                       >
-                        {l.status === 'available' ? <Eye size={18} /> : <EyeOff size={18} />}
+                        {l.status === 'available' ? <Eye size={18} /> : l.status === 'suspended' ? <ShieldCheck size={18} /> : <EyeOff size={18} />}
                       </button>
                       <button 
                         onClick={() => handleAdminLodgeDelete(l.id)}
@@ -721,7 +740,7 @@ export default function AdminPage() {
                         </div>
                         <div className="mt-5 flex gap-2">
                             <button 
-                                onClick={() => updateLodgeStatus(report.lodge_id, report.lodge.status === 'suspended' ? 'available' : 'suspended')}
+                                onClick={() => toggleLodgeSuspension(report.lodge_id, report.lodge.status, report.landlord_id, report.lodge.title)}
                                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     report.lodge.status === 'suspended' ? 'bg-green-600 text-white' : 'bg-gray-900 text-white shadow-xl shadow-gray-200'
                                 }`}
