@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Star, MessageCircle, Send, Image as ImageIcon, Trash2, MoreVertical, Reply, Loader2 } from 'lucide-react';
+import { ArrowLeft, Star, MessageCircle, Send, MoreVertical, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppContext } from '@/lib/context';
 import Image from 'next/image';

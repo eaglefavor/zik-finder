@@ -107,7 +107,7 @@ export default function AccountSettingsPage() {
       toast.success('Profile updated successfully!');
       router.back();
     } catch (err: unknown) {
-      const msg = (err as any)?.message || (err as Error)?.message || 'Unknown error';
+      const msg = (err instanceof Error) ? err.message : (typeof err === 'object' && err !== null && 'message' in err) ? (err as { message: string }).message : 'Unknown error';
       toast.error('Error updating profile: ' + msg);
     } finally {
       setLoading(false);
