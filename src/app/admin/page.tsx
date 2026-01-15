@@ -39,7 +39,7 @@ interface Report {
 
 export default function AdminPage() {
   const { user, role, isLoading: authLoading } = useAppContext();
-  const { lodges, deleteLodge, updateLodgeStatus } = useData();
+  const { lodges, deleteLodge } = useData();
   const router = useRouter();
   
   const [activeTab, setActiveTab] = useState<'stats' | 'verifications' | 'lodges' | 'broadcast' | 'finance' | 'reports'>('stats');
@@ -419,17 +419,14 @@ export default function AdminPage() {
     }
   };
 
-  const toggleLodgeSuspension = async (lodgeId: string, currentStatus: string, landlordId: string, lodgeTitle: string) => {
+  const toggleLodgeSuspension = async (lodgeId: string, currentStatus: string) => {
     const action = currentStatus === 'suspended' ? 'unsuspend' : 'suspend';
-    
-    // Optimistic UI update (optional, but good for perceived speed)
-    // Actually, we'll wait for RPC to ensure success before showing toast
     
     try {
       const { data, error } = await supabase.rpc('toggle_lodge_suspension', {
         p_lodge_id: lodgeId,
         p_action: action,
-        p_reason: 'Admin Action' // Can add a prompt later if needed
+        p_reason: 'Admin Action'
       });
 
       if (error) throw error;
@@ -438,8 +435,7 @@ export default function AdminPage() {
       toast.success(action === 'suspend' ? 'Lodge suspended.' : 'Lodge re-activated.');
       
       // Refresh Lists
-      fetchInitialLodges(); // Updates the UI
-      fetchReports(); // Updates the reports list if open
+      await fetchPendingDocs(true); // Updates the UI silently
     } catch (err: unknown) {
       console.error('Suspension error:', err);
       const msg = err instanceof Error ? err.message : 'Unknown error';
@@ -620,7 +616,7 @@ export default function AdminPage() {
                     </div>
                     <div className="flex gap-1">
                       <button 
-                        onClick={() => toggleLodgeSuspension(l.id, l.status, l.landlord_id, l.title)}
+                        onClick={() => toggleLodgeSuspension(l.id, l.status)}
                         className={`p-2 rounded-full ${l.status === 'available' ? 'text-green-500 bg-green-50' : l.status === 'suspended' ? 'text-red-500 bg-red-50' : 'text-gray-400 bg-gray-50'}`}
                         title={l.status === 'available' ? 'Public' : l.status === 'suspended' ? 'Suspended' : 'Hidden'}
                       >
@@ -749,7 +745,7 @@ export default function AdminPage() {
                         </div>
                         <div className="mt-5 flex gap-2">
                             <button 
-                                onClick={() => toggleLodgeSuspension(report.lodge_id, report.lodge.status, report.landlord_id, report.lodge.title)}
+                                onClick={() => toggleLodgeSuspension(report.lodge_id, report.lodge.status)}
                                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                     report.lodge.status === 'suspended' ? 'bg-green-600 text-white' : 'bg-gray-900 text-white shadow-xl shadow-gray-200'
                                 }`}

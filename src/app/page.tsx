@@ -8,8 +8,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Image from 'next/image';
-const AuthScreen = dynamic(() => import('@/components/AuthScreen'), { ssr: false });
-const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
+import AuthScreen from '@/components/AuthScreen';
+import { Lodge } from '@/lib/types';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import PaymentModal from '@/components/PaymentModal';
+import dynamic from 'next/dynamic';
+
 const SuspendedLodgeModal = dynamic(() => import('@/components/SuspendedLodgeModal'), { ssr: false });
 
 const AdminLink = ({ role }: { role: string }) => (
