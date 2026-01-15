@@ -45,7 +45,7 @@ export default function NotificationsPage() {
     }
   }, [user]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (retryCount = 0) => {
     try {
       const { data, error } = await supabase
         .from('notifications')
@@ -57,6 +57,12 @@ export default function NotificationsPage() {
       setNotifications(data || []);
     } catch (err) {
       console.error('Error fetching notifications:', err);
+      // Simple retry logic for network errors
+      if (retryCount < 1 && (err as Error)?.message?.includes('fetch')) {
+        setTimeout(() => fetchNotifications(retryCount + 1), 1000);
+      } else {
+        toast.error('Failed to load notifications. Please check your connection.');
+      }
     } finally {
       setLoading(false);
     }
