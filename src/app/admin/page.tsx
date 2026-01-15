@@ -420,21 +420,30 @@ export default function AdminPage() {
   };
 
   const toggleLodgeSuspension = async (lodgeId: string, currentStatus: string, landlordId: string, lodgeTitle: string) => {
-    const newStatus = currentStatus === 'suspended' ? 'available' : 'suspended';
+    const action = currentStatus === 'suspended' ? 'unsuspend' : 'suspend';
     
-    await updateLodgeStatus(lodgeId, newStatus as 'available' | 'taken' | 'suspended');
-
-    if (newStatus === 'suspended') {
-      await supabase.from('notifications').insert({
-        user_id: landlordId,
-        title: 'Listing Suspended ⚠️',
-        message: `Your lodge "${lodgeTitle}" has been suspended by an admin for violating our policies. Please contact support.`,
-        type: 'error',
-        link: '/profile' // Direct them to dashboard to see the suspended status
+    // Optimistic UI update (optional, but good for perceived speed)
+    // Actually, we'll wait for RPC to ensure success before showing toast
+    
+    try {
+      const { data, error } = await supabase.rpc('toggle_lodge_suspension', {
+        p_lodge_id: lodgeId,
+        p_action: action,
+        p_reason: 'Admin Action' // Can add a prompt later if needed
       });
-      toast.success('Lodge suspended and landlord notified.');
-    } else {
-      toast.success('Lodge re-activated.');
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.message);
+
+      toast.success(action === 'suspend' ? 'Lodge suspended.' : 'Lodge re-activated.');
+      
+      // Refresh Lists
+      fetchInitialLodges(); // Updates the UI
+      fetchReports(); // Updates the reports list if open
+    } catch (err: unknown) {
+      console.error('Suspension error:', err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      toast.error('Failed to update status: ' + msg);
     }
   };
 

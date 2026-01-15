@@ -8,11 +8,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Image from 'next/image';
-import AuthScreen from '@/components/AuthScreen';
-import { Lodge } from '@/lib/types';
-import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
-import PaymentModal from '@/components/PaymentModal';
+const AuthScreen = dynamic(() => import('@/components/AuthScreen'), { ssr: false });
+const PaymentModal = dynamic(() => import('@/components/PaymentModal'), { ssr: false });
+const SuspendedLodgeModal = dynamic(() => import('@/components/SuspendedLodgeModal'), { ssr: false });
 
 const AdminLink = ({ role }: { role: string }) => (
   role === 'admin' ? (
@@ -55,6 +53,7 @@ export default function Home() {
   
   const [loadingStatusId, setLoadingStatusId] = useState<string | null>(null);
   const [promotingLodge, setPromotingLodge] = useState<Lodge | null>(null);
+  const [suspendedLodge, setSuspendedLodge] = useState<Lodge | null>(null); // New state
 
   // ZIPS: Lead tracking for students
   const [studentLeads, setStudentLeads] = useState<Record<string, { status: string, phone?: string }>>({});
@@ -351,13 +350,19 @@ export default function Home() {
                       </Link>
                       
                       <button 
-                        onClick={() => handleStatusUpdate(lodge.id, lodge.status)} 
-                        disabled={loadingStatusId === lodge.id || lodge.status === 'suspended'} 
+                        onClick={() => {
+                          if (lodge.status === 'suspended') {
+                            setSuspendedLodge(lodge);
+                          } else {
+                            handleStatusUpdate(lodge.id, lodge.status);
+                          }
+                        }} 
+                        disabled={loadingStatusId === lodge.id} 
                         className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${
                           loadingStatusId === lodge.id 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                             : lodge.status === 'suspended'
-                              ? 'bg-red-100 text-red-600 border border-red-200 cursor-not-allowed'
+                              ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200'
                               : lodge.status === 'available' 
                                 ? 'bg-orange-50 text-orange-600 border border-orange-100 hover:bg-orange-100' 
                                 : 'bg-blue-600 text-white shadow-xl shadow-blue-200 hover:bg-blue-700'
@@ -665,6 +670,13 @@ export default function Home() {
             onClose={() => setPromotingLodge(null)}
           />
         </>
+      )}
+
+      {suspendedLodge && (
+        <SuspendedLodgeModal 
+          lodgeTitle={suspendedLodge.title} 
+          onClose={() => setSuspendedLodge(null)} 
+        />
       )}
     </div>
   );
