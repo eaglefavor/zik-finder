@@ -66,8 +66,10 @@ export default function LeadsPage() {
     // Calculate cost preview (Client side estimation, RPC is authority)
     // Logic: <300k = 10, <700k = 15, >700k = 20
     let cost = 10;
-    if (lead.lodges.price >= 700000) cost = 20;
-    else if (lead.lodges.price >= 300000) cost = 15;
+    const price = lead.lodges?.price || 0;
+    
+    if (price >= 700000) cost = 20;
+    else if (price >= 300000) cost = 15;
 
     if (wallet.balance < cost) {
       toast.error(`Insufficient Credits. You need ${cost} Z-Credits.`, {
@@ -133,8 +135,9 @@ export default function LeadsPage() {
             {leads.map(lead => {
                 const isUnlocked = lead.status === 'unlocked';
                 let cost = 10;
-                if (lead.lodges.price >= 700000) cost = 20;
-                else if (lead.lodges.price >= 300000) cost = 15;
+                const price = lead.lodges?.price || 0;
+                if (price >= 700000) cost = 20;
+                else if (price >= 300000) cost = 15;
 
                 return (
                     <div key={lead.id} className={`p-5 rounded-[24px] border transition-all ${isUnlocked ? 'bg-white border-green-100 shadow-sm' : 'bg-white border-gray-100 shadow-md'}`}>

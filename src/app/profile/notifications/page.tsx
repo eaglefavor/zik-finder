@@ -16,6 +16,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
   const [clearingAll, setClearingAll] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -210,8 +211,11 @@ export default function NotificationsPage() {
           {notifications.map((n) => (
             <div 
               key={n.id}
-              onClick={() => !n.is_read && markAsRead(n.id)}
-              className={`relative group bg-white p-4 rounded-2xl border transition-all ${
+              onClick={() => {
+                if (!n.is_read) markAsRead(n.id);
+                setExpandedId(expandedId === n.id ? null : n.id);
+              }}
+              className={`relative group bg-white p-4 rounded-2xl border transition-all cursor-pointer ${
                 n.is_read ? 'border-gray-100 opacity-70' : 'border-blue-100 shadow-sm ring-1 ring-blue-50'
               }`}
             >
@@ -232,15 +236,26 @@ export default function NotificationsPage() {
                   <p className="text-xs text-gray-400 font-medium mb-1">
                     {formatTime(n.created_at)}
                   </p>
-                  <p className="text-xs text-gray-500 leading-relaxed mb-2 line-clamp-2">
+                  <p className={`text-xs text-gray-500 leading-relaxed mb-2 transition-all ${
+                    expandedId === n.id ? '' : 'line-clamp-2'
+                  }`}>
                     {n.message}
                   </p>
                   
-                  {n.link && (
-                    <Link href={n.link} className="inline-flex items-center text-[10px] font-bold text-blue-600 hover:underline">
-                      View Details <ChevronRight size={12} />
-                    </Link>
-                  )}
+                  <div className="flex items-center gap-4 mt-2">
+                    {expandedId !== n.id && n.message.length > 80 && (
+                      <span className="text-[10px] font-bold text-gray-400">Tap to expand</span>
+                    )}
+                    {n.link && (
+                      <Link 
+                        href={n.link} 
+                        onClick={(e) => e.stopPropagation()} 
+                        className="inline-flex items-center text-[10px] font-bold text-blue-600 hover:underline"
+                      >
+                        View Details <ChevronRight size={12} />
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
 
