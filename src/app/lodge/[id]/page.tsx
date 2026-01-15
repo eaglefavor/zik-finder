@@ -463,12 +463,9 @@ export default function LodgeDetail() {
               <Star size={20} className="text-amber-500 fill-amber-500" />
               Student Reviews
             </h2>
-            {reviews.length > 0 && (
-              <div className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 border border-amber-100">
-                <Star size={12} className="fill-amber-700" />
-                {(reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)} ({reviews.length})
-              </div>
-            )}
+            <Link href={`/lodge/${id}/reviews`} className="text-xs font-bold text-blue-600 hover:underline">
+              View All
+            </Link>
           </div>
 
           <div className="space-y-4">
