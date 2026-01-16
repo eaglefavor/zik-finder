@@ -374,7 +374,7 @@ export default function Home() {
                         }`}
                       >
                         {loadingStatusId === lodge.id ? <><Loader2 className="animate-spin" size={14} /> ...</> 
-                          : lodge.status === 'suspended' ? <><ShieldCheck size={14} /> Suspended</>
+                          : lodge.status === 'suspended' ? <><ShieldCheck size={14} /> Appeal Suspension</>
                           : lodge.status === 'available' ? <><X size={14} /> Hide</> 
                           : <><CheckCircle size={14} /> Show</>
                         }
