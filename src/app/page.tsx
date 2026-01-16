@@ -527,6 +527,13 @@ export default function Home() {
                           <CheckCircle size={12} className="fill-white/20" /> Verified
                         </div>
                       )}
+                      {lodge.landlord_z_score !== undefined && (
+                        <div className={`flex items-center gap-1 px-3 py-1.5 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg ${
+                          lodge.landlord_z_score >= 80 ? 'bg-blue-600/90' : lodge.landlord_z_score >= 50 ? 'bg-gray-800/90' : 'bg-red-600/90'
+                        }`}>
+                          <ShieldCheck size={12} /> Score: {lodge.landlord_z_score}
+                        </div>
+                      )}
                     </div>
                     
                     {(() => {

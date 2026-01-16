@@ -19,7 +19,7 @@ export default function BottomNav() {
   const studentTabs = [
     { label: 'Explore', icon: Search, path: '/' },
     { label: 'Saved', icon: Heart, path: '/favorites' },
-    { label: 'Market', icon: Globe, path: '/market' },
+    { label: 'Requests', icon: Globe, path: '/market' },
     { label: 'Profile', icon: User, path: '/profile' },
   ];
 

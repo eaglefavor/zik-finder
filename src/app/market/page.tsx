@@ -18,7 +18,7 @@ export default function MarketRequests() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isNotifying, setIsNotifying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'budget_low' | 'budget_high'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'budget_low' | 'budget_high' | 'location'>('newest');
   
   // ZIPS: Unlocked Requests State
   const [unlockedRequests, setUnlockedRequests] = useState<Record<string, string>>({}); // requestId -> phone_number
@@ -109,6 +109,7 @@ export default function MarketRequests() {
 
         if (sortBy === 'budget_low') return budgetA - budgetB;
         if (sortBy === 'budget_high') return budgetB - budgetA;
+        if (sortBy === 'location') return a.location.localeCompare(b.location);
         return 0;
       });
   }, [requests, searchQuery, sortBy]);
@@ -264,15 +265,16 @@ export default function MarketRequests() {
           <div className="relative">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'newest' | 'budget_low' | 'budget_high')}
+              onChange={(e) => setSortBy(e.target.value as 'newest' | 'budget_low' | 'budget_high' | 'location')}
               className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
             >
               <option value="newest">Newest First</option>
               <option value="budget_low">Budget: Low - High</option>
               <option value="budget_high">Budget: High - Low</option>
+              <option value="location">Location (A-Z)</option>
             </select>
             <button className="h-full px-3 bg-gray-50 border border-gray-100 rounded-xl xs:rounded-2xl text-gray-500 flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
-              {sortBy === 'newest' ? <Clock size={18} /> : sortBy === 'budget_low' ? <ArrowUpAz size={18} /> : <ArrowDownAz size={18} />}
+              {sortBy === 'newest' ? <Clock size={18} /> : sortBy === 'location' ? <MapPin size={18} /> : sortBy === 'budget_low' ? <ArrowUpAz size={18} /> : <ArrowDownAz size={18} />}
             </button>
           </div>
         </div>

@@ -37,6 +37,7 @@ export interface Lodge {
   // Joins
   profiles?: Profile;
   units?: LodgeUnit[];
+  landlord_z_score?: number;
   
   // Computed
   views?: number;
