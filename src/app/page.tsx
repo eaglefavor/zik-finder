@@ -350,7 +350,14 @@ export default function Home() {
                     )}
 
                     <div className="flex flex-wrap gap-2 pt-2">
-                      <Link href={`/edit-lodge/${lodge.id}`} className="flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-700 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all hover:bg-gray-100 border border-gray-100">
+                      <Link 
+                        href={`/edit-lodge/${lodge.id}`} 
+                        className={`flex-1 min-w-[120px] flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all ${
+                          lodge.status === 'suspended' 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed pointer-events-none opacity-60' 
+                            : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-100'
+                        }`}
+                      >
                         <Edit3 size={14} /> Edit
                       </Link>
                       
@@ -385,14 +392,18 @@ export default function Home() {
                           if (promotingLodge?.id === lodge.id) return;
                           setPromotingLodge(lodge);
                         }}
-                        disabled={!!promotingLodge}
-                        className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-orange-100 active:scale-[0.98] transition-all disabled:opacity-70"
+                        disabled={!!promotingLodge || lodge.status === 'suspended'}
+                        className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all disabled:opacity-50 ${
+                          lodge.status === 'suspended'
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-orange-100'
+                        }`}
                       >
                         {promotingLodge?.id === lodge.id ? (
                           <><Loader2 className="animate-spin" size={14} /> Preparing Modal...</>
                         ) : (
                           <>
-                            <Zap size={14} className="fill-white" /> 
+                            <Zap size={14} className={lodge.status === 'suspended' ? 'text-gray-300' : 'fill-white'} /> 
                             {lodge.promoted_until && new Date(lodge.promoted_until) > new Date() ? 'Extend Promotion (₦1,000)' : 'Boost Listing (₦1,000)'}
                           </>
                         )}

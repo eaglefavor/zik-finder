@@ -54,7 +54,7 @@ export default function SupportPage() {
             </a>
             
             <a 
-              href="https://wa.me/234707701331" 
+              href="https://wa.me/2347077010948" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
@@ -69,7 +69,7 @@ export default function SupportPage() {
             </a>
 
             <a 
-              href="tel:+2347016159288" 
+              href="tel:07077010948" 
               className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
             >
               <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">

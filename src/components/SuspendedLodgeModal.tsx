@@ -47,7 +47,7 @@ export default function SuspendedLodgeModal({ lodgeTitle, onClose }: SuspendedMo
 
           <div className="space-y-3">
             <button
-              onClick={() => window.open('https://wa.me/2347016159288?text=Hello%20ZikLodge%20Support,%20my%20listing%20was%20suspended.%20Can%20you%20help?')}
+              onClick={() => window.open('https://wa.me/2347077010948?text=Hello%20ZikLodge%20Support,%20my%20listing%20was%20suspended.%20Can%20you%20help?')}
               className="w-full py-4 bg-green-500 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-200 active:scale-95 transition-all"
             >
               <MessageCircle size={20} /> Chat on WhatsApp
@@ -61,7 +61,7 @@ export default function SuspendedLodgeModal({ lodgeTitle, onClose }: SuspendedMo
                 <Mail size={16} /> Email Support
                 </button>
                 <button
-                onClick={() => window.open('tel:07016159288')}
+                onClick={() => window.open('tel:07077010948')}
                 className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border border-gray-100 hover:bg-gray-100 transition-all active:scale-95"
                 >
                 <Phone size={16} /> Call Us

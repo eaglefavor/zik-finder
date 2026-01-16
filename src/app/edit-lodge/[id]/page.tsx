@@ -18,7 +18,7 @@ export default function EditLodge() {
   const router = useRouter();
   const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { lodges, updateLodge, addUnit, updateUnit, deleteUnit } = useData();
+  const { lodges, myLodges, updateLodge, addUnit, updateUnit, deleteUnit } = useData();
   const { user, role, isLoading } = useAppContext();
   
   const [saving, setSaving] = useState(false);
@@ -43,8 +43,11 @@ export default function EditLodge() {
   });
   const [showCustomType, setShowCustomType] = useState(false);
 
-  // Find the current lodge and its units from the data context
-  const lodge = useMemo(() => lodges.find(l => l.id === id), [lodges, id]);
+  // Use myLodges to find the lodge, fallback to global lodges
+  const lodge = useMemo(() => {
+    const combined = [...(myLodges || []), ...lodges];
+    return combined.find(l => l.id === id);
+  }, [myLodges, lodges, id]);
   const currentUnits = lodge?.units || [];
 
   useEffect(() => {
@@ -506,6 +509,20 @@ export default function EditLodge() {
             </div>
           </div>
         </section>
+
+        {/* Final Save Action (Visible on all screens) */}
+        <div className="pt-4">
+          <button 
+            onClick={handleSubmit}
+            disabled={saving || !formData.title}
+            className="w-full py-5 bg-blue-600 text-white rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-blue-200 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="animate-spin" size={24} /> : <><Save size={24} /> Save All Changes</>}
+          </button>
+          <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-4">
+            Changes will be reflected immediately across the platform.
+          </p>
+        </div>
       </motion.div>
 
       {/* Floating Save FAB for Mobile */}
