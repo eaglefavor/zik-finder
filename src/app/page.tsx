@@ -14,8 +14,9 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import PaymentModal from '@/components/PaymentModal';
 import dynamic from 'next/dynamic';
+import SuspendedLodgeModal from '@/components/SuspendedLodgeModal';
 
-const SuspendedLodgeModal = dynamic(() => import('@/components/SuspendedLodgeModal'), { ssr: false });
+const AuthScreen = dynamic(() => import('@/components/AuthScreen'), { ssr: false });
 
 const AdminLink = ({ role }: { role: string }) => (
   role === 'admin' ? (
