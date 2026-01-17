@@ -4,12 +4,20 @@ import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { supabase } from '@/lib/supabase';
 import { RequestSkeleton } from '@/components/Skeleton';
-import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, CheckCircle, X, Loader2, ChevronRight, Search, Filter, Sparkles, Send, ArrowUpAz, ArrowDownAz, Unlock } from 'lucide-react';
+import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, CheckCircle, X, Loader2, ChevronRight, Search, Sparkles, Send, Unlock, SlidersHorizontal, Banknote } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+
+const AREA_LANDMARKS = {
+  'Ifite': ['School Gate', 'Book Foundation', 'Wimpey', 'Miracle Junction', 'First Market', 'Second Market'],
+  'Amansea': ['Green Villa', 'Yaho Junction', 'Behind Unizik'],
+  'Okpuno': ['Roban Stores', 'Udoka'],
+  'Temp Site': ['Juhel', 'St. Joseph'],
+  'Agu Awka': ['Immigration', 'Anambra State Secretariat']
+};
 
 export default function MarketRequests() {
   const { role, user, isLoading } = useAppContext();
@@ -17,8 +25,16 @@ export default function MarketRequests() {
   const [showLodgeSelector, setShowLodgeSelector] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [isNotifying, setIsNotifying] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'budget_low' | 'budget_high' | 'location'>('newest');
+  
+  // Robust Filtering State
+  const [showFilters, setShowFilters] = useState(false);
+  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState({
+    location: '',
+    minBudget: '',
+    maxBudget: '',
+    sortBy: 'newest' // newest, match_score, budget_low, budget_high
+  });
   
   // ZIPS: Unlocked Requests State
   const [unlockedRequests, setUnlockedRequests] = useState<Record<string, string>>({}); // requestId -> phone_number
@@ -29,6 +45,29 @@ export default function MarketRequests() {
     if (budget >= 700000) return 20;
     if (budget >= 300000) return 15;
     return 10;
+  };
+
+  // Derive unique locations from existing requests + Presets
+  const allLocations = useMemo(() => {
+    const requestLocs = new Set(requests.map(r => r.location));
+    Object.keys(AREA_LANDMARKS).forEach(l => requestLocs.add(l));
+    return Array.from(requestLocs).sort();
+  }, [requests]);
+
+  const activeFilterCount = [
+    filters.location,
+    filters.minBudget,
+    filters.maxBudget
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setFilters({
+      location: '',
+      minBudget: '',
+      maxBudget: '',
+      sortBy: 'newest'
+    });
+    setQuery('');
   };
 
   // Fetch unlocked requests on mount
@@ -83,81 +122,8 @@ export default function MarketRequests() {
     [lodges, user?.id]
   );
 
-  const filteredRequests = useMemo(() => {
-    return requests
-      .filter(r => 
-        r.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.locations?.some(loc => loc.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-      .sort((a, b) => {
-        if (sortBy === 'newest') {
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        }
-        
-        // Helper to get a numeric budget for sorting
-        const getBudget = (req: typeof a) => {
-          if (req.min_budget) return req.min_budget;
-          // Try to parse from legacy budget_range (e.g. "₦150,000")
-          const match = req.budget_range.match(/\d+/g);
-          return match ? parseInt(match.join('')) : 0;
-        };
-
-        const budgetA = getBudget(a);
-        const budgetB = getBudget(b);
-
-        if (sortBy === 'budget_low') return budgetA - budgetB;
-        if (sortBy === 'budget_high') return budgetB - budgetA;
-        if (sortBy === 'location') return a.location.localeCompare(b.location);
-        return 0;
-      });
-  }, [requests, searchQuery, sortBy]);
-
-  const formatTime = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  const handleDeleteRequest = (id: string) => {
-    toast.error('Delete this request?', {
-      description: 'This will remove your request from the marketplace.',
-      action: {
-        label: 'Delete',
-        onClick: async () => {
-          await deleteRequest(id);
-          toast.success('Request deleted');
-        }
-      }
-    });
-  };
-
-  const handleMatchNotify = async (lodgeId: string) => {
-    if (!selectedStudentId) return;
-    setIsNotifying(true);
-    const { success, error } = await notifyStudentOfMatch(selectedStudentId, lodgeId);
-    setIsNotifying(false);
-    
-    if (success) {
-      toast.success('Student notified!', {
-        description: 'They will see your lodge in their notifications.'
-      });
-      setShowLodgeSelector(false);
-      setSelectedStudentId(null);
-    } else {
-      toast.error('Failed to notify student: ' + error);
-    }
-  };
-
-  const calculateMatchScore = (request: typeof requests[0]) => {
+  // Match Score Calculation (Using useCallback for useMemo dependency)
+  const calculateMatchScore = useCallback((request: typeof requests[0]) => {
     if (landlordLodges.length === 0) return 0;
     
     let bestScore = 0;
@@ -202,6 +168,108 @@ export default function MarketRequests() {
     }
     
     return bestScore;
+  }, [landlordLodges]);
+
+  const filteredRequests = useMemo(() => {
+    return requests
+      .filter(r => {
+        // 1. Search Query
+        const searchLower = query.toLowerCase();
+        const matchesQuery = 
+          r.student_name.toLowerCase().includes(searchLower) ||
+          r.description.toLowerCase().includes(searchLower) ||
+          r.location.toLowerCase().includes(searchLower) ||
+          r.locations?.some(loc => loc.toLowerCase().includes(searchLower));
+
+        if (!matchesQuery) return false;
+
+        // 2. Location Filter
+        if (filters.location && !r.location.includes(filters.location) && !r.locations?.some(l => l.includes(filters.location))) {
+          return false;
+        }
+
+        // 3. Budget Filter
+        const min = filters.minBudget ? parseInt(filters.minBudget) : 0;
+        const max = filters.maxBudget ? parseInt(filters.maxBudget) : Infinity;
+        
+        // Use max_budget as the primary indicator, fallback to min_budget
+        const reqBudget = r.max_budget || r.min_budget || 0;
+        
+        if (reqBudget < min || (r.min_budget || 0) > max) {
+           return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        // Priority 1: Match Score (if landlord)
+        if (filters.sortBy === 'match_score') {
+          return calculateMatchScore(b) - calculateMatchScore(a);
+        }
+
+        if (filters.sortBy === 'newest') {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
+        
+        // Helper to get a numeric budget for sorting
+        const getBudget = (req: typeof a) => {
+          if (req.min_budget) return req.min_budget;
+          // Try to parse from legacy budget_range (e.g. "₦150,000")
+          const match = req.budget_range.match(/\d+/g);
+          return match ? parseInt(match.join('')) : 0;
+        };
+
+        const budgetA = getBudget(a);
+        const budgetB = getBudget(b);
+
+        if (filters.sortBy === 'budget_low') return budgetA - budgetB;
+        if (filters.sortBy === 'budget_high') return budgetB - budgetA;
+        
+        return 0;
+      });
+  }, [requests, query, filters, calculateMatchScore]);
+
+  const formatTime = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleDeleteRequest = (id: string) => {
+    toast.error('Delete this request?', {
+      description: 'This will remove your request from the marketplace.',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          await deleteRequest(id);
+          toast.success('Request deleted');
+        }
+      }
+    });
+  };
+
+  const handleMatchNotify = async (lodgeId: string) => {
+    if (!selectedStudentId) return;
+    setIsNotifying(true);
+    const { success, error } = await notifyStudentOfMatch(selectedStudentId, lodgeId);
+    setIsNotifying(false);
+    
+    if (success) {
+      toast.success('Student notified!', {
+        description: 'They will see your lodge in their notifications.'
+      });
+      setShowLodgeSelector(false);
+      setSelectedStudentId(null);
+    } else {
+      toast.error('Failed to notify student: ' + error);
+    }
   };
 
   if (isLoading) {
@@ -241,20 +309,20 @@ export default function MarketRequests() {
           )}
         </div>
 
-        {/* Modern Search Bar & Sort */}
+        {/* Robust Search & Filter Bar */}
         <div className="flex gap-2 group">
           <div className="relative flex-1 group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={16} />
             <input 
               type="text"
-              placeholder="Search area, budget..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search area, description..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               className="w-full bg-gray-50 border border-gray-100 p-3.5 pl-11 rounded-xl xs:rounded-2xl outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all font-medium text-sm"
             />
-            {searchQuery && (
+            {query && (
               <button 
-                onClick={() => setSearchQuery('')}
+                onClick={() => setQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 bg-gray-200 rounded-full text-gray-500 hover:bg-gray-300 transition-colors"
               >
                 <X size={12} />
@@ -262,50 +330,66 @@ export default function MarketRequests() {
             )}
           </div>
           
-          <div className="relative">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'newest' | 'budget_low' | 'budget_high' | 'location')}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-            >
-              <option value="newest">Newest First</option>
-              <option value="budget_low">Budget: Low - High</option>
-              <option value="budget_high">Budget: High - Low</option>
-              <option value="location">Location (A-Z)</option>
-            </select>
-            <button className="h-full px-3 bg-gray-50 border border-gray-100 rounded-xl xs:rounded-2xl text-gray-500 flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors">
-              {sortBy === 'newest' ? <Clock size={18} /> : sortBy === 'location' ? <MapPin size={18} /> : sortBy === 'budget_low' ? <ArrowUpAz size={18} /> : <ArrowDownAz size={18} />}
-            </button>
-          </div>
+          <button 
+            onClick={() => setShowFilters(true)}
+            className={`p-3.5 rounded-xl xs:rounded-2xl shadow-sm transition-all border flex items-center justify-center relative ${
+              showFilters || activeFilterCount > 0
+                ? 'bg-blue-600 border-blue-600 text-white' 
+                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            <SlidersHorizontal size={20} />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
+        
+        {/* Active Filter Chips */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {filters.location && (
+               <span className="px-2.5 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-100 flex items-center gap-1">
+                 <MapPin size={10} /> {filters.location}
+                 <button onClick={() => setFilters(p => ({...p, location: ''}))}><X size={10} /></button>
+               </span>
+            )}
+            {(filters.minBudget || filters.maxBudget) && (
+               <span className="px-2.5 py-1 bg-green-50 text-green-700 text-[10px] font-bold rounded-lg border border-green-100 flex items-center gap-1">
+                 <Banknote size={10} /> ₦{Number(filters.minBudget || 0).toLocaleString()} - {filters.maxBudget ? `₦${Number(filters.maxBudget).toLocaleString()}` : '∞'}
+                 <button onClick={() => setFilters(p => ({...p, minBudget: '', maxBudget: ''}))}><X size={10} /></button>
+               </span>
+            )}
+            <button onClick={clearFilters} className="text-[10px] font-bold text-red-500 underline ml-1">Clear All</button>
+          </div>
+        )}
       </div>
 
       <div className="px-3 xs:px-4 py-6 space-y-6">
-        {/* Post CTA for Students */}
-        {role === 'student' && !requests.some(r => r.student_id === user?.id) && !searchQuery && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-blue-600 to-blue-700 p-5 xs:p-6 rounded-[28px] xs:rounded-[32px] text-white shadow-xl shadow-blue-200 relative overflow-hidden"
-          >
-            <div className="relative z-10">
-              <h3 className="text-lg xs:text-xl font-bold mb-1.5 xs:mb-2">Can&apos;t find a lodge?</h3>
-              <p className="text-blue-50 text-xs xs:text-sm leading-relaxed mb-4 opacity-90">
-                Post your specific requirements and let landlords reach out to you with matching listings!
-              </p>
-              <Link 
-                href="/requests/new" 
-                className="inline-flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 xs:px-6 xs:py-3 rounded-xl xs:rounded-2xl text-xs xs:text-sm font-black shadow-lg active:scale-95 transition-all"
-              >
-                Create Request <Send size={14} />
-              </Link>
-            </div>
-            <PlusCircle className="absolute -bottom-4 -right-4 w-24 h-24 xs:w-32 xs:h-32 text-white/10 rotate-12" />
-          </motion.div>
-        )}
-
         {/* Requests List */}
         <div className="space-y-4">
+          <div className="flex justify-between items-center px-1">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              {filteredRequests.length} Request{filteredRequests.length !== 1 && 's'} Found
+            </h2>
+            {/* Sort Dropdown - Integrated */}
+             <div className="relative">
+                <select 
+                  value={filters.sortBy} 
+                  onChange={(e) => setFilters(p => ({...p, sortBy: e.target.value}))}
+                  className="appearance-none bg-transparent text-xs font-bold text-gray-500 text-right pr-4 outline-none cursor-pointer focus:text-blue-600"
+                >
+                  <option value="newest">Newest First</option>
+                  {(role === 'landlord' || role === 'admin') && <option value="match_score">Compatibility</option>}
+                  <option value="budget_low">Budget: Low - High</option>
+                  <option value="budget_high">Budget: High - Low</option>
+                </select>
+                <ChevronRight className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none" size={12} />
+             </div>
+          </div>
+
           <AnimatePresence mode='popLayout'>
             {filteredRequests.map((request, index) => {
               const isOwnRequest = user?.id === request.student_id;
@@ -482,16 +566,121 @@ export default function MarketRequests() {
             </div>
             <h3 className="text-xl font-bold text-gray-900">No requests found</h3>
             <p className="text-gray-500 text-sm max-w-[250px] mt-2 leading-relaxed">
-              We couldn&apos;t find any requests matching your current search.
+              We couldn&apos;t find any requests matching your current filters.
             </p>
             {role === 'student' && (
               <Link href="/requests/new" className="mt-8 text-blue-600 font-black text-sm uppercase tracking-widest bg-blue-50 px-8 py-3 rounded-2xl hover:bg-blue-100 transition-colors">
                 Post a Request
               </Link>
             )}
+            <button onClick={clearFilters} className="mt-4 text-gray-400 font-bold text-xs underline">Clear Filters</button>
           </motion.div>
         )}
       </div>
+
+      {/* Filter Modal */}
+      {showFilters && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-0 sm:p-4">
+          <motion.div 
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="bg-white w-full sm:max-w-md sm:rounded-[32px] rounded-t-[32px] max-h-[90vh] flex flex-col shadow-2xl"
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-50">
+              <h2 className="text-xl font-black text-gray-900 tracking-tight">Filter Requests</h2>
+              <button onClick={() => setShowFilters(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              {/* Location */}
+              <section>
+                <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                  <MapPin size={16} className="text-blue-600" /> Location
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setFilters({...filters, location: ''})}
+                    className={`p-3 rounded-xl text-xs font-bold border transition-all ${
+                      filters.location === '' 
+                        ? 'bg-blue-600 border-blue-600 text-white' 
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    All Locations
+                  </button>
+                  {allLocations.map((loc) => (
+                    <button
+                      key={loc}
+                      onClick={() => setFilters({...filters, location: loc})}
+                      className={`p-3 rounded-xl text-xs font-bold border transition-all ${
+                        filters.location === loc 
+                          ? 'bg-blue-600 border-blue-600 text-white' 
+                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {loc}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              {/* Price Range */}
+              <section>
+                <label className="block text-sm font-black text-gray-900 mb-3 flex items-center gap-2">
+                  <Banknote size={16} className="text-green-600" /> Budget Range (₦)
+                </label>
+                <div className="flex gap-4 items-center">
+                  <div className="flex-1 relative">
+                    <span className="absolute left-3 top-3 text-gray-400 text-[10px] font-black tracking-widest">MIN</span>
+                    <input 
+                      type="number" 
+                      value={filters.minBudget}
+                      onChange={(e) => setFilters({...filters, minBudget: e.target.value})}
+                      className="w-full p-3 pt-7 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-900"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="text-gray-300">-</div>
+                  <div className="flex-1 relative">
+                    <span className="absolute left-3 top-3 text-gray-400 text-[10px] font-black tracking-widest">MAX</span>
+                    <input 
+                      type="number" 
+                      value={filters.maxBudget}
+                      onChange={(e) => setFilters({...filters, maxBudget: e.target.value})}
+                      className="w-full p-3 pt-7 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-900"
+                      placeholder="∞"
+                    />
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-50 bg-white pb-8 sm:pb-6 rounded-b-[32px]">
+              <div className="flex gap-3">
+                <button 
+                  onClick={clearFilters}
+                  className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold active:scale-95 transition-transform"
+                >
+                  Reset
+                </button>
+                <button 
+                  onClick={() => setShowFilters(false)}
+                  className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform"
+                >
+                  Show Results
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Lodge Selector Modal - Premium Version */}
       <AnimatePresence>

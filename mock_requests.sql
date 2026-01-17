@@ -1,0 +1,16 @@
+INSERT INTO requests (student_id, min_budget, max_budget, location, locations, description, budget_range) VALUES
+('7739ac26-8246-4cc6-a51e-e59d3419a4e6', 150000, 200000, 'Ifite', ARRAY['Ifite', 'School Gate'], 'Looking for a decent self-con near school gate. Water is priority.', '150k - 200k'),
+('f15bff80-db57-4b3f-b8da-8c350f62082b', 250000, 350000, 'Amansea', ARRAY['Amansea', 'Green Villa'], 'Need a spacious apartment in Amansea. Budget is flexible for the right place.', '250k - 350k'),
+('3b86880c-3052-48a5-baeb-7161a4c33a5b', 100000, 150000, 'Okpuno', ARRAY['Okpuno'], 'Single room or small self con in Okpuno area.', '100k - 150k'),
+('90a23000-800a-4edc-ac6e-9f0559d8e8d1', 400000, 500000, 'Ifite', ARRAY['Ifite', 'Miracle Junction'], 'Premium self con or 1 bedroom flat needed. Must have steady light.', '400k - 500k'),
+('7739ac26-8246-4cc6-a51e-e59d3419a4e6', 180000, 220000, 'Temp Site', ARRAY['Temp Site', 'Okpuno'], 'Proximity to market is important.', '180k - 220k'),
+('f15bff80-db57-4b3f-b8da-8c350f62082b', 300000, 400000, 'Agu Awka', ARRAY['Agu Awka'], 'Looking for a quiet place for final year.', '300k - 400k'),
+('3b86880c-3052-48a5-baeb-7161a4c33a5b', 120000, 180000, 'Ifite', ARRAY['Ifite', 'Book Foundation'], 'Budget friendly lodge.', '120k - 180k'),
+('90a23000-800a-4edc-ac6e-9f0559d8e8d1', 600000, 800000, 'Amansea', ARRAY['Amansea', 'Behind Unizik'], 'Looking for a luxury flat. 2 bedroom preferred.', '600k - 800k'),
+('7739ac26-8246-4cc6-a51e-e59d3419a4e6', 200000, 250000, 'Ifite', ARRAY['Ifite', 'Wimpey'], 'Self con with tiles.', '200k - 250k'),
+('f15bff80-db57-4b3f-b8da-8c350f62082b', 150000, 180000, 'Okpuno', ARRAY['Okpuno'], 'Any available room.', '150k - 180k'),
+('3b86880c-3052-48a5-baeb-7161a4c33a5b', 220000, 280000, 'Ifite', ARRAY['Ifite', 'Perm Site'], 'Closer to school preferable.', '220k - 280k'),
+('90a23000-800a-4edc-ac6e-9f0559d8e8d1', 350000, 450000, 'Amansea', ARRAY['Amansea'], 'Nice compound with security.', '350k - 450k'),
+('7739ac26-8246-4cc6-a51e-e59d3419a4e6', 130000, 160000, 'Temp Site', ARRAY['Temp Site'], 'Just need a place to sleep.', '130k - 160k'),
+('f15bff80-db57-4b3f-b8da-8c350f62082b', 280000, 320000, 'Ifite', ARRAY['Ifite', 'First Market'], 'Good water supply is a must.', '280k - 320k'),
+('3b86880c-3052-48a5-baeb-7161a4c33a5b', 160000, 200000, 'Agu Awka', ARRAY['Agu Awka'], 'Looking for a lodge in Agu Awka.', '160k - 200k');
