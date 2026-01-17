@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ShieldAlert, X, MessageCircle, Mail, Phone } from 'lucide-react';
+import { ShieldAlert, X, MessageCircle, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SuspendedModalProps {
@@ -62,20 +62,12 @@ export default function SuspendedLodgeModal({ lodgeTitle, onClose }: SuspendedMo
               <MessageCircle size={20} /> Chat on WhatsApp
             </button>
             
-            <div className="flex gap-2">
-                <button
-                onClick={() => window.open('mailto:unizikampus@gmail.com?subject=Appeal%20Suspended%20Listing')}
-                className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border border-gray-100 hover:bg-gray-100 transition-all active:scale-95"
-                >
-                <Mail size={16} /> Email Support
-                </button>
-                <button
-                onClick={() => window.open('tel:07077010948')}
-                className="flex-1 py-3 bg-gray-50 text-gray-700 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 border border-gray-100 hover:bg-gray-100 transition-all active:scale-95"
-                >
-                <Phone size={16} /> Call Us
-                </button>
-            </div>
+            <button
+              onClick={() => window.open('mailto:unizikampus@gmail.com?subject=Appeal%20Suspended%20Listing')}
+              className="w-full py-4 bg-gray-50 text-gray-700 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 border border-gray-100 hover:bg-gray-100 transition-all active:scale-95"
+            >
+              <Mail size={20} /> Email Support
+            </button>
           </div>
         </motion.div>
       </div>
