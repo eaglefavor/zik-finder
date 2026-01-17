@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ShieldAlert, X, MessageCircle, Mail, Phone, Loader2 } from 'lucide-react';
+import { ShieldAlert, X, MessageCircle, Mail, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SuspendedModalProps {
