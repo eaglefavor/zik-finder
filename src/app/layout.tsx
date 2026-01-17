@@ -62,6 +62,7 @@ export default function RootLayout({
               <main className="min-h-screen pb-24">
                 {children}
               </main>
+              <div id="modal-root" />
               <BottomNav />
             </ZipsProvider>
           </DataProvider>

@@ -14,11 +14,12 @@ export default function SuspendedLodgeModal({ lodgeTitle, onClose }: SuspendedMo
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(timer);
+    setMounted(true);
   }, []);
 
   if (!mounted) return null;
+
+  const target = document.getElementById('modal-root') || document.body;
 
   return createPortal(
     <AnimatePresence>
