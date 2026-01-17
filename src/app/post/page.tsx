@@ -384,14 +384,8 @@ export default function PostLodge() {
               <input 
                 type="text" 
                 value={formData.address} 
-                onChange={e => {
-                   const val = e.target.value;
-                   if (/\d/.test(val) && val.length > formData.address.length) {
-                      toast.warning("For safety, please avoid house numbers. Use descriptive locations.");
-                   }
-                   setFormData({...formData, address: val});
-                }} 
-                placeholder="e.g. Near Bukas Junction (No house numbers)" 
+                onChange={e => setFormData({...formData, address: e.target.value})} 
+                placeholder="e.g. Near Bukas Junction" 
                 className="w-full p-4 bg-white border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm font-medium" 
               />
             </div>
