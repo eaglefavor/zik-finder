@@ -64,18 +64,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const fetchMyLodges = async () => {
     if (!user || user.role !== 'landlord') return;
     
-    // Fetch ALL my lodges (including suspended/taken)
+    // Fetch ALL my lodges (including suspended/taken) with Z-Score
     const { data, error } = await supabase
       .from('lodges')
-      .select('*, units:lodge_units(*)')
+      .select('*, units:lodge_units(*), profiles!lodges_landlord_id_fkey(landlord_wallets(z_score))')
       .eq('landlord_id', user.id)
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      const formatted = (data as unknown as Lodge[]).map(l => ({
+      const formatted = (data as unknown as (Lodge & { profiles: { landlord_wallets: { z_score: number }[] } })[]).map(l => ({
         ...l,
         image_urls: l.image_urls || [],
-        amenities: l.amenities || []
+        amenities: l.amenities || [],
+        landlord_z_score: l.profiles?.landlord_wallets?.[0]?.z_score ?? 50
       }));
       setMyLodges(formatted);
     }
