@@ -28,6 +28,12 @@ export default function MarketRequests() {
 // ... (rest of component start)
 
 // ... (inside component, replacing calculateMatchScore)
+  // Landlord's active lodges
+  const landlordLodges = useMemo(() => 
+    lodges.filter(l => l.landlord_id === user?.id && l.status === 'available'),
+    [lodges, user?.id]
+  );
+
   // Match Score Calculation (Deep Heuristics)
   const calculateMatchScore = useCallback((request: typeof requests[0]) => {
     if (landlordLodges.length === 0) return 0;
