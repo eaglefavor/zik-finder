@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShieldAlert, X, MessageCircle, Mail, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,14 +10,7 @@ interface SuspendedModalProps {
 }
 
 export default function SuspendedLodgeModal({ lodgeTitle, onClose }: SuspendedModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  if (!mounted) return null;
+  if (typeof document === 'undefined') return null;
 
   return createPortal(
     <AnimatePresence>
