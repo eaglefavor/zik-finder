@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw, Plus, Trash2, Share2, Eye, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Camera, CheckCircle2, ChevronLeft, X, Loader2, ShieldAlert, RefreshCw, Plus, Trash2, Share2, Eye, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
@@ -11,7 +11,8 @@ import Compressor from 'compressorjs';
 import { toast } from 'sonner';
 import Image from 'next/image';
 
-import { ROOM_TYPE_PRESETS, AREA_LANDMARKS, MARKET_FLOORS } from '@/lib/constants';
+import { AREA_LANDMARKS, MARKET_FLOORS } from '@/lib/constants';
+import { DETAILED_ROOM_TYPES } from '@/lib/room-types';
 
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
@@ -58,6 +59,7 @@ export default function PostLodge() {
     total_units: '1'
   });
   const [showCustomType, setShowCustomType] = useState(false);
+  const [showRoomTypeModal, setShowRoomTypeModal] = useState(false);
 
   // --- Persistence Logic ---
   useEffect(() => {
@@ -441,19 +443,15 @@ export default function PostLodge() {
             <div className="space-y-4">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Room Category</label>
-                <select 
-                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 appearance-none shadow-sm font-bold"
-                  value={showCustomType ? 'custom' : newUnit.name}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === 'custom') { setShowCustomType(true); setNewUnit({ ...newUnit, name: '' }); }
-                    else { setShowCustomType(false); setNewUnit({ ...newUnit, name: val }); }
-                  }}
+                <button 
+                  onClick={() => setShowRoomTypeModal(true)}
+                  className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-left flex justify-between items-center shadow-sm active:scale-[0.99] transition-all"
                 >
-                  <option value="" disabled>Select Room Type...</option>
-                  {ROOM_TYPE_PRESETS.map(p => <option key={p} value={p}>{p}</option>)}
-                  <option value="custom">Other / Describe Yours</option>
-                </select>
+                  <span className={newUnit.name ? 'text-gray-900' : 'text-gray-400'}>
+                    {newUnit.name || 'Select Room Type...'}
+                  </span>
+                  <ChevronRight size={20} className="text-gray-400" />
+                </button>
               </div>
 
               {showCustomType && (
@@ -504,6 +502,63 @@ export default function PostLodge() {
             </div>
           </div>
           <div className="flex gap-4 pt-4"><button onClick={() => setStep(2)} className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-bold">Back</button><button onClick={handleSubmit} disabled={uploading} className="flex-2 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 disabled:opacity-50">{uploading ? 'Publishing Lodge...' : 'Publish Listing'}</button></div>
+        </div>
+      )}
+      {/* Room Type Selection Modal */}
+      {showRoomTypeModal && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-[32px] rounded-t-[32px] max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl">
+            <div className="flex justify-between items-center p-6 border-b border-gray-50">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 tracking-tight">Select Room Type</h2>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Choose category & see typical prices</p>
+              </div>
+              <button onClick={() => setShowRoomTypeModal(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+              {DETAILED_ROOM_TYPES.map((type) => (
+                <button
+                  key={type.id}
+                  onClick={() => {
+                    setNewUnit({ ...newUnit, name: type.name });
+                    setShowCustomType(false);
+                    setShowRoomTypeModal(false);
+                  }}
+                  className={`w-full p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] group ${
+                    newUnit.name === type.name 
+                      ? 'bg-blue-50 border-blue-600 ring-1 ring-blue-500' 
+                      : 'bg-white border-gray-100 hover:border-blue-200 hover:bg-blue-50/30'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className={`font-black text-sm ${newUnit.name === type.name ? 'text-blue-700' : 'text-gray-900'}`}>
+                      {type.name}
+                    </span>
+                    <span className="px-2 py-1 bg-green-50 text-green-700 text-[10px] font-black rounded-lg border border-green-100 uppercase tracking-tight">
+                      {type.priceRange}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                    {type.description}
+                  </p>
+                </button>
+              ))}
+              
+              <button
+                onClick={() => {
+                  setShowCustomType(true);
+                  setNewUnit({ ...newUnit, name: '' });
+                  setShowRoomTypeModal(false);
+                }}
+                className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 text-left hover:bg-gray-50 transition-all text-gray-500 font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> Other / Custom Room Type
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
