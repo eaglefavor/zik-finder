@@ -25,9 +25,100 @@ const AMENITY_KEYWORDS = ['water', 'light', 'power', 'security', 'fenced', 'tile
 export default function MarketRequests() {
   const { role, user, isLoading } = useAppContext();
   const { requests, deleteRequest, lodges, notifyStudentOfMatch } = useData();
-// ... (rest of component start)
+  const [showLodgeSelector, setShowLodgeSelector] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [isNotifying, setIsNotifying] = useState(false);
+  
+  // Robust Filtering State
+  const [showFilters, setShowFilters] = useState(false);
+  const [query, setQuery] = useState('');
+  const [filters, setFilters] = useState({
+    location: '',
+    minBudget: '',
+    maxBudget: '',
+    sortBy: 'newest' // newest, match_score, budget_low, budget_high
+  });
+  
+  // ZIPS: Unlocked Requests State
+  const [unlockedRequests, setUnlockedRequests] = useState<Record<string, string>>({}); // requestId -> phone_number
+  const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
-// ... (inside component, replacing calculateMatchScore)
+  // Helper to calculate cost
+  const getUnlockCost = (budget: number) => {
+    if (budget >= 700000) return 20;
+    if (budget >= 300000) return 15;
+    return 10;
+  };
+
+  // Derive unique locations from existing requests + Presets
+  const allLocations = useMemo(() => {
+    const requestLocs = new Set(requests.map(r => r.location));
+    Object.keys(AREA_LANDMARKS).forEach(l => requestLocs.add(l));
+    return Array.from(requestLocs).sort();
+  }, [requests]);
+
+  const activeFilterCount = [
+    filters.location,
+    filters.minBudget,
+    filters.maxBudget
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setFilters({
+      location: '',
+      minBudget: '',
+      maxBudget: '',
+      sortBy: 'newest'
+    });
+    setQuery('');
+  };
+
+  // Fetch unlocked requests on mount
+  useEffect(() => {
+    if (user && (role === 'landlord' || role === 'admin')) {
+      const fetchUnlocked = async () => {
+        const { data } = await supabase
+          .from('leads')
+          .select('request_id, profiles!leads_student_id_fkey(phone_number)')
+          .eq('landlord_id', user.id)
+          .eq('type', 'request_unlock')
+          .eq('status', 'unlocked');
+        
+        if (data) {
+          const map: Record<string, string> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.forEach((lead: any) => {
+            if (lead.request_id) map[lead.request_id] = lead.profiles?.phone_number;
+          });
+          setUnlockedRequests(map);
+        }
+      };
+      fetchUnlocked();
+    }
+  }, [user, role]);
+
+  const handleUnlock = async (request: typeof requests[0]) => {
+    if (!user) return;
+    
+    setUnlockingId(request.id);
+    try {
+      const { data, error } = await supabase.rpc('unlock_student_request', { p_request_id: request.id });
+      
+      if (error) throw error;
+      if (data.success) {
+        toast.success(`Unlocked! Balance: ${data.remaining_balance} Credits`);
+        setUnlockedRequests(prev => ({ ...prev, [request.id]: data.phone_number }));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (err: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toast.error('Unlock failed: ' + (err as any).message);
+    } finally {
+      setUnlockingId(null);
+    }
+  };
+
   // Landlord's active lodges
   const landlordLodges = useMemo(() => 
     lodges.filter(l => l.landlord_id === user?.id && l.status === 'available'),
