@@ -20,8 +20,6 @@ export default function SuspendedLodgeModal({ lodgeTitle, onClose }: SuspendedMo
 
   if (!mounted) return null;
 
-  const target = document.getElementById('modal-root') || document.body;
-
   return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -82,6 +80,6 @@ export default function SuspendedLodgeModal({ lodgeTitle, onClose }: SuspendedMo
         </motion.div>
       </div>
     </AnimatePresence>,
-    target
+    document.getElementById('modal-root') || document.body
   );
 }
