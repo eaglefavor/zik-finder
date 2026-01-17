@@ -11,163 +11,123 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 
-const AREA_LANDMARKS = {
-  'Ifite': ['School Gate', 'Book Foundation', 'Wimpey', 'Miracle Junction', 'First Market', 'Second Market'],
-  'Amansea': ['Green Villa', 'Yaho Junction', 'Behind Unizik'],
-  'Okpuno': ['Roban Stores', 'Udoka'],
-  'Temp Site': ['Juhel', 'St. Joseph'],
-  'Agu Awka': ['Immigration', 'Anambra State Secretariat']
+const AREA_LANDMARKS: Record<string, string[]> = {
+  'Ifite': ['School Gate', 'Book Foundation', 'Wimpey', 'Miracle Junction', 'First Market', 'Second Market', 'Perm Site'],
+  'Amansea': ['Green Villa', 'Yaho Junction', 'Behind Unizik', 'Cameron'],
+  'Okpuno': ['Roban Stores', 'Udoka', 'Regina Caeli'],
+  'Temp Site': ['Juhel', 'St. Joseph', 'Okofia'],
+  'Agu Awka': ['Immigration', 'Anambra State Secretariat', 'Aroma']
 };
+
+const ROOM_TYPE_KEYWORDS = ['self con', 'self-con', 'self contained', 'flat', 'apartment', 'single room', 'shared', '2 bedroom', '3 bedroom'];
+const AMENITY_KEYWORDS = ['water', 'light', 'power', 'security', 'fenced', 'tile', 'wardrobe', 'ac', 'a/c', 'generator', 'wifi'];
 
 export default function MarketRequests() {
   const { role, user, isLoading } = useAppContext();
   const { requests, deleteRequest, lodges, notifyStudentOfMatch } = useData();
-  const [showLodgeSelector, setShowLodgeSelector] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [isNotifying, setIsNotifying] = useState(false);
-  
-  // Robust Filtering State
-  const [showFilters, setShowFilters] = useState(false);
-  const [query, setQuery] = useState('');
-  const [filters, setFilters] = useState({
-    location: '',
-    minBudget: '',
-    maxBudget: '',
-    sortBy: 'newest' // newest, match_score, budget_low, budget_high
-  });
-  
-  // ZIPS: Unlocked Requests State
-  const [unlockedRequests, setUnlockedRequests] = useState<Record<string, string>>({}); // requestId -> phone_number
-  const [unlockingId, setUnlockingId] = useState<string | null>(null);
+// ... (rest of component start)
 
-  // Helper to calculate cost
-  const getUnlockCost = (budget: number) => {
-    if (budget >= 700000) return 20;
-    if (budget >= 300000) return 15;
-    return 10;
-  };
-
-  // Derive unique locations from existing requests + Presets
-  const allLocations = useMemo(() => {
-    const requestLocs = new Set(requests.map(r => r.location));
-    Object.keys(AREA_LANDMARKS).forEach(l => requestLocs.add(l));
-    return Array.from(requestLocs).sort();
-  }, [requests]);
-
-  const activeFilterCount = [
-    filters.location,
-    filters.minBudget,
-    filters.maxBudget
-  ].filter(Boolean).length;
-
-  const clearFilters = () => {
-    setFilters({
-      location: '',
-      minBudget: '',
-      maxBudget: '',
-      sortBy: 'newest'
-    });
-    setQuery('');
-  };
-
-  // Fetch unlocked requests on mount
-  useEffect(() => {
-    if (user && (role === 'landlord' || role === 'admin')) {
-      const fetchUnlocked = async () => {
-        const { data } = await supabase
-          .from('leads')
-          .select('request_id, profiles!leads_student_id_fkey(phone_number)')
-          .eq('landlord_id', user.id)
-          .eq('type', 'request_unlock')
-          .eq('status', 'unlocked');
-        
-        if (data) {
-          const map: Record<string, string> = {};
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data.forEach((lead: any) => {
-            if (lead.request_id) map[lead.request_id] = lead.profiles?.phone_number;
-          });
-          setUnlockedRequests(map);
-        }
-      };
-      fetchUnlocked();
-    }
-  }, [user, role]);
-
-  const handleUnlock = async (request: typeof requests[0]) => {
-    if (!user) return;
-    
-    setUnlockingId(request.id);
-    try {
-      const { data, error } = await supabase.rpc('unlock_student_request', { p_request_id: request.id });
-      
-      if (error) throw error;
-      if (data.success) {
-        toast.success(`Unlocked! Balance: ${data.remaining_balance} Credits`);
-        setUnlockedRequests(prev => ({ ...prev, [request.id]: data.phone_number }));
-      } else {
-        toast.error(data.message);
-      }
-    } catch (err: unknown) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error('Unlock failed: ' + (err as any).message);
-    } finally {
-      setUnlockingId(null);
-    }
-  };
-
-  // Landlord's active lodges
-  const landlordLodges = useMemo(() => 
-    lodges.filter(l => l.landlord_id === user?.id && l.status === 'available'),
-    [lodges, user?.id]
-  );
-
-  // Match Score Calculation (Using useCallback for useMemo dependency)
+// ... (inside component, replacing calculateMatchScore)
+  // Match Score Calculation (Deep Heuristics)
   const calculateMatchScore = useCallback((request: typeof requests[0]) => {
     if (landlordLodges.length === 0) return 0;
     
     let bestScore = 0;
+    const reqDesc = request.description.toLowerCase();
+    const reqLocs = (request.locations || [request.location]).map(l => l.toLowerCase());
     
+    // Extract Budget
+    const reqMaxBudget = request.max_budget || request.min_budget || 0;
+    
+    // Extract Room Type Keywords from Request
+    const reqRoomTypes = ROOM_TYPE_KEYWORDS.filter(k => reqDesc.includes(k) || request.budget_range.toLowerCase().includes(k));
+    
+    // Extract Amenity Keywords from Request
+    const reqAmenities = AMENITY_KEYWORDS.filter(k => reqDesc.includes(k));
+
     for (const lodge of landlordLodges) {
       let score = 0;
       
-      // 1. Precise Location Match (Highest weight: 60%)
-      const reqLocations = request.locations || [request.location];
-      const isAnyLocation = reqLocations.some(l => l.toLowerCase().includes('any'));
+      // 1. Location Scoring (Max 30)
+      const lodgeLoc = lodge.location.toLowerCase();
+      // Exact or Contained Match (e.g. "Ifite" in "Ifite") -> 30
+      // Proximity/Sub-area Match (e.g. "School Gate" in "Ifite") -> 15
+      const isExactLoc = reqLocs.some(rl => lodgeLoc.includes(rl) || rl.includes(lodgeLoc) || rl === 'any location');
       
-      const locationMatch = isAnyLocation || reqLocations.some(loc => {
-        // Normalize: "Ifite (School Gate Area)" -> "ifite"
-        const cleanReq = loc.toLowerCase().split(' (')[0].trim();
-        const cleanLodge = lodge.location.toLowerCase().split(' (')[0].trim();
-        return cleanReq === cleanLodge || cleanReq === 'any location';
-      });
+      if (isExactLoc) {
+        score += 30;
+      } else {
+        // Check adjacency/sub-areas defined in AREA_LANDMARKS
+        let isAdjacent = false;
+        for (const [mainArea, subAreas] of Object.entries(AREA_LANDMARKS)) {
+          const mainLower = mainArea.toLowerCase();
+          // If lodge is in main area, and request is for a sub-area (or vice versa)
+          if ((lodgeLoc.includes(mainLower) && reqLocs.some(rl => subAreas.some(sa => sa.toLowerCase().includes(rl)))) ||
+              (reqLocs.some(rl => rl.includes(mainLower)) && subAreas.some(sa => sa.toLowerCase().includes(lodgeLoc)))) {
+            isAdjacent = true;
+            break;
+          }
+        }
+        if (isAdjacent) score += 15;
+      }
 
-      if (locationMatch) score += 60;
-      
-      // 2. Budget Match (Weight: 40%)
-      const hasBudget = request.max_budget && request.max_budget > 0;
-      
-      if (hasBudget) {
-        if (lodge.price <= request.max_budget!) {
-          // Perfectly within budget
-          score += 40;
-        } else if (lodge.price <= request.max_budget! * 1.1) {
-          // Slightly over (10%)
-          score += 20;
-        } else if (lodge.price <= request.max_budget! * 1.25) {
-          // Moderately over (25%)
-          score += 10;
+      // 2. Budget Scoring (Max 35) - Exponential Decay
+      if (reqMaxBudget > 0) {
+        if (lodge.price <= reqMaxBudget) {
+          score += 35; // Within budget
+        } else {
+          // Calculate overflow percentage
+          const diff = lodge.price - reqMaxBudget;
+          const overflowRatio = diff / reqMaxBudget; // e.g. 0.1 for 10% over
+          
+          // Allow up to 50% over budget, decaying score
+          // Formula: 35 * (1 - (overflowRatio * 2)) -> reaches 0 at 50% overflow
+          const budgetScore = Math.max(0, 35 * (1 - (overflowRatio * 2)));
+          score += budgetScore;
         }
       } else {
-        // No budget specified in request - assume partial match on price
-        // Only if location matches, we give a base "potential" match
-        if (locationMatch) score += 20;
+        // No budget specified, give heuristic base points if not too expensive (>1M might be mismatched for vague request)
+        score += lodge.price < 500000 ? 25 : 15;
       }
-      
+
+      // 3. Room Type Scoring (Max 20)
+      if (reqRoomTypes.length > 0 && lodge.units) {
+        const lodgeUnitNames = lodge.units.map(u => u.name.toLowerCase());
+        const hasTypeMatch = reqRoomTypes.some(rt => lodgeUnitNames.some(lun => lun.includes(rt) || rt.includes(lun)));
+        if (hasTypeMatch) score += 20;
+      } else if (reqRoomTypes.length === 0) {
+        // If student didn't specify type, give neutral points
+        score += 10;
+      }
+
+      // 4. Amenities Scoring (Max 10)
+      if (reqAmenities.length > 0) {
+        const lodgeAmenities = (lodge.amenities || []).map(a => a.toLowerCase());
+        // Also check description for amenities
+        const lodgeDesc = lodge.description.toLowerCase();
+        
+        let matchCount = 0;
+        reqAmenities.forEach(ra => {
+          if (lodgeAmenities.some(la => la.includes(ra)) || lodgeDesc.includes(ra)) {
+            matchCount++;
+          }
+        });
+        
+        // 2 points per match, up to 10
+        score += Math.min(10, matchCount * 2);
+      } else {
+        score += 5; // Neutral
+      }
+
+      // 5. Quality/Trust Bonus (Max 5)
+      if (lodge.profiles?.is_verified) score += 3;
+      if ((lodge.landlord_z_score || 0) > 60) score += 2;
+
       if (score > bestScore) bestScore = score;
     }
     
-    return bestScore;
+    // Cap at 99% (Reserve 100% for some future perfect state)
+    return Math.min(99, Math.round(bestScore));
   }, [landlordLodges]);
 
   const filteredRequests = useMemo(() => {
