@@ -3,7 +3,7 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { LodgeSkeleton } from '@/components/Skeleton';
-import { MapPin, Phone, MessageCircle, Heart, ChevronLeft, CheckCircle, Loader2, Sparkles, Building2, LayoutGrid } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, Heart, ChevronLeft, CheckCircle, Loader2, Sparkles, Building2, LayoutGrid, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
@@ -148,38 +148,6 @@ export default function FavoritesPage() {
                       ))}
                     </div>
 
-                    <div className="absolute bottom-5 left-5 flex flex-col gap-2 pointer-events-none">
-                      <div className="flex gap-2">
-                        <div className="px-3 py-1.5 bg-blue-600/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
-                          {lodge.location}
-                        </div>
-                        {isVerified && (
-                          <div className="flex items-center gap-1 px-3 py-1.5 bg-green-500/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
-                            <CheckCircle size={12} className="fill-white/20" /> Verified
-                          </div>
-                        )}
-                      </div>
-                      
-                      {(() => {
-                        const totalAvailable = lodge.units?.reduce((acc, u) => acc + u.available_units, 0) || 0;
-                        if (totalAvailable > 0 && totalAvailable <= 2) {
-                          return (
-                            <div className="px-3 py-1.5 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest animate-pulse shadow-lg">
-                              Only {totalAvailable} left!
-                            </div>
-                          );
-                        }
-                        if (totalAvailable === 0 && lodge.units && lodge.units.length > 0) {
-                          return (
-                            <div className="px-3 py-1.5 bg-gray-900/90 backdrop-blur-md text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-lg">
-                              Fully Booked
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-
                     {allCardImages.length > 1 && (
                       <div className="absolute top-5 left-5 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-xl text-white text-[9px] font-black tracking-widest uppercase pointer-events-none border border-white/10">
                         {allCardImages.length} Photos
@@ -199,6 +167,48 @@ export default function FavoritesPage() {
                   
                   <div className="p-6 xs:p-8">
                     <Link href={`/lodge/${lodge.id}`}>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="px-3 py-1.5 bg-blue-50 text-blue-600 text-[10px] font-black rounded-xl uppercase tracking-widest border border-blue-100">
+                          {lodge.location}
+                        </div>
+                        {lodge.promoted_until && new Date(lodge.promoted_until) > new Date() && (
+                          <div className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-600 text-[10px] font-black rounded-xl uppercase tracking-widest border border-amber-100">
+                            <Zap size={12} className="fill-amber-600" /> Featured
+                          </div>
+                        )}
+                        {isVerified && (
+                          <div className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-600 text-[10px] font-black rounded-xl uppercase tracking-widest border border-green-100">
+                            <CheckCircle size={12} className="fill-green-600/20" /> Verified
+                          </div>
+                        )}
+                        {lodge.landlord_z_score !== undefined && (
+                          <div className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-black rounded-xl uppercase tracking-widest border ${
+                            lodge.landlord_z_score >= 80 ? 'bg-blue-50 text-blue-700 border-blue-100' : lodge.landlord_z_score >= 50 ? 'bg-gray-50 text-gray-600 border-gray-100' : 'bg-red-50 text-red-600 border-red-100'
+                          }`}>
+                            <ShieldCheck size={12} /> Score: {lodge.landlord_z_score}
+                          </div>
+                        )}
+                        
+                        {(() => {
+                          const totalAvailable = lodge.units?.reduce((acc, u) => acc + u.available_units, 0) || 0;
+                          if (totalAvailable > 0 && totalAvailable <= 2) {
+                            return (
+                              <div className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black rounded-xl uppercase tracking-widest animate-pulse border border-red-100">
+                                Only {totalAvailable} left!
+                              </div>
+                            );
+                          }
+                          if (totalAvailable === 0 && lodge.units && lodge.units.length > 0) {
+                            return (
+                              <div className="px-3 py-1.5 bg-gray-100 text-gray-500 text-[10px] font-black rounded-xl uppercase tracking-widest border border-gray-200">
+                                Fully Booked
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="font-black text-xl text-gray-900 tracking-tight leading-tight group-hover:text-blue-600 transition-colors">{lodge.title}</h3>
                         <div className="text-right shrink-0 ml-4">
