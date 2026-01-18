@@ -19,6 +19,7 @@ export default function EditLodge() {
   const router = useRouter();
   const { id } = useParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const unitFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const { lodges, myLodges, updateLodge, addUnit, updateUnit, deleteUnit } = useData();
   const { user, role, isLoading } = useAppContext();
   
@@ -129,14 +130,37 @@ export default function EditLodge() {
     }
   };
 
+  const handleUnitFileChange = async (e: React.ChangeEvent<HTMLInputElement>, unitId: string) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const urls = await Promise.all(Array.from(files).map(async (file) => {
+        const compressed = await compressImage(file);
+        return uploadToCloudinary(compressed);
+      }));
+      
+      const unit = currentUnits.find(u => u.id === unitId);
+      if (unit) {
+        const newImages = [...(unit.image_urls || []), ...urls].slice(0, 5);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await updateUnit(unitId, { image_urls: newImages } as any);
+        toast.success('Unit photos updated');
+      }
+    } catch (err) {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
+      if (unitFileInputRefs.current[unitId]) unitFileInputRefs.current[unitId]!.value = '';
+    }
+  };
+
   const handleAddUnit = async () => {
     if (!newUnit.name || !newUnit.price) return;
     await addUnit({
       lodge_id: id as string,
       name: newUnit.name,
       price: parseInt(newUnit.price),
-      total_units: parseInt(newUnit.total_units),
-      available_units: parseInt(newUnit.total_units),
       image_urls: []
     });
     toast.success('Room type added');
@@ -303,57 +327,119 @@ export default function EditLodge() {
         </section>
 
         {/* Photos Section */}
-        <section className="bg-white p-6 xs:p-8 rounded-[32px] xs:rounded-[40px] border border-gray-100 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                <ImageIcon size={20} />
-              </div>
-              <div>
-                <h2 className="font-black text-gray-900 text-lg tracking-tight">Gallery</h2>
-                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">{formData.image_urls.length}/10 Photos</p>
-              </div>
+        <section className="bg-white p-6 xs:p-8 rounded-[32px] xs:rounded-[40px] border border-gray-100 shadow-sm space-y-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
+              <ImageIcon size={20} />
             </div>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors active:scale-90"
-            >
-              <Plus size={20} />
-            </button>
+            <div>
+              <h2 className="font-black text-gray-900 text-lg tracking-tight">Lodge & Room Photos</h2>
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Manage all your photos</p>
+            </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-3">
-            <AnimatePresence>
-              {formData.image_urls.map((img, idx) => (
-                <motion.div 
-                  key={idx}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.8, opacity: 0 }}
-                  className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group border border-gray-100 shadow-inner"
-                >
-                  <Image src={img} fill className="object-cover group-hover:scale-110 transition-transform duration-500" alt="Lodge" />
-                  <button 
-                    onClick={() => setFormData(p => ({...p, image_urls: p.image_urls.filter((_, i) => i !== idx)}))}
-                    className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 backdrop-blur-md"
+          {/* General Photos Shelf */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                <Building2 size={16} className="text-gray-400" />
+                Compound & General
+              </h3>
+              <span className="text-[10px] bg-gray-100 px-2 py-1 rounded-lg text-gray-500 font-bold uppercase">{formData.image_urls.length}/10</span>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+              <AnimatePresence>
+                {formData.image_urls.map((img, idx) => (
+                  <motion.div 
+                    key={idx}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group border border-gray-100 shadow-inner"
                   >
-                    <X size={14} />
-                  </button>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            {formData.image_urls.length < 10 && (
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 gap-2 hover:bg-gray-50 hover:border-blue-300 transition-all active:scale-95"
-              >
-                {uploading ? <Loader2 className="animate-spin" size={24} /> : <><Camera size={24} /><span className="text-[8px] font-black uppercase tracking-widest">Add Photo</span></>}
-              </button>
-            )}
+                    <Image src={img} fill className="object-cover group-hover:scale-110 transition-transform duration-500" alt="Lodge" />
+                    <button 
+                      onClick={() => setFormData(p => ({...p, image_urls: p.image_urls.filter((_, i) => i !== idx)}))}
+                      className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 backdrop-blur-md"
+                    >
+                      <X size={14} />
+                    </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              {formData.image_urls.length < 10 && (
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 gap-2 hover:bg-gray-50 hover:border-blue-300 transition-all active:scale-95"
+                >
+                  {uploading ? <Loader2 className="animate-spin" size={24} /> : <><Camera size={24} /><span className="text-[8px] font-black uppercase tracking-widest">Add Photo</span></>}
+                </button>
+              )}
+            </div>
+            <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
           </div>
-          <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+
+          {/* Unit Photos Shelves */}
+          {currentUnits.map((unit) => (
+            <div key={unit.id} className="space-y-4 pt-6 border-t border-gray-50">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                  {unit.name}
+                </h3>
+                <span className="text-[10px] bg-blue-50 px-2 py-1 rounded-lg text-blue-600 font-bold uppercase">
+                  {(unit.image_urls || []).length}/5 Photos
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-3">
+                <AnimatePresence>
+                  {(unit.image_urls || []).map((img, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      className="relative aspect-square rounded-2xl overflow-hidden bg-gray-100 group border border-gray-100 shadow-inner"
+                    >
+                      <Image src={img} fill className="object-cover group-hover:scale-110 transition-transform duration-500" alt={unit.name} />
+                      <button 
+                        onClick={async () => {
+                          const newImages = (unit.image_urls || []).filter((_, i) => i !== idx);
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          await updateUnit(unit.id, { image_urls: newImages } as any);
+                          toast.success('Photo removed');
+                        }}
+                        className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 backdrop-blur-md"
+                      >
+                        <X size={14} />
+                      </button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                
+                {(unit.image_urls || []).length < 5 && (
+                  <button 
+                    onClick={() => unitFileInputRefs.current[unit.id]?.click()}
+                    disabled={uploading}
+                    className="aspect-square border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 gap-2 hover:bg-gray-50 hover:border-blue-300 transition-all active:scale-95"
+                  >
+                    {uploading ? <Loader2 className="animate-spin" size={20} /> : <><Camera size={20} /><span className="text-[8px] font-black uppercase tracking-widest">Add Photo</span></>}
+                  </button>
+                )}
+              </div>
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                className="hidden" 
+                ref={(el) => { unitFileInputRefs.current[unit.id] = el; }} 
+                onChange={(e) => handleUnitFileChange(e, unit.id)} 
+              />
+            </div>
+          ))}
         </section>
 
         {/* Amenities Section */}
@@ -447,7 +533,7 @@ export default function EditLodge() {
                         }}
                         className="text-xs text-blue-600 font-black hover:underline mt-1.5 flex items-center gap-1.5"
                       >
-                        ₦{unit.price.toLocaleString()} <span className="w-1 h-1 bg-gray-300 rounded-full" /> {unit.available_units}/{unit.total_units} Left
+                        ₦{unit.price.toLocaleString()}
                       </button>
                     )}
                   </div>
@@ -490,13 +576,6 @@ export default function EditLodge() {
                     type="number" placeholder="Price" value={newUnit.price} 
                     onChange={e => setNewUnit({...newUnit, price: e.target.value})} 
                     className="w-full p-4 pl-8 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold text-gray-900 outline-none focus:bg-white focus:border-blue-500 transition-all"
-                  />
-                </div>
-                <div className="w-24 relative">
-                  <input 
-                    type="number" placeholder="Qty" value={newUnit.total_units}
-                    onChange={e => setNewUnit({...newUnit, total_units: e.target.value})}
-                    className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl text-sm font-bold text-gray-900 outline-none focus:bg-white focus:border-blue-500 text-center transition-all"
                   />
                 </div>
               </div>

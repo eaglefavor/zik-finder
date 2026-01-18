@@ -393,17 +393,6 @@ export default function LodgeDetail() {
                             {unit.name}
                           </h3>
                           <div className="flex flex-wrap gap-2 mt-2">
-                            {unit.available_units > 0 ? (
-                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg ${
-                                selectedUnit?.id === unit.id ? 'bg-white/20 text-white' : 'bg-green-50 text-green-700'
-                              }`}>
-                                {unit.available_units} Left
-                              </span>
-                            ) : (
-                              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-gray-100 text-gray-500">
-                                Sold Out
-                              </span>
-                            )}
                             <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg ${
                                 selectedUnit?.id === unit.id ? 'bg-white/20 text-white' : 'bg-gray-50 text-gray-500 border border-gray-100'
                             }`}>

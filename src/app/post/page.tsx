@@ -421,7 +421,7 @@ export default function PostLodge() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-bold text-lg">{unit.name}</h3>
-                    <p className="text-blue-600 font-black">₦{unit.price.toLocaleString()} • {unit.total_units} Room(s)</p>
+                    <p className="text-blue-600 font-black">₦{unit.price.toLocaleString()}</p>
                   </div>
                   <button onClick={() => handleDeleteUnit(unit.tempId)} className="p-2 text-red-400 bg-red-50 rounded-full hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>
                 </div>

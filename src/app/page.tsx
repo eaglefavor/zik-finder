@@ -45,7 +45,6 @@ export default function Home() {
     myLodges,
     deleteLodge, 
     updateLodgeStatus, 
-    updateUnitAvailability, 
     toggleFavorite, 
     favorites, 
     viewGrowth,
@@ -328,20 +327,14 @@ export default function Home() {
                             <LayoutGrid size={12} className="text-gray-400" />
                             <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Inventory Status</h4>
                           </div>
-                          <span className="text-[9px] font-bold text-gray-400">Avail / Total</span>
                         </div>
                         <div className="grid grid-cols-1 gap-2">
                           {lodge.units.map((unit) => (
                             <div key={unit.id} className="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-50 group/unit">
                               <div className="min-w-0 pr-2">
                                 <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tighter">{unit.name}</p>
-                                <p className="text-[9px] text-blue-600 font-bold">₦{unit.price.toLocaleString()}</p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <button onClick={() => updateUnitAvailability(unit.id, Math.max(0, unit.available_units - 1))} className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-600 transition-colors active:scale-90">-</button>
-                                <div className="text-center min-w-[35px]"><span className={`text-xs font-black ${unit.available_units === 0 ? 'text-red-500' : 'text-gray-900'}`}>{unit.available_units}</span><span className="text-[9px] text-gray-300 font-bold">/{unit.total_units}</span></div>
-                                <button onClick={() => updateUnitAvailability(unit.id, Math.min(unit.total_units, unit.available_units + 1))} className="w-8 h-8 flex items-center justify-center bg-gray-50 hover:bg-green-50 rounded-xl text-gray-400 hover:text-green-600 transition-colors active:scale-90">+</button>
-                              </div>
+                              <p className="text-[9px] text-blue-600 font-bold">₦{unit.price.toLocaleString()}</p>
                             </div>
                           ))}
                         </div>
@@ -600,25 +593,6 @@ export default function Home() {
                           <ShieldCheck size={12} /> Score: {lodge.landlord_z_score}
                         </div>
                       )}
-                      
-                      {(() => {
-                        const totalAvailable = lodge.units?.reduce((acc, u) => acc + u.available_units, 0) || 0;
-                        if (totalAvailable > 0 && totalAvailable <= 2) {
-                          return (
-                            <div className="px-3 py-1.5 bg-red-50 text-red-600 text-[10px] font-black rounded-xl uppercase tracking-widest animate-pulse border border-red-100">
-                              Only {totalAvailable} left!
-                            </div>
-                          );
-                        }
-                        if (totalAvailable === 0 && lodge.units && lodge.units.length > 0) {
-                          return (
-                            <div className="px-3 py-1.5 bg-gray-100 text-gray-500 text-[10px] font-black rounded-xl uppercase tracking-widest border border-gray-200">
-                              Fully Booked
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
                     </div>
 
                     <div className="flex justify-between items-start mb-3">

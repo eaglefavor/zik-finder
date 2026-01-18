@@ -26,9 +26,8 @@ interface DataContextType {
   addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => Promise<{ success: boolean; error?: string }>;
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken' | 'suspended') => Promise<void>;
-  addUnit: (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => Promise<void>;
-  updateUnit: (id: string, unitData: Partial<{ name: string, price: number, total_units: number, available_units: number }>) => Promise<void>;
-  updateUnitAvailability: (id: string, available_units: number) => Promise<void>;
+  addUnit: (unitData: { lodge_id: string, name: string, price: number, image_urls?: string[] }) => Promise<void>;
+  updateUnit: (id: string, unitData: Partial<{ name: string, price: number }>) => Promise<void>;
   deleteUnit: (id: string) => Promise<void>;
   deleteLodge: (id: string) => Promise<void>;
   addRequest: (requestData: Omit<LodgeRequest, 'id' | 'student_id' | 'student_name' | 'student_phone' | 'created_at' | 'expires_at'>) => Promise<{ success: boolean; error?: string }>;
@@ -424,16 +423,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const addUnit = async (unitData: { lodge_id: string, name: string, price: number, total_units: number, available_units: number, image_urls?: string[] }) => {
+  const addUnit = async (unitData: { lodge_id: string, name: string, price: number, image_urls?: string[] }) => {
     const { error } = await supabase
       .from('lodge_units')
-      .insert(unitData);
+      .insert({
+        ...unitData,
+        total_units: 1,
+        available_units: 1
+      });
       
     if (error) console.error('Error adding unit:', error);
     await fetchInitialLodges();
   };
 
-  const updateUnit = async (id: string, unitData: Partial<{ name: string, price: number, total_units: number, available_units: number }>) => {
+  const updateUnit = async (id: string, unitData: Partial<{ name: string, price: number }>) => {
     const { error } = await supabase
       .from('lodge_units')
       .update(unitData)
@@ -441,17 +444,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       
     if (error) console.error('Error updating unit:', error);
     await fetchInitialLodges();
-  };
-
-  const updateUnitAvailability = async (id: string, available_units: number) => {
-    const { error } = await supabase
-      .from('lodge_units')
-      .update({ available_units })
-      .eq('id', id);
-
-    if (!error) {
-      await fetchInitialLodges();
-    }
   };
 
   const deleteUnit = async (id: string) => {
@@ -653,7 +645,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       updateLodgeStatus,
       addUnit,
       updateUnit,
-      updateUnitAvailability,
       deleteUnit,
       deleteLodge,
       addRequest,
