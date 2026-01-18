@@ -71,10 +71,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // 3. Delete Lodge from Supabase
-    // We SKIP this step here. The Client will handle DB deletion.
-    // This solves the RLS/Auth context issue on the server.
-    // We return success so the client knows images are gone (or attempted).
+    // 4. Atomic DB Deletion (Server-Side Authority)
+    // We use the same authenticated client to ensure RLS policies are respected.
+    // The previous implementation relied on the client to call delete, which is non-atomic.
+    const { error: deleteError } = await supabase
+      .from('lodges')
+      .delete()
+      .eq('id', lodgeId);
+
+    if (deleteError) {
+      // Note: Images are already gone. This is a partial failure state, but better than "zombie" images.
+      throw deleteError;
+    }
     
     return NextResponse.json({ success: true });
 

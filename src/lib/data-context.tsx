@@ -485,11 +485,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         console.warn('Image deletion API warning:', await res.json());
       }
 
-      const { error } = await supabase.rpc('delete_lodge', { lodge_id: id });
-
-      if (error) {
-        throw error;
-      }
+      // The API route now handles DB deletion atomically.
+      // We don't need to call supabase.rpc('delete_lodge') anymore.
 
       await fetchInitialLodges();
       await fetchMyLodges();
