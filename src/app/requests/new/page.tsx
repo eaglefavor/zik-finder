@@ -2,21 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Send, MapPin, BadgeDollarSign, Home, AlertCircle, X, Check, Loader2, Zap } from 'lucide-react';
+import { ChevronLeft, Send, MapPin, BadgeDollarSign, Home, AlertCircle, X, Check, Loader2, Zap, ChevronRight, Plus } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import { toast } from 'sonner';
 import { AREA_LANDMARKS } from '@/lib/constants';
-
-const ROOM_TYPES = [
-  'Standard Self-con',
-  'Executive Self-con',
-  'Studio Apartment',
-  'Single Room',
-  '1-Bedroom Flat',
-  '2-Bedroom Flat',
-  'Any'
-];
+import { DETAILED_ROOM_TYPES } from '@/lib/room-types';
 
 export default function NewRequest() {
   const router = useRouter();
@@ -25,6 +16,7 @@ export default function NewRequest() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showRoomTypeModal, setShowRoomTypeModal] = useState(false);
   
   const [formData, setFormData] = useState({
     locations: [] as string[],
@@ -142,18 +134,19 @@ export default function NewRequest() {
           {/* Room Type */}
           <div className="relative">
             <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">Room Category</label>
-            <div className="relative">
-              <Home className="absolute left-4 top-4 text-gray-400" size={20} />
-              <select 
-                value={formData.room_type}
-                onChange={e => setFormData({...formData, room_type: e.target.value})}
-                className="w-full p-4 pl-12 bg-white border border-gray-100 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none font-medium text-gray-700"
-              >
-                {ROOM_TYPES.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
+            <button 
+              type="button"
+              onClick={() => setShowRoomTypeModal(true)}
+              className="w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center active:scale-[0.99] transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <Home className="text-gray-400" size={20} />
+                <span className={formData.room_type ? 'text-gray-900 font-bold' : 'text-gray-400'}>
+                  {formData.room_type || 'Select Room Type...'}
+                </span>
+              </div>
+              <ChevronRight size={20} className="text-gray-400" />
+            </button>
           </div>
 
           {/* Budget Range */}
@@ -312,6 +305,64 @@ export default function NewRequest() {
                 className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200"
               >
                 Done ({formData.locations.length} Selected)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Type Selection Modal */}
+      {showRoomTypeModal && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-0 sm:p-4">
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-[32px] rounded-t-[32px] max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-300 shadow-2xl">
+            <div className="flex justify-between items-center p-6 border-b border-gray-50">
+              <div>
+                <h2 className="text-xl font-black text-gray-900 tracking-tight">Select Room Type</h2>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Choose category & see typical prices</p>
+              </div>
+              <button onClick={() => setShowRoomTypeModal(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+              {DETAILED_ROOM_TYPES.map((type) => (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => {
+                    setFormData({ ...formData, room_type: type.name });
+                    setShowRoomTypeModal(false);
+                  }}
+                  className={`w-full p-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] group ${
+                    formData.room_type === type.name 
+                      ? 'bg-blue-50 border-blue-600 ring-1 ring-blue-50' 
+                      : 'bg-white border-gray-100 hover:border-blue-200 hover:bg-blue-50/30'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className={`font-black text-sm ${formData.room_type === type.name ? 'text-blue-700' : 'text-gray-900'}`}>
+                      {type.name}
+                    </span>
+                    <span className="px-2 py-1 bg-green-50 text-green-700 text-[10px] font-black rounded-lg border border-green-100 uppercase tracking-tight">
+                      {type.priceRange}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                    {type.description}
+                  </p>
+                </button>
+              ))}
+              
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({ ...formData, room_type: 'Any' });
+                  setShowRoomTypeModal(false);
+                }}
+                className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 text-left hover:bg-gray-50 transition-all text-gray-500 font-bold text-sm flex items-center justify-center gap-2"
+              >
+                <Plus size={16} /> Any / No Preference
               </button>
             </div>
           </div>
