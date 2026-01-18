@@ -549,6 +549,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const notifyStudentOfMatch = async (studentId: string, lodgeId: string) => {
     if (!user) return { success: false, error: 'Not authenticated' };
+    if (!studentId) return { success: false, error: 'Invalid student ID' };
 
     try {
       const { data: lodge } = await supabase
@@ -568,7 +569,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       return { success: true };
     } catch (err: unknown) {
-      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+      console.error("Notification Error:", err);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const msg = (err as any)?.message || (err as any)?.error_description || (typeof err === 'string' ? err : 'Unknown error');
+      return { success: false, error: msg };
     }
   };
 
