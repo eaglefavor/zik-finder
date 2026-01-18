@@ -12,11 +12,35 @@ export const ROOM_TYPE_PRESETS = [
 ];
 
 export const AREA_LANDMARKS: { [key: string]: string[] } = {
-  'Ifite': ['School Gate', 'First Gate', 'Second Gate', 'Bookshop', 'Perm Site', 'Mgbakwu Junction', 'Miracle Junction'],
-  'Okpuno': ['UNIZIK Junction', 'Regina Caeli', 'Y-Junction', 'Stanel Mart', 'Abakaliki Street'],
-  'Aroma': ['Aroma Junction', 'Government House', 'Roban Stores', 'Ekwueme Square'],
-  'Amansea': ['Amansea Junction', 'Cattle Market', 'Unizik Back Gate'],
-  'Temp Site': ['Temp Site Junction', 'Kenneth Dike Library', 'Eke Awka Area']
+  'Ifite': [
+    'UNIZIK Main Gate', 'Ifite Overpass (Flyover)', 'Garba Square', 'Amansea-Ifite Road Junction', 
+    'Enu-Ifite Village Hall', 'Ezinato-Ifite Village Square', 'Miracle Junction', 'First Gate (UNIZIK)', 
+    'Second Gate (UNIZIK)', 'Dozie Way', 'Ezenwa Crescent', 'Back Gate (UNIZIK)', 
+    'Book Foundation Junction', 'Ifite Market', 'Regina Caeli Road Junction (Ifite end)'
+  ],
+  'Okpuno': [
+    'Silluch Roundabout', 'Okpuno Town Hall', 'Igwe of Okpuno Palace', 'St. John’s Catholic Church', 
+    'Tansi International College', 'Pope John Paul II Seminary', 'Aguchi Layout', 'Obunumo Village Square', 
+    'Okpuno Community Secondary School', 'Odadi Layout', 'Okpuno-Isuaniocha Road Junction', 
+    'Agbolo Layout', 'Ring Road Okpuno', 'St. John\'s Primary School', 'Okpuno Electrification Project Marker'
+  ],
+  'Aroma': [
+    'Starry Empire', 'Alex Ekwueme Square', 'Anambra State Secretariate', 'Arroma Junction', 
+    'ABO Gallery (ArtsyByOma)', 'Government House', 'Anambra Broadcasting Service', 
+    'International Convention Center', 'CBN Awka', 'Anambra State House of Assembly', 
+    'St. Patrick\'s Cathedral', 'Iyiagu Estate', 'Aroma Park', 'Juhel Parenteral Factory'
+  ],
+  'Amansea': [
+    'Amansea Bridge', 'Awka Millennium City (AMC)', 'Amansea Cattle Market', 'Amansea Flyover', 
+    'Garri Market', 'Amansea Village Square', 'UNIZIK Faculty of Agriculture', 'Amansea-Ebenebe Road Junction', 
+    'The "Border" Landmark', 'Amansea Community School', 'River Mammy (Ezu River)', 
+    'Amansea Police Station', 'Victoria Point', 'Hilltop Estate', 'Amansea Junction'
+  ],
+  'Temp Site': [
+    'UNIZIK Junction', 'Club Gaga', 'Chow County Bistro', 'Diamond Pizza', 'Bamboo Bar', 
+    'Temp Site Bus Park', 'Regina Caeli Hospital', 'Zik Avenue', 'Geobi Suites', 'Temp Site Market', 
+    'Ekwueme Hall', 'First Bank', 'Okasha Plaza', 'Cornerstone Junction', 'Arthur Eze Street Junction'
+  ]
 };
 
 export const AMENITIES = ['Water', 'Light', 'Security', 'Prepaid', 'Parking', 'Tiled'];

@@ -249,40 +249,69 @@ export default function NewRequest() {
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-0 sm:p-4">
           <div className="bg-white w-full sm:max-w-md sm:rounded-[32px] rounded-t-[32px] max-h-[80vh] flex flex-col animate-in slide-in-from-bottom duration-300">
             <div className="flex justify-between items-center p-6 border-b border-gray-50">
-              <h2 className="text-xl font-bold text-gray-900">Select Areas</h2>
+              <h2 className="text-xl font-bold text-gray-900">Select Areas & Landmarks</h2>
               <button onClick={() => setShowLocationPicker(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-2">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {allAreas.map(area => {
-                const isSelected = formData.locations.includes(area);
+                const isAreaSelected = formData.locations.includes(area);
                 return (
-                  <button
-                    key={area}
-                    type="button"
-                    onClick={() => toggleLocation(area)}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
-                      isSelected ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-50' : 'bg-white border-gray-100'
-                    }`}
-                  >
-                    <span className={`font-bold ${isSelected ? 'text-blue-700' : 'text-gray-600'}`}>{area}</span>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                      isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-200'
-                    }`}>
-                      {isSelected && <Check size={14} className="text-white" />}
-                    </div>
-                  </button>
+                  <div key={area} className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleLocation(area)}
+                      className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                        isAreaSelected ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-50' : 'bg-white border-gray-100'
+                      }`}
+                    >
+                      <span className={`font-bold ${isAreaSelected ? 'text-blue-700' : 'text-gray-600'}`}>{area}</span>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        isAreaSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-200'
+                      }`}>
+                        {isAreaSelected && <Check size={14} className="text-white" />}
+                      </div>
+                    </button>
+
+                    {/* Landmarks for this area */}
+                    {isAreaSelected && AREA_LANDMARKS[area] && (
+                      <div className="pl-4 grid grid-cols-1 gap-2 border-l-2 border-gray-100 ml-2">
+                        {AREA_LANDMARKS[area].map(landmark => {
+                          const isLandmarkSelected = formData.locations.includes(landmark);
+                          return (
+                            <button
+                              key={landmark}
+                              type="button"
+                              onClick={() => toggleLocation(landmark)}
+                              className={`text-left text-xs font-bold py-2 px-3 rounded-xl transition-all flex items-center gap-2 ${
+                                isLandmarkSelected 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                              }`}
+                            >
+                              <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                                isLandmarkSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-white'
+                              }`}>
+                                {isLandmarkSelected && <Check size={10} className="text-white" />}
+                              </div>
+                              {landmark}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
-            <div className="p-6">
+            <div className="p-6 border-t border-gray-50">
               <button 
                 type="button"
                 onClick={() => setShowLocationPicker(false)}
                 className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200"
               >
-                Done
+                Done ({formData.locations.length} Selected)
               </button>
             </div>
           </div>

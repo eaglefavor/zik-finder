@@ -28,6 +28,7 @@ export default function EditLodge() {
   const [loadingLodge, setLoadingLodge] = useState(true);
   const [editingUnitId, setEditingUnitId] = useState<string | null>(null);
   const [editPrice, setEditPrice] = useState('');
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -361,7 +362,7 @@ export default function EditLodge() {
                     <Image src={img} fill className="object-cover group-hover:scale-110 transition-transform duration-500" alt="Lodge" />
                     <button 
                       onClick={() => setFormData(p => ({...p, image_urls: p.image_urls.filter((_, i) => i !== idx)}))}
-                      className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 backdrop-blur-md"
+                      className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg hover:bg-red-500 backdrop-blur-md transition-all"
                     >
                       <X size={14} />
                     </button>
@@ -406,15 +407,18 @@ export default function EditLodge() {
                     >
                       <Image src={img} fill className="object-cover group-hover:scale-110 transition-transform duration-500" alt={unit.name} />
                       <button 
+                        disabled={deletingImage === `${unit.id}-${idx}`}
                         onClick={async () => {
+                          setDeletingImage(`${unit.id}-${idx}`);
                           const newImages = (unit.image_urls || []).filter((_, i) => i !== idx);
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           await updateUnit(unit.id, { image_urls: newImages } as any);
                           toast.success('Photo removed');
+                          setDeletingImage(null);
                         }}
-                        className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 backdrop-blur-md"
+                        className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-lg hover:bg-red-500 backdrop-blur-md transition-all disabled:opacity-50"
                       >
-                        <X size={14} />
+                        {deletingImage === `${unit.id}-${idx}` ? <Loader2 className="animate-spin" size={14} /> : <X size={14} />}
                       </button>
                     </motion.div>
                   ))}
