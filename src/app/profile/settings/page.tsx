@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, User, Phone, Loader2, Save, Camera, Upload, MessageCircle } from 'lucide-react';
+import { ArrowLeft, User, Phone, Loader2, Save, Camera, MessageCircle } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';

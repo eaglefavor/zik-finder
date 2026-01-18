@@ -91,8 +91,8 @@ export default function PostLodge() {
           // Silent cleanup for empty drafts
           localStorage.removeItem(DRAFT_KEY);
         }
-      } catch (err) {
-        console.error('Failed to parse draft', err);
+      } catch {
+        console.error('Failed to parse draft');
       }
     }
   }, []);
@@ -160,7 +160,7 @@ export default function PostLodge() {
         return uploadToCloudinary(compressed);
       }));
       setGeneralImages(prev => [...prev, ...urls]);
-    } catch (err) {
+    } catch {
       toast.error('Upload failed');
     } finally {
       setUploading(false);
@@ -179,7 +179,7 @@ export default function PostLodge() {
         return uploadToCloudinary(compressed);
       }));
       setUnits(prev => prev.map(u => u.tempId === tempId ? { ...u, image_urls: [...u.image_urls, ...urls] } : u));
-    } catch (err) {
+    } catch {
       toast.error('Upload failed');
     } finally {
       setUploading(false);

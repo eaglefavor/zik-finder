@@ -44,7 +44,7 @@ export default function ResetPassword() {
           router.push('/');
         }, 3000);
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);

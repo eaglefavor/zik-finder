@@ -9,7 +9,7 @@ import { UserRole } from '@/lib/types';
 import { toast } from 'sonner';
 
 export default function OnboardingPage() {
-  const { user, role: currentRole } = useAppContext();
+  const { user } = useAppContext();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search as SearchIcon, MapPin, SlidersHorizontal, ChevronRight, ArrowLeft, X, Check, ArrowUpAZ, ArrowDownAZ, Banknote } from 'lucide-react';
+import { Search as SearchIcon, MapPin, SlidersHorizontal, ArrowLeft, X, Check, Banknote } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

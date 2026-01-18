@@ -3,7 +3,6 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, TrendingDown, Minus, Activity, LayoutGrid, ChevronRight, Search, Zap, ShieldAlert, Mail } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -106,7 +105,7 @@ export default function Home() {
       } else {
         toast.error(data.message);
       }
-    } catch (err: unknown) {
+    } catch {
       toast.error('Failed to send request');
     } finally {
       setRequestingId(null);
@@ -137,7 +136,7 @@ export default function Home() {
       
       // Refresh lodges to show the new status
       await fetchInitialLodges();
-    } catch (err: unknown) {
+    } catch (err) {
       console.error('Promotion error:', err);
       toast.error('Failed to activate promotion. Payment verification failed.');
     } finally {

@@ -4,7 +4,7 @@ import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { supabase } from '@/lib/supabase';
 import { RequestSkeleton } from '@/components/Skeleton';
-import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, CheckCircle, X, Loader2, ChevronRight, Search, Sparkles, Send, Unlock, SlidersHorizontal, Banknote } from 'lucide-react';
+import { User, MapPin, Clock, MessageCircle, Trash2, PlusCircle, X, Loader2, ChevronRight, Search, Sparkles, Unlock, SlidersHorizontal, Banknote } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useState, useMemo, useEffect, useCallback } from 'react';

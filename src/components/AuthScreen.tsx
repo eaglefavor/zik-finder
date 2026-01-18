@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { Mail, Lock, User, Phone, ArrowRight, Loader2, AlertCircle, CheckCircle, RefreshCw, MessageCircle, Sparkles, Building2, GraduationCap } from 'lucide-react';
@@ -59,7 +59,7 @@ export default function AuthScreen() {
       } else {
         setSuccessMessage(`Verification email resent to ${formData.email}. Please check your inbox and spam folder.`);
       }
-    } catch (err) {
+    } catch {
       setError('Failed to resend email.');
     } finally {
       setResending(false);
@@ -100,7 +100,7 @@ export default function AuthScreen() {
           setFormData(prev => ({ ...prev, password: '' })); // Clear password
         }
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred');
     } finally {
       setLoading(false);

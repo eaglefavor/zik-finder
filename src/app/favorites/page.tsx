@@ -3,12 +3,11 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { LodgeSkeleton } from '@/components/Skeleton';
-import { MapPin, Phone, MessageCircle, Heart, ChevronLeft, CheckCircle, Loader2, Sparkles, Building2, LayoutGrid, ShieldCheck, Zap } from 'lucide-react';
+import { Phone, MessageCircle, Heart, ChevronLeft, CheckCircle, Loader2, Sparkles, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Lodge } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Image from 'next/image';
@@ -64,7 +63,7 @@ export default function FavoritesPage() {
       } else {
         toast.error(data.message);
       }
-    } catch (err: unknown) {
+    } catch {
       toast.error('Failed to send request');
     } finally {
       setRequestingId(null);

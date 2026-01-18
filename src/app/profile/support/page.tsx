@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Mail, Phone, MessageCircle, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 
 export default function SupportPage() {

@@ -315,7 +315,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (lodgeError) {
       console.warn('Falling back to legacy lodge insert:', lodgeError.message);
-      const { landmark: _, ...legacyData } = lodgeData as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { landmark: _landmark, ...legacyData } = lodgeData as Record<string, unknown>;
       const fallback = await supabase
         .from('lodges')
         .insert({ ...legacyData, landlord_id: user.id })
@@ -370,7 +371,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     if (error) {
       console.warn('Falling back to legacy lodge update:', error.message);
-      const { landmark: _, ...legacyData } = lodgeData as Record<string, unknown>;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { landmark: _landmark, ...legacyData } = lodgeData as Record<string, unknown>;
       
       let fallbackQuery = supabase
         .from('lodges')
@@ -406,7 +408,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         query = query.eq('landlord_id', user.id);
       }
 
-      const { error, data, count } = await query.select();
+      const { error } = await query.select();
       
       if (error) throw error;
       return status;

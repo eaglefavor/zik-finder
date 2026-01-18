@@ -4,14 +4,12 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Mail, ArrowRight, Loader2, ChevronLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

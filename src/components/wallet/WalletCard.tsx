@@ -1,7 +1,7 @@
 'use client';
 
 import { useZips } from '@/lib/zips-context';
-import { Loader2, Zap, ShieldCheck, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Loader2, ShieldCheck, TrendingUp, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function WalletCard() {

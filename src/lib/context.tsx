@@ -157,7 +157,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signup = async (userData: { email: string; name: string; phone: string; role: UserRole }, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: userData.email,
       password: password,
       options: {

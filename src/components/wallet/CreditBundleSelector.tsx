@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ZIPS_CONFIG } from '@/lib/config/zips';
 import { useZips } from '@/lib/zips-context';
-import { CheckCircle2, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useAppContext } from '@/lib/context';
 

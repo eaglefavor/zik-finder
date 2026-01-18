@@ -6,9 +6,6 @@ import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAppContext } from '@/lib/context';
 
-// Define milestones
-const MILESTONES = [10, 50, 100, 250, 500, 1000];
-
 export function useLodgeViewTracker(lodgeId: string) {
   const { user } = useAppContext();
 

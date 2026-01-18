@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, MapPin, CheckCircle2, ChevronLeft, X, Loader2, Save, Plus, Trash2, LayoutGrid, Info, Image as ImageIcon, Check, Sparkles, Building2, ChevronRight } from 'lucide-react';
+import { Camera, MapPin, ChevronLeft, X, Loader2, Save, Plus, Trash2, LayoutGrid, Info, Image as ImageIcon, Check, Sparkles, Building2, ChevronRight } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import Compressor from 'compressorjs';
@@ -89,8 +89,8 @@ export default function EditLodge() {
         success(result) {
           resolve(result as File);
         },
-        error(err) {
-          reject(err);
+        error() {
+          reject(new Error('Compression failed'));
         },
       });
     });
@@ -123,7 +123,7 @@ export default function EditLodge() {
         image_urls: [...prev.image_urls, ...urls].slice(0, 10)
       }));
       toast.success('Images uploaded');
-    } catch (err) {
+    } catch {
       toast.error('Upload failed');
     } finally {
       setUploading(false);
@@ -148,7 +148,7 @@ export default function EditLodge() {
         await updateUnit(unitId, { image_urls: newImages } as any);
         toast.success('Unit photos updated');
       }
-    } catch (err) {
+    } catch {
       toast.error('Upload failed');
     } finally {
       setUploading(false);
