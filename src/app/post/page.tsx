@@ -461,15 +461,9 @@ export default function PostLodge() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Price (₦)</label>
-                  <div className="relative"><span className="absolute left-3 top-3.5 text-gray-400 text-sm font-bold">₦</span><input type="number" placeholder="per year" value={newUnit.price} onChange={e => setNewUnit({...newUnit, price: e.target.value})} className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold" /></div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Number of Rooms</label>
-                  <input type="number" placeholder="Qty" value={newUnit.total_units} onChange={e => setNewUnit({...newUnit, total_units: e.target.value})} className="w-full p-4 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm text-center font-bold" />
-                </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1 ml-1">Price (₦)</label>
+                <div className="relative"><span className="absolute left-3 top-3.5 text-gray-400 text-sm font-bold">₦</span><input type="number" placeholder="per year" value={newUnit.price} onChange={e => setNewUnit({...newUnit, price: e.target.value})} className="w-full p-4 pl-7 bg-white border border-gray-200 rounded-2xl text-sm outline-none focus:border-blue-500 shadow-sm font-bold" /></div>
               </div>
 
               {newUnit.price && newUnit.name && MARKET_FLOORS[newUnit.name] && Number(newUnit.price) < MARKET_FLOORS[newUnit.name] && (
