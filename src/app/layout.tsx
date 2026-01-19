@@ -54,6 +54,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* ZIPS 3G: 0-RTT Resource Hints */}
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://wammuxdrpyhppdyhsxam.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://js.paystack.co" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
       >
