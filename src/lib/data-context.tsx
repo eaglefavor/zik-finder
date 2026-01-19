@@ -75,58 +75,59 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const storedSync = localStorage.getItem('zik_feed_last_sync');
       if (storedSync) lastSync = storedSync;
 
-      // 2. Fetch Deltas via Binary Protocol
-      // We explicitly request binary data to save bandwidth
-      type DeltaItem = Lodge & { _delta: 'update' | 'unchanged' };
-      const response = (await BinaryProtocol.fetch('/api/feed-binary', {
-        page_offset: 0,
-        page_limit: LODGE_PAGE_SIZE,
-        last_sync: lastSync
-      })) as DeltaItem[];
+      // 2. Fetch Data (Try Binary Delta first, then Fallback)
+      let fullList: Lodge[] = [];
+      let newSyncTime = new Date().toISOString();
 
-      // 3. Merge Logic (Delta Sync)
-      if (!currentData) {
-        // No cache, trust server fully
-        // Filter out any 'unchanged' stubs (shouldn't happen on fresh sync but safety first)
-        const fullList = response.filter(r => r._delta !== 'unchanged');
-        localStorage.setItem('zik_feed_last_sync', new Date().toISOString());
-        return formatLodgeData(fullList);
-      }
+      try {
+          // Attempt Binary Delta Sync
+          type DeltaItem = Lodge & { _delta: 'update' | 'unchanged' };
+          const response = (await BinaryProtocol.fetch('/api/feed-binary', {
+            page_offset: 0,
+            page_limit: LODGE_PAGE_SIZE,
+            last_sync: lastSync
+          })) as DeltaItem[];
 
-      // Merge: Start with current cache
-      const merged = [...currentData];
-      let hasChanges = false;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      response.forEach((item: any) => {
-        if (item._delta === 'unchanged') {
-            // Item hasn't changed, keep local version
-            // Ensure it exists in our list (might be re-ordered)
-            // Ideally we re-sort at the end
-        } else if (item._delta === 'update') {
-            // New or Updated item
-            const existingIdx = merged.findIndex(l => l.id === item.id);
-            const formattedItem = formatLodgeData([item])[0];
+          // 3. Merge Logic (Delta Sync)
+          if (!currentData) {
+            fullList = formatLodgeData(response.filter(r => r._delta !== 'unchanged'));
+          } else {
+            const merged = [...currentData];
+            let hasChanges = false;
             
-            if (existingIdx >= 0) {
-                merged[existingIdx] = formattedItem; // Update
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            response.forEach((item: any) => {
+                if (item._delta === 'update') {
+                    const existingIdx = merged.findIndex(l => l.id === item.id);
+                    const formattedItem = formatLodgeData([item])[0];
+                    if (existingIdx >= 0) merged[existingIdx] = formattedItem;
+                    else merged.push(formattedItem);
+                    hasChanges = true;
+                }
+            });
+            
+            if (hasChanges) {
+                 merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                 fullList = merged;
             } else {
-                merged.push(formattedItem); // Add new
+                 fullList = currentData;
             }
-            hasChanges = true;
-        }
-      });
-
-      if (hasChanges) {
-         // Re-sort (Simple sort by promoted + date to match server logic roughly)
-         // Note: Perfect sort requires server authority, but client sort is 'good enough' for delta
-         merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-         localStorage.setItem('zik_feed_last_sync', new Date().toISOString());
-         return merged;
+          }
+      } catch (err) {
+          console.warn('Binary Sync failed, falling back to standard JSON RPC:', err);
+          
+          // Fallback: Standard JSON RPC
+          const { data, error } = await supabase.rpc('get_lodges_feed', {
+            page_offset: 0,
+            page_limit: LODGE_PAGE_SIZE
+          });
+          
+          if (error) throw error;
+          fullList = formatLodgeData(data as unknown[]);
       }
 
-      // If no changes, return cache exactly (preserves referential identity)
-      return currentData;
+      localStorage.setItem('zik_feed_last_sync', newSyncTime);
+      return fullList;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
