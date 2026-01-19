@@ -279,7 +279,14 @@ export default function Home() {
                   >
                     <div className="flex gap-4 xs:gap-6">
                       <div className="w-20 h-20 xs:w-24 xs:h-24 rounded-2xl overflow-hidden bg-gray-100 shrink-0 border border-gray-100 shadow-inner relative">
-                        <Image src={lodge.image_urls[0]} fill className="object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                        <Image 
+                          src={lodge.image_urls[0]} 
+                          fill 
+                          sizes="(max-width: 768px) 100px, 150px"
+                          quality={60}
+                          className="object-cover group-hover:scale-110 transition-transform duration-700" 
+                          alt="" 
+                        />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex justify-between items-start">
@@ -538,11 +545,13 @@ export default function Home() {
                     {allCardImages.map((img, idx) => (
                       <div key={idx} className="w-full h-full shrink-0 snap-start relative">
                         <Link href={`/lodge/${lodge.id}`}>
-                            Image 
+                          <Image 
                             src={img} 
                             alt={lodge.title}
                             fill
                             priority={index < 2 && idx === 0} // Prioritize first image of first two lodges
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            quality={75}
                             className="object-cover group-active:scale-105 transition-transform duration-700"
                           />
                         </Link>
