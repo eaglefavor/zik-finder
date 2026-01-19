@@ -24,7 +24,11 @@ export const BinaryProtocol = {
       body: encoded
     });
     
-    if (!res.ok) throw new Error(`Binary Fetch Failed: ${res.status}`);
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('Binary Fetch Error Body:', text);
+      throw new Error(`Binary Fetch Failed: ${res.status} - ${text.slice(0, 100)}`);
+    }
     return decode(new Uint8Array(await res.arrayBuffer()));
   }
 };
