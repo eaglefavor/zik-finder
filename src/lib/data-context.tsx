@@ -77,12 +77,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Fetch Deltas via Binary Protocol
       // We explicitly request binary data to save bandwidth
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      type DeltaItem = Lodge & { _delta: 'update' | 'unchanged' };
       const response = (await BinaryProtocol.fetch('/api/feed-binary', {
         page_offset: 0,
         page_limit: LODGE_PAGE_SIZE,
         last_sync: lastSync
-      })) as any[];
+      })) as DeltaItem[];
 
       // 3. Merge Logic (Delta Sync)
       if (!currentData) {
