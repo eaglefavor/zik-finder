@@ -12,11 +12,11 @@ export async function POST(request: Request) {
     // 1. Parse Input (MsgPack)
     // We expect the request body to be binary msgpack
     const buffer = await request.arrayBuffer();
-    let payload: any;
+    let payload: unknown;
     
     try {
         payload = decode(new Uint8Array(buffer));
-    } catch (e) {
+    } catch {
         // Fallback for debugging if JSON is sent
         try {
             const text = new TextDecoder().decode(buffer);
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         }
     }
 
-    const { page_offset = 0, page_limit = 10, last_sync } = payload;
+    const { page_offset = 0, page_limit = 10, last_sync } = payload as { page_offset?: number, page_limit?: number, last_sync?: string };
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -54,8 +54,8 @@ export async function POST(request: Request) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Binary Feed API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }

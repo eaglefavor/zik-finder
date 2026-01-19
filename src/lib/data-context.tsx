@@ -77,6 +77,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Fetch Deltas via Binary Protocol
       // We explicitly request binary data to save bandwidth
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response: any[] = await BinaryProtocol.fetch('/api/feed-binary', {
         page_offset: 0,
         page_limit: LODGE_PAGE_SIZE,
@@ -93,9 +94,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Merge: Start with current cache
-      let merged = [...currentData];
+      const merged = [...currentData];
       let hasChanges = false;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       response.forEach((item: any) => {
         if (item._delta === 'unchanged') {
             // Item hasn't changed, keep local version
@@ -178,6 +180,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     syncOutbox();
 
     return () => window.removeEventListener('online', syncOutbox);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // Re-run if user changes (auth required for upload)
 
   const formatLodgeData = (data: unknown[]) => {
@@ -253,6 +256,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setHasMoreLodges(data.length === LODGE_PAGE_SIZE);
     }
     setIsLodgesLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }
 
   const refreshRequests = async () => {

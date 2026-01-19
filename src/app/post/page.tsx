@@ -285,7 +285,7 @@ export default function PostLodge() {
 
   const encodeImageToBlurhash = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const img = new window.Image();
+      const img = new Image();
       img.src = URL.createObjectURL(file);
       img.onload = () => {
         const canvas = document.createElement('canvas');

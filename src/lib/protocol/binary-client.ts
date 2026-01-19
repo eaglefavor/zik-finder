@@ -8,12 +8,12 @@ export const BinaryProtocol = {
   },
 
   // Encode payload for request
-  encode: (data: any) => {
+  encode: (data: unknown) => {
     return encode(data);
   },
 
   // Helper to fetch with binary protocol
-  fetch: async (url: string, body: any) => {
+  fetch: async (url: string, body: unknown) => {
     const encoded = encode(body);
     const res = await fetch(url, {
       method: 'POST',
