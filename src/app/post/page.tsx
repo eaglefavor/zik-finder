@@ -11,6 +11,7 @@ import Compressor from 'compressorjs';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import { encode } from 'blurhash';
+import { uploadFileResumable } from '@/lib/tus-upload'; // ZIPS 3G: TUS Upload
 
 import { AREA_LANDMARKS, MARKET_FLOORS } from '@/lib/constants';
 import { DETAILED_ROOM_TYPES } from '@/lib/room-types';
@@ -140,17 +141,10 @@ export default function PostLodge() {
     });
   };
 
-  const uploadToCloudinary = async (file: File): Promise<string> => {
-    const data = new FormData();
-    data.append('file', file);
-    data.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: 'POST',
-      body: data,
-    });
-    const json = await res.json();
-    if (json.error) throw new Error(json.error.message);
-    return json.secure_url;
+  const uploadToStorage = async (file: File): Promise<string> => {
+    if (!user) throw new Error('User not authenticated');
+    const filePath = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+    return await uploadFileResumable('lodge-images', filePath, file);
   };
 
   const handleGeneralImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,7 +156,7 @@ export default function PostLodge() {
       const results = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
         const [url, hash] = await Promise.all([
-          uploadToCloudinary(compressed),
+          uploadToStorage(compressed),
           encodeImageToBlurhash(compressed)
         ]);
         return { url, hash };
@@ -187,7 +181,7 @@ export default function PostLodge() {
       const results = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
         const [url, hash] = await Promise.all([
-          uploadToCloudinary(compressed),
+          uploadToStorage(compressed),
           encodeImageToBlurhash(compressed)
         ]);
         return { url, hash };
