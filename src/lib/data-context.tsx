@@ -5,6 +5,7 @@ import { Lodge, LodgeRequest, LodgeUnit } from './types';
 import { supabase } from './supabase';
 import { useAppContext } from './context';
 import { toast } from 'sonner';
+import { useQuery, useQueryClient } from '@tanstack/react-query'; // ZIPS 3G: Added for persistent caching
 
 const LODGE_PAGE_SIZE = 8;
 
@@ -52,6 +53,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [hasMoreLodges, setHasMoreLodges] = useState(true);
   const [isLodgesLoading, setIsLodgesLoading] = useState(false);
 
+  // ZIPS 3G: TanStack Query for Instant Offline Load
+  const { data: cachedFeed } = useQuery({
+    queryKey: ['lodges', 'feed'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_lodges_feed', {
+        page_offset: 0,
+        page_limit: LODGE_PAGE_SIZE
+      });
+      if (error) throw error;
+      return formatLodgeData(data as unknown[]);
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour (Aggressive caching for 3G)
+  });
+
+  // Sync Cache to State (Hydration)
+  useEffect(() => {
+    if (cachedFeed && lodgesPage === 0) {
+        setLodges(cachedFeed);
+        setLodgesPage(1);
+        setHasMoreLodges(cachedFeed.length === LODGE_PAGE_SIZE);
+        setIsLoading(false); // Immediate visual feedback
+    }
+  }, [cachedFeed]);
+
   const formatLodgeData = (data: unknown[]) => {
     return (data as (Lodge & { profile_data?: import('./types').Profile; units_data?: import('./types').LodgeUnit[]; lodge_units?: import('./types').LodgeUnit[] })[]).map((l) => ({
       ...l,
@@ -81,23 +106,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const queryClient = useQueryClient();
+
   const fetchInitialLodges = async () => {
     setIsLodgesLoading(true);
-    const { data, error } = await supabase.rpc('get_lodges_feed', {
-      page_offset: 0,
-      page_limit: LODGE_PAGE_SIZE
-    });
-
-    if (!error && data) {
-      const formatted = formatLodgeData(data);
-      setLodges(formatted);
-      setLodgesPage(1);
-      setHasMoreLodges(data.length === LODGE_PAGE_SIZE);
-    } else if (error) {
-      console.error('Error fetching initial lodges:', error.message);
-      toast.error("Failed to load lodges");
+    try {
+        // ZIPS 3G: Refresh the persistent cache
+        await queryClient.invalidateQueries({ queryKey: ['lodges', 'feed'] });
+        const newData = await queryClient.fetchQuery({ queryKey: ['lodges', 'feed'] });
+        
+        // State update is handled by the useEffect above, but we can double ensure here if needed
+        // But invalidating triggers the useQuery which triggers the useEffect.
+        // However, fetchQuery returns the data, so we can set it to ensure immediate UI update if the effect lags.
+        // Actually, let's trust the reactive flow.
+    } catch (error) {
+        console.error('Error refreshing lodges:', error);
+        toast.error("Failed to refresh feed");
+    } finally {
+        setIsLodgesLoading(false);
     }
-    setIsLodgesLoading(false);
   };
   
   const fetchMoreLodges = async () => {

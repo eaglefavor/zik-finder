@@ -45,6 +45,8 @@ import Script from 'next/script';
 
 import { Toaster } from 'sonner';
 
+import QueryProvider from "@/lib/query-provider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -56,16 +58,18 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
       >
         <AppProvider>
-          <DataProvider>
-            <ZipsProvider>
-              <Toaster position="top-center" richColors />
-              <main className="min-h-screen pb-24">
-                {children}
-              </main>
-              <div id="modal-root" />
-              <BottomNav />
-            </ZipsProvider>
-          </DataProvider>
+          <QueryProvider>
+            <DataProvider>
+              <ZipsProvider>
+                <Toaster position="top-center" richColors />
+                <main className="min-h-screen pb-24">
+                  {children}
+                </main>
+                <div id="modal-root" />
+                <BottomNav />
+              </ZipsProvider>
+            </DataProvider>
+          </QueryProvider>
         </AppProvider>
         
         {/* Paystack Inline Script */}
