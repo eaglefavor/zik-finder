@@ -141,7 +141,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [cachedFeed]);
 
-  // ZIPS 3G: Offline Sync Manager
+      // ZIPS 3G: Offline Sync Manager
   useEffect(() => {
     const syncOutbox = async () => {
       if (!navigator.onLine || isSyncing) return;
@@ -154,7 +154,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       for (const item of outbox) {
         try {
-          const { success, error } = await addLodge(item.formData, item.units, true); // true = isRetry
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { success, error } = await addLodge(item.formData as any, item.units as any, true); // true = isRetry
           if (success) {
             await OfflineSync.removeFromOutbox(item.id);
           } else {
