@@ -16,10 +16,6 @@ import { uploadFileResumable } from '@/lib/tus-upload'; // ZIPS 3G: TUS Upload
 import { AREA_LANDMARKS, MARKET_FLOORS } from '@/lib/constants';
 import { DETAILED_ROOM_TYPES } from '@/lib/room-types';
 
-// Cloudinary Configuration
-const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
-
 const DRAFT_KEY = 'zik_lodge_post_draft';
 
 export default function PostLodge() {
@@ -289,7 +285,7 @@ export default function PostLodge() {
 
   const encodeImageToBlurhash = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const img = new (window as any).Image();
+      const img = new window.Image();
       img.src = URL.createObjectURL(file);
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -300,9 +296,10 @@ export default function PostLodge() {
         ctx.drawImage(img, 0, 0, 32, 32);
         const imageData = ctx.getImageData(0, 0, 32, 32);
         const hash = encode(imageData.data, imageData.width, imageData.height, 4, 4);
+        URL.revokeObjectURL(img.src);
         resolve(hash);
       };
-      img.onerror = reject;
+      img.onerror = () => reject('Image load failed');
     });
   };
 

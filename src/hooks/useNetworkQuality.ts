@@ -15,7 +15,7 @@ export function useNetworkQuality() {
     window.addEventListener('offline', handleOffline);
 
     // Network Information API
-    // @ts-ignore - Navigator interface extension
+    // @ts-expect-error - Navigator interface extension
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 
     const updateConnectionStatus = () => {
@@ -29,8 +29,10 @@ export function useNetworkQuality() {
       connection.addEventListener('change', updateConnectionStatus);
     }
 
-    // Initial check
-    setIsOnline(navigator.onLine);
+    // Initial check - using a functional update or just the value if it's safe
+    if (typeof navigator !== 'undefined') {
+        setIsOnline(!!navigator.onLine);
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);

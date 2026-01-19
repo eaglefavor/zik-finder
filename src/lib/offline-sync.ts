@@ -1,18 +1,17 @@
-import { set, get, del, keys } from 'idb-keyval';
-import { toast } from 'sonner';
+import { set, get, del } from 'idb-keyval';
 
 const OUTBOX_KEY = 'zik_lodge_outbox';
 
 export interface PendingLodge {
   id: string; // Timestamp ID
-  formData: any;
-  units: any[];
+  formData: Record<string, unknown>;
+  units: Record<string, unknown>[];
   timestamp: number;
 }
 
 export const OfflineSync = {
   // Save a failed submission to the outbox
-  addToOutbox: async (data: any, units: any[]) => {
+  addToOutbox: async (data: Record<string, unknown>, units: Record<string, unknown>[]) => {
     const id = Date.now().toString();
     const pendingItem: PendingLodge = {
       id,

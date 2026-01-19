@@ -156,7 +156,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
         // ZIPS 3G: Refresh the persistent cache
         await queryClient.invalidateQueries({ queryKey: ['lodges', 'feed'] });
-        const newData = await queryClient.fetchQuery({ queryKey: ['lodges', 'feed'] });
+        await queryClient.fetchQuery({ queryKey: ['lodges', 'feed'] });
         
         // State update is handled by the useEffect above, but we can double ensure here if needed
         // But invalidating triggers the useQuery which triggers the useEffect.
@@ -433,7 +433,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         await fetchMyLodges();
         return { success: true };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Add Lodge Error:', error);
         
         // ZIPS 3G: If failed (and not already a retry loop), save to outbox
@@ -445,7 +445,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             return { success: true }; // Treat as queued success
         }
 
-        return { success: false, error: error.message || 'Failed to add lodge' };
+        return { success: false, error: (error as Error).message || 'Failed to add lodge' };
     }
   };
 
