@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import { useAppContext } from './context';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query'; // ZIPS 3G: Added for persistent caching
-import { OfflineSync, PendingLodge } from './offline-sync'; // ZIPS 3G: Offline Sync
+import { OfflineSync } from './offline-sync'; // ZIPS 3G: Offline Sync
 
 import { BinaryProtocol } from './protocol/binary-client'; // ZIPS 3G: Binary Protocol
 
@@ -77,7 +77,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Fetch Data (Try Binary Delta first, then Fallback)
       let fullList: Lodge[] = [];
-      let newSyncTime = new Date().toISOString();
+      const newSyncTime = new Date().toISOString();
 
       try {
           // Attempt Binary Delta Sync
