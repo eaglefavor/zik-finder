@@ -17,6 +17,7 @@ const ReviewModal = dynamic(() => import('@/components/ReviewModal'), { ssr: fal
 const ReportModal = dynamic(() => import('@/components/ReportModal'), { ssr: false });
 
 import { useLodgeViewTracker } from '@/lib/useLodgeViewTracker';
+import { useNetworkQuality } from '@/hooks/useNetworkQuality';
 
 // Variants for the slide animation
 const variants = {
@@ -46,6 +47,7 @@ export default function LodgeDetail() {
   const router = useRouter();
   const { lodges, favorites, toggleFavorite } = useData();
   const { user } = useAppContext();
+  const { isLowData, quality } = useNetworkQuality();
   
   // Carousel State
   const [[page, direction], setPage] = useState([0, 0]);
@@ -227,7 +229,7 @@ export default function LodgeDetail() {
               initial="enter"
               animate="center"
               exit="exit"
-              transition={{
+              transition={isLowData ? { duration: 0.1 } : {
                 x: { type: "spring", stiffness: 300, damping: 30 },
                 opacity: { duration: 0.2 }
               }}
@@ -312,6 +314,13 @@ export default function LodgeDetail() {
       <div className="px-5 py-8 -mt-10 bg-gray-50 rounded-t-[40px] relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] min-h-[50vh]">
         
         {/* Verification Status Banner */}
+        {isLowData && (
+          <div className="mb-4 flex items-center gap-2 px-3 py-1.5 bg-blue-50/50 border border-blue-100 rounded-xl w-fit">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Low Bandwidth Mode ({quality})</span>
+          </div>
+        )}
+
         {!lodge.profiles?.is_verified ? (
           <div className="mb-6 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex gap-3 items-start shadow-sm">
             <AlertTriangle className="text-orange-600 shrink-0 mt-0.5" size={20} />
