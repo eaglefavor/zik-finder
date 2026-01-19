@@ -3,7 +3,8 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, TrendingDown, Minus, Activity, LayoutGrid, ChevronRight, Search, Zap, ShieldAlert, Mail } from 'lucide-react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -15,30 +16,10 @@ import dynamic from 'next/dynamic';
 
 const AuthScreen = dynamic(() => import('@/components/AuthScreen'), { ssr: false });
 
-const AdminLink = ({ role }: { role: string }) => (
-  role === 'admin' ? (
-    <Link href="/admin" className="block mb-6 bg-gray-900 text-white p-5 rounded-3xl shadow-xl shadow-gray-200 relative overflow-hidden group">
-      <div className="relative z-10 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
-            <ShieldCheck size={24} className="text-blue-400" />
-          </div>
-          <div>
-            <div className="font-black tracking-tight text-lg leading-none">Admin Dashboard</div>
-            <div className="text-[10px] text-white/50 uppercase font-black tracking-widest mt-1.5">System Control Center</div>
-          </div>
-        </div>
-        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
-          <ChevronRight size={20} />
-        </div>
-      </div>
-      <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl" />
-    </Link>
-  ) : null
-);
-
-export default function Home() {
+function HomeContent() {
   const { user, role, isLoading: authLoading } = useAppContext();
+  const searchParams = useSearchParams();
+  const isGuest = searchParams.get('guest') === 'true';
   const { 
     lodges, 
     myLodges,
@@ -166,7 +147,7 @@ export default function Home() {
     );
   }
 
-  if (!user) return <AuthScreen />;
+  if (!user && !isGuest) return <AuthScreen />;
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
@@ -188,7 +169,7 @@ export default function Home() {
     setTimeout(() => setLoadingStatusId(null), 500);
   };
 
-  if (role === 'landlord') {
+  if (role === 'landlord' && user) {
     const landlordLodges = myLodges || lodges.filter(l => l.landlord_id === user.id);
     const totalViews = landlordLodges.reduce((acc, curr) => acc + (curr.views || 0), 0);
 
@@ -496,11 +477,11 @@ export default function Home() {
             </h1>
             <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5">Find your perfect lodge in Awka</p>
           </div>
-          <Link href="/profile" className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden relative">
-            {user.avatar_url ? (
+          <Link href={user ? "/profile" : "/?login=true"} onClick={() => !user && (window.location.href = '/')} className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden relative">
+            {user?.avatar_url ? (
               <Image src={user.avatar_url} alt={user.name || 'User'} fill className="object-cover" />
             ) : (
-              <span className="font-black text-blue-600 text-lg">{(user.name || 'S')[0]}</span>
+              <span className="font-black text-blue-600 text-lg">{user ? (user.name || 'S')[0] : 'G'}</span>
             )}
           </Link>
         </div>
@@ -768,5 +749,13 @@ export default function Home() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

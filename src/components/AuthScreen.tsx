@@ -173,6 +173,14 @@ export default function AuthScreen() {
               <div className="h-px bg-gray-100 flex-1" />
             </div>
 
+            {/* Guest Mode */}
+            <button 
+              onClick={() => window.location.href = '/?guest=true'}
+              className="w-full py-3 mb-6 bg-gray-50 text-gray-500 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-gray-100 transition-colors"
+            >
+              Continue as Guest
+            </button>
+
             {/* Mode Switcher */}
             <div className="bg-gray-50 p-1.5 rounded-2xl mb-8 flex relative">
               <button 

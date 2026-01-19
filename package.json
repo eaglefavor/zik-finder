@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:perf": "psi https://zik-finder.vercel.app"
+    "test:perf": "psi https://zik-finder.vercel.app",
+    "test:playwright": "node scripts/test-playwright.js",
+    "test:deep": "node scripts/deep-audit.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.89.0",
@@ -18,6 +20,7 @@
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.562.0",
     "next": "^15.1.11",
+    "playwright-core": "^1.57.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.7",
