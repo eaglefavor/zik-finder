@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { Blurhash } from 'react-blurhash';
 
 const ReviewModal = dynamic(() => import('@/components/ReviewModal'), { ssr: false });
 const ReportModal = dynamic(() => import('@/components/ReportModal'), { ssr: false });
@@ -156,20 +157,30 @@ export default function LodgeDetail() {
   const galleryImages = useMemo(() => {
     if (!lodge) return [];
 
-    const images: { url: string; type: 'unit' | 'building'; label: string }[] = [];
+    const images: { url: string; hash?: string; type: 'unit' | 'building'; label: string }[] = [];
 
     // A. Unit Images (Priority)
     if (selectedUnit?.image_urls) {
-      selectedUnit.image_urls.forEach(url => {
-        images.push({ url, type: 'unit', label: selectedUnit.name });
+      selectedUnit.image_urls.forEach((url, idx) => {
+        images.push({ 
+          url, 
+          hash: selectedUnit.image_blurhashes?.[idx], 
+          type: 'unit', 
+          label: selectedUnit.name 
+        });
       });
     }
 
     // B. Building Images
     if (lodge.image_urls) {
-      lodge.image_urls.forEach(url => {
+      lodge.image_urls.forEach((url, idx) => {
         if (!images.find(img => img.url === url)) {
-          images.push({ url, type: 'building', label: 'Main Building' });
+          images.push({ 
+            url, 
+            hash: lodge.image_blurhashes?.[idx], 
+            type: 'building', 
+            label: 'Main Building' 
+          });
         }
       });
     }
@@ -221,32 +232,46 @@ export default function LodgeDetail() {
       <div className="relative h-[60vh] bg-gray-900 overflow-hidden" ref={galleryRef}>
         <AnimatePresence initial={false} custom={direction}>
           {galleryImages.length > 0 ? (
-            <motion.img
-              key={page}
-              src={currentImage?.url}
-              custom={direction}
-              variants={variants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={isLowData ? { duration: 0.1 } : {
-                x: { type: "spring", stiffness: 300, damping: 30 },
-                opacity: { duration: 0.2 }
-              }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={1}
-              onDragEnd={(e, { offset, velocity }: PanInfo) => {
-                const swipe = swipePower(offset.x, velocity.x);
-                if (swipe < -swipeConfidenceThreshold) {
-                  paginate(1);
-                } else if (swipe > swipeConfidenceThreshold) {
-                  paginate(-1);
-                }
-              }}
-              className="absolute w-full h-full object-cover"
-              alt={currentImage?.label || lodge.title}
-            />
+            <div key={page} className="absolute inset-0">
+               {/* ZIPS 3G: BlurHash Placeholder */}
+               {currentImage.hash && (
+                 <div className="absolute inset-0 z-0">
+                    <Blurhash
+                      hash={currentImage.hash}
+                      width="100%"
+                      height="100%"
+                      resolutionX={32}
+                      resolutionY={32}
+                      punch={1}
+                    />
+                 </div>
+               )}
+               <motion.img
+                src={currentImage?.url}
+                custom={direction}
+                variants={variants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={isLowData ? { duration: 0.1 } : {
+                  x: { type: "spring", stiffness: 300, damping: 30 },
+                  opacity: { duration: 0.2 }
+                }}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={1}
+                onDragEnd={(e, { offset, velocity }: PanInfo) => {
+                  const swipe = swipePower(offset.x, velocity.x);
+                  if (swipe < -swipeConfidenceThreshold) {
+                    paginate(1);
+                  } else if (swipe > swipeConfidenceThreshold) {
+                    paginate(-1);
+                  }
+                }}
+                className="absolute w-full h-full object-cover z-10"
+                alt={currentImage?.label || lodge.title}
+              />
+            </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500">
               No images available

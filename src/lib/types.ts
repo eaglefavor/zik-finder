@@ -18,6 +18,7 @@ export interface LodgeUnit {
   total_units: number;
   available_units: number;
   image_urls: string[];
+  image_blurhashes?: string[]; // Added
 }
 
 export interface Lodge {
@@ -28,6 +29,7 @@ export interface Lodge {
   price: number;
   location: string;
   image_urls: string[];
+  image_blurhashes?: string[]; // Added
   landlord_id: string;
   status: 'available' | 'taken' | 'suspended';
   amenities: string[];

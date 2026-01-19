@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import Compressor from 'compressorjs';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { encode } from 'blurhash';
 
 import { AREA_LANDMARKS, MARKET_FLOORS } from '@/lib/constants';
 import { DETAILED_ROOM_TYPES } from '@/lib/room-types';
@@ -43,16 +44,18 @@ export default function PostLodge() {
     amenities: [] as string[]
   });
 
+  const [generalImages, setGeneralImages] = useState<string[]>([]);
+  const [generalBlurHashes, setGeneralBlurHashes] = useState<string[]>([]);
+  const [units, setUnits] = useState<TempUnit[]>([]);
+
   interface TempUnit {
     tempId: string;
     name: string;
     price: number;
     total_units: number;
     image_urls: string[];
+    image_blurhashes: string[];
   }
-
-  const [generalImages, setGeneralImages] = useState<string[]>([]);
-  const [units, setUnits] = useState<TempUnit[]>([]);
   const [newUnit, setNewUnit] = useState({
     name: '',
     price: '',
@@ -79,6 +82,7 @@ export default function PostLodge() {
               onClick: () => {
                 setFormData(dForm);
                 setGeneralImages(dImgs);
+                setGeneralBlurHashes(dForm.generalBlurHashes || []); // Handle old drafts
                 setUnits(dUnits);
               }
             },
@@ -102,10 +106,10 @@ export default function PostLodge() {
     if (!isSubmitted && newlyCreatedLodgeId === null) {
       const isSubstantial = formData.title.trim() !== '' || generalImages.length > 0 || units.length > 0;
       if (isSubstantial) {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, generalImages, units }));
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, generalImages, generalBlurHashes, units }));
       }
     }
-  }, [formData, generalImages, units, isSubmitted, newlyCreatedLodgeId]);
+  }, [formData, generalImages, generalBlurHashes, units, isSubmitted, newlyCreatedLodgeId]);
 
   const handleAreaChange = (area: string) => {
     setFormData({
@@ -155,11 +159,17 @@ export default function PostLodge() {
 
     setUploading(true);
     try {
-      const urls = await Promise.all(Array.from(files).map(async (file) => {
+      const results = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
-        return uploadToCloudinary(compressed);
+        const [url, hash] = await Promise.all([
+          uploadToCloudinary(compressed),
+          encodeImageToBlurhash(compressed)
+        ]);
+        return { url, hash };
       }));
-      setGeneralImages(prev => [...prev, ...urls]);
+      
+      setGeneralImages(prev => [...prev, ...results.map(r => r.url)]);
+      setGeneralBlurHashes(prev => [...prev, ...results.map(r => r.hash)]);
     } catch {
       toast.error('Upload failed');
     } finally {
@@ -174,11 +184,20 @@ export default function PostLodge() {
 
     setUploading(true);
     try {
-      const urls = await Promise.all(Array.from(files).map(async (file) => {
+      const results = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
-        return uploadToCloudinary(compressed);
+        const [url, hash] = await Promise.all([
+          uploadToCloudinary(compressed),
+          encodeImageToBlurhash(compressed)
+        ]);
+        return { url, hash };
       }));
-      setUnits(prev => prev.map(u => u.tempId === tempId ? { ...u, image_urls: [...u.image_urls, ...urls] } : u));
+
+      setUnits(prev => prev.map(u => u.tempId === tempId ? { 
+        ...u, 
+        image_urls: [...u.image_urls, ...results.map(r => r.url)],
+        image_blurhashes: [...u.image_blurhashes, ...results.map(r => r.hash)]
+      } : u));
     } catch {
       toast.error('Upload failed');
     } finally {
@@ -193,7 +212,8 @@ export default function PostLodge() {
       name: newUnit.name,
       price: parseInt(newUnit.price),
       total_units: parseInt(newUnit.total_units) || 1,
-      image_urls: []
+      image_urls: [],
+      image_blurhashes: []
     }]);
     setNewUnit({ name: '', price: '', total_units: '1' });
     setShowCustomType(false);
@@ -219,7 +239,8 @@ export default function PostLodge() {
       price: u.price,
       total_units: u.total_units,
       available_units: u.total_units,
-      image_urls: u.image_urls
+      image_urls: u.image_urls,
+      image_blurhashes: u.image_blurhashes
     }));
 
     const minPrice = units.length > 0 ? Math.min(...units.map(u => u.price)) : 0;
@@ -232,6 +253,7 @@ export default function PostLodge() {
         landmark: formData.landmark,
         description: formData.description,
         image_urls: generalImages.length > 0 ? generalImages : ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg'],
+        image_blurhashes: generalBlurHashes,
         amenities: formData.amenities,
         status: 'available',
       }, finalUnits);
@@ -269,6 +291,25 @@ export default function PostLodge() {
     const url = `${window.location.origin}/lodge/${newlyCreatedLodgeId}`;
     const text = `Check out my new lodge on ZikLodge: ${formData.title}\n\nView here: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+  };
+
+  const encodeImageToBlurhash = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new (window as any).Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject('No context');
+        ctx.drawImage(img, 0, 0, 32, 32);
+        const imageData = ctx.getImageData(0, 0, 32, 32);
+        const hash = encode(imageData.data, imageData.width, imageData.height, 4, 4);
+        resolve(hash);
+      };
+      img.onerror = reject;
+    });
   };
 
   if (isLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;

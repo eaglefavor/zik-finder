@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Blurhash } from 'react-blurhash';
 import { Lodge } from '@/lib/types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -548,14 +549,27 @@ function HomeContent() {
                     {allCardImages.map((img, idx) => (
                       <div key={idx} className="w-full h-full shrink-0 snap-start relative">
                         <Link href={`/lodge/${lodge.id}`}>
+                          {/* ZIPS 3G: Instant BlurHash Placeholder */}
+                          {lodge.image_blurhashes?.[idx] && (
+                            <div className="absolute inset-0 z-0">
+                              <Blurhash
+                                hash={lodge.image_blurhashes[idx]}
+                                width="100%"
+                                height="100%"
+                                resolutionX={32}
+                                resolutionY={32}
+                                punch={1}
+                              />
+                            </div>
+                          )}
                           <Image 
                             src={img} 
                             alt={lodge.title}
                             fill
-                            priority={index < 2 && idx === 0} // Prioritize first image of first two lodges
+                            priority={index < 2 && idx === 0}
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             quality={75}
-                            className="object-cover group-active:scale-105 transition-transform duration-700"
+                            className="object-cover group-active:scale-105 transition-transform duration-700 relative z-10"
                           />
                         </Link>
                       </div>
