@@ -538,11 +538,11 @@ export default function Home() {
                     {allCardImages.map((img, idx) => (
                       <div key={idx} className="w-full h-full shrink-0 snap-start relative">
                         <Link href={`/lodge/${lodge.id}`}>
-                          <Image 
+                            Image 
                             src={img} 
                             alt={lodge.title}
                             fill
-                            priority={index === 0 && idx === 0} // Prioritize first image of first lodge
+                            priority={index < 2 && idx === 0} // Prioritize first image of first two lodges
                             className="object-cover group-active:scale-105 transition-transform duration-700"
                           />
                         </Link>

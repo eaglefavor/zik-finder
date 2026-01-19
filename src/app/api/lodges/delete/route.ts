@@ -11,29 +11,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing lodgeId, userId, or Authorization header' }, { status: 400 });
     }
 
-    // Initialize Supabase Client as the User
+    // Initialize Supabase Client with Service Role Key for administrative cleanup
+    // We already verified the user's intent via authHeader and fetch
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       supabaseUrl,
-      supabaseAnonKey,
+      supabaseServiceKey,
       {
         auth: {
           persistSession: false,
           autoRefreshToken: false,
           detectSessionInUrl: false,
-        },
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
+        }
       }
     );
 
     // 1. Fetch Lodge and its Units to get ALL image URLs
-    const { data: lodge, error: fetchError } = await supabase
+    const { data: lodge, error: fetchError } = await supabaseAdmin
       .from('lodges')
       .select('landlord_id, image_urls, lodge_units(image_urls)')
       .eq('id', lodgeId)
@@ -43,6 +39,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: `Fetch failed: ${fetchError?.message || 'Lodge not found'}`, 
       }, { status: 404 });
+    }
+
+    // Security Check: Even with Service Role, ensure the requester owns the lodge
+    const { data: authUser } = await createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        global: { headers: { Authorization: authHeader } }
+    }).auth.getUser();
+
+    if (lodge.landlord_id !== authUser.user?.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // 2. Collect ALL unique image URLs (Lodge + Units)
@@ -72,9 +77,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Atomic DB Deletion (Server-Side Authority)
-    // We use the same authenticated client to ensure RLS policies are respected.
-    // The previous implementation relied on the client to call delete, which is non-atomic.
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
       .from('lodges')
       .delete()
       .eq('id', lodgeId);
