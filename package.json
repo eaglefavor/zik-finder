@@ -22,6 +22,7 @@
     "compressorjs": "^1.2.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.26",
+    "idb-keyval": "^6.2.2",
     "lucide-react": "^0.562.0",
     "next": "^15.1.11",
     "playwright-core": "^1.57.0",

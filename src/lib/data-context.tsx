@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { useAppContext } from './context';
 import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query'; // ZIPS 3G: Added for persistent caching
+import { OfflineSync, PendingLodge } from './offline-sync'; // ZIPS 3G: Offline Sync
 
 const LODGE_PAGE_SIZE = 8;
 
@@ -24,7 +25,7 @@ interface DataContextType {
   refreshRequests: () => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
   toggleFavorite: (lodgeId: string) => Promise<void>;
-  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => Promise<{ success: boolean; error?: string }>;
+  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], isRetry?: boolean) => Promise<{ success: boolean; error?: string }>;
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken' | 'suspended') => Promise<void>;
   addUnit: (unitData: { lodge_id: string, name: string, price: number, image_urls?: string[] }) => Promise<void>;
@@ -47,6 +48,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [viewGrowth, setViewGrowth] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false); // ZIPS 3G: Sync Status
 
   // New state for infinite scroll
   const [lodgesPage, setLodgesPage] = useState(0);
@@ -76,6 +78,47 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false); // Immediate visual feedback
     }
   }, [cachedFeed]);
+
+  // ZIPS 3G: Offline Sync Manager
+  useEffect(() => {
+    const syncOutbox = async () => {
+      if (!navigator.onLine || isSyncing) return;
+      
+      const outbox = await OfflineSync.getOutbox();
+      if (outbox.length === 0) return;
+
+      setIsSyncing(true);
+      toast.loading(`Syncing ${outbox.length} pending lodge(s)...`, { id: 'sync-toast' });
+
+      for (const item of outbox) {
+        try {
+          const { success, error } = await addLodge(item.formData, item.units, true); // true = isRetry
+          if (success) {
+            await OfflineSync.removeFromOutbox(item.id);
+          } else {
+            console.error('Sync failed for item:', item.id, error);
+            // Keep in outbox to retry later
+          }
+        } catch (e) {
+          console.error('Sync error:', e);
+        }
+      }
+
+      const remaining = await OfflineSync.getOutbox();
+      if (remaining.length === 0) {
+        toast.success('All pending lodges published!', { id: 'sync-toast' });
+      } else {
+        toast.error(`${remaining.length} items failed to sync. Will retry later.`, { id: 'sync-toast' });
+      }
+      setIsSyncing(false);
+    };
+
+    window.addEventListener('online', syncOutbox);
+    // Initial check on load
+    syncOutbox();
+
+    return () => window.removeEventListener('online', syncOutbox);
+  }, [user]); // Re-run if user changes (auth required for upload)
 
   const formatLodgeData = (data: unknown[]) => {
     return (data as (Lodge & { profile_data?: import('./types').Profile; units_data?: import('./types').LodgeUnit[]; lodge_units?: import('./types').LodgeUnit[] })[]).map((l) => ({
@@ -331,54 +374,79 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, [user]);
 
-  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[]) => {
+  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], isRetry = false) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
-    let { data: newLodge, error: lodgeError } = await supabase
-      .from('lodges')
-      .insert({ ...lodgeData, landlord_id: user.id })
-      .select()
-      .single();
-
-    if (lodgeError) {
-      console.warn('Falling back to legacy lodge insert:', lodgeError.message);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { landmark: _landmark, ...legacyData } = lodgeData as Record<string, unknown>;
-      const fallback = await supabase
-        .from('lodges')
-        .insert({ ...legacyData, landlord_id: user.id })
-        .select()
-        .single();
-      
-      newLodge = fallback.data;
-      lodgeError = fallback.error;
+    // ZIPS 3G: Offline Intercept
+    if (!navigator.onLine && !isRetry) {
+        await OfflineSync.addToOutbox(lodgeData, units || []);
+        toast.success('Offline: Lodge saved to Outbox', {
+            description: 'We will automatically upload it when you are back online.'
+        });
+        return { success: true }; // Fake success to clear form
     }
 
-    if (lodgeError) return { success: false, error: lodgeError.message };
+    try {
+        let { data: newLodge, error: lodgeError } = await supabase
+          .from('lodges')
+          .insert({ ...lodgeData, landlord_id: user.id })
+          .select()
+          .single();
 
-    if (newLodge) {
-      if (units && units.length > 0) {
-        const unitsToInsert = units.map(u => ({ ...u, lodge_id: newLodge.id }));
-        const { error: unitError } = await supabase.from('lodge_units').insert(unitsToInsert);
-        if (unitError) console.error('Error adding units:', unitError);
-      } else {
-        const { error: unitError } = await supabase
-          .from('lodge_units')
-          .insert({
-            lodge_id: newLodge.id,
-            name: 'Standard Room',
-            price: lodgeData.price,
-            total_units: 1,
-            available_units: 1,
-            image_urls: lodgeData.image_urls
-          });
-        if (unitError) console.error('Error creating default unit:', unitError);
-      }
+        if (lodgeError) {
+          console.warn('Falling back to legacy lodge insert:', lodgeError.message);
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { landmark: _landmark, ...legacyData } = lodgeData as Record<string, unknown>;
+          const fallback = await supabase
+            .from('lodges')
+            .insert({ ...legacyData, landlord_id: user.id })
+            .select()
+            .single();
+          
+          newLodge = fallback.data;
+          lodgeError = fallback.error;
+        }
+
+        if (lodgeError) throw lodgeError;
+
+        if (newLodge) {
+          if (units && units.length > 0) {
+            const unitsToInsert = units.map(u => ({ ...u, lodge_id: newLodge.id }));
+            const { error: unitError } = await supabase.from('lodge_units').insert(unitsToInsert);
+            if (unitError) console.error('Error adding units:', unitError);
+          } else {
+            const { error: unitError } = await supabase
+              .from('lodge_units')
+              .insert({
+                lodge_id: newLodge.id,
+                name: 'Standard Room',
+                price: lodgeData.price,
+                total_units: 1,
+                available_units: 1,
+                image_urls: lodgeData.image_urls
+              });
+            if (unitError) console.error('Error creating default unit:', unitError);
+          }
+        }
+        
+        await fetchInitialLodges();
+        await fetchMyLodges();
+        return { success: true };
+
+    } catch (error: any) {
+        console.error('Add Lodge Error:', error);
+        
+        // ZIPS 3G: If failed (and not already a retry loop), save to outbox
+        if (!isRetry) {
+            await OfflineSync.addToOutbox(lodgeData, units || []);
+            toast.error('Upload Failed. Saved to Outbox.', {
+                description: 'We will retry automatically when connection is stable.'
+            });
+            return { success: true }; // Treat as queued success
+        }
+
+        return { success: false, error: error.message || 'Failed to add lodge' };
     }
-    
-    await fetchInitialLodges();
-    await fetchMyLodges();
-    return { success: true };
   };
 
   const updateLodge = async (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => {
