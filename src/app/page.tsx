@@ -16,6 +16,28 @@ import dynamic from 'next/dynamic';
 
 const AuthScreen = dynamic(() => import('@/components/AuthScreen'), { ssr: false });
 
+const AdminLink = ({ role }: { role: string }) => (
+  role === 'admin' ? (
+    <Link href="/admin" className="block mb-6 bg-gray-900 text-white p-5 rounded-3xl shadow-xl shadow-gray-200 relative overflow-hidden group">
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10">
+            <ShieldCheck size={24} className="text-blue-400" />
+          </div>
+          <div>
+            <div className="font-black tracking-tight text-lg leading-none">Admin Dashboard</div>
+            <div className="text-[10px] text-white/50 uppercase font-black tracking-widest mt-1.5">System Control Center</div>
+          </div>
+        </div>
+        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-blue-600 transition-colors duration-300">
+          <ChevronRight size={20} />
+        </div>
+      </div>
+      <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl" />
+    </Link>
+  ) : null
+);
+
 function HomeContent() {
   const { user, role, isLoading: authLoading } = useAppContext();
   const searchParams = useSearchParams();

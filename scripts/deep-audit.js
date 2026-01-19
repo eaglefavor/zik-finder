@@ -3,11 +3,10 @@ const fs = require('fs');
 const path = require('path');
 
 (async () => {
-  console.log('🕵️‍♀️ Starting Deep Audit for ZikLodge (Guest Mode)...');
+  console.log('🕵️‍♀️ Starting Final Deep Audit (Login + 3G + Security)...');
   
   const executablePath = process.env.CHROMIUM_PATH || '/data/data/com.termux/files/usr/bin/chromium-browser';
-  // Target with guest param
-  const targetUrl = 'https://zik-finder.vercel.app/?guest=true';
+  const targetUrl = 'https://zik-finder.vercel.app';
 
   const browser = await chromium.launch({
     executablePath,
@@ -18,14 +17,12 @@ const path = require('path');
   const context = await browser.newContext({
     viewport: { width: 393, height: 851 },
     userAgent: 'Mozilla/5.0 (Linux; Android 11; Pixel 5 Build/RQ3A.210105.001) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36',
-    deviceScaleFactor: 2.75,
     isMobile: true,
-    hasTouch: true
   });
 
   const page = await context.newPage();
-  
-  // -- 1. Network Security Listener --
+
+  // -- 1. Security Listener --
   let phoneLeakDetected = false;
   let rpcCallsDetected = 0;
 
@@ -35,57 +32,73 @@ const path = require('path');
       rpcCallsDetected++;
       try {
         const json = await response.json();
-        // Check first 5 items
         const sample = Array.isArray(json) ? json.slice(0, 5) : [];
-        
         sample.forEach((lodge, idx) => {
           if (lodge.profile_data && lodge.profile_data.phone_number !== null) {
-            console.error(`🚨 DATA LEAK DETECTED in Lodge #${idx} (${lodge.title}): Phone number exposed!`);
+            console.error('🚨 DATA LEAK DETECTED in Lodge #', idx, ': Phone number exposed!');
             phoneLeakDetected = true;
           }
         });
-      } catch (e) {
-        // Ignore
-      }
+      } catch (e) {}
     }
   });
 
   try {
-    // -- 2. Navigation --
-    console.log(`➡️ Navigating to ${targetUrl}...`);
-    await page.goto(targetUrl, { waitUntil: 'networkidle' });
+    // -- 2. Login (Fast Network for Setup) --
+    console.log('➡️ Navigating to ', targetUrl, '...');
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
     
-    // -- 3. Verify Feed Visibility --
-    const feedVisible = await page.isVisible('text=Explore');
-    console.log(`🎨 UI Check: "Explore" Header is ${feedVisible ? 'Visible ✅' : 'Missing ❌'}`);
+    console.log('🔑 Filling Credentials...');
+    await page.fill('input[type="email"]', 'rc5632250@gmail.com');
+    await page.fill('input[type="password"]', 'Cheetah88');
     
-    if (feedVisible) {
-        console.log('✅ Guest Bypass Successful: Feed is visible.');
-    } else {
-        console.error('❌ Guest Bypass Failed: Still stuck on Auth Screen?');
-    }
+    console.log('👇 Clicking Sign In...');
+    await page.click('button[type="submit"]');
+    
+    // Wait for initial redirect to start
+    await page.waitForTimeout(2000);
 
-    // -- 4. Security Verification --
+    // -- 3. Throttle Network to 3G (UNIZIK Network) --
+    const client = await context.newCDPSession(page);
+    await client.send('Network.enable');
+    await client.send('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: 300,
+      downloadThroughput: 500 * 1024 / 8,
+      uploadThroughput: 500 * 1024 / 8,
+      connectionType: 'cellular3g'
+    });
+    console.log('📶 Network Throttled to 3G for Content Load...');
+
+    // -- 4. Wait for Feed --
+    console.log('⏳ Waiting for Feed under 3G...');
+    const startTime = Date.now();
+    await page.waitForSelector('text=Explore', { timeout: 60000 });
+    const feedLoadTime = Date.now() - startTime;
+    console.log('⏱️ Feed rendered in ', feedLoadTime, 'ms');
+
+    // -- 5. Security Report --
     console.log('\n🔒 --- SECURITY REPORT ---');
     if (rpcCallsDetected > 0) {
-        if (phoneLeakDetected) {
-            console.error('❌ FAIL: Phone numbers are leaking to guests!');
-        } else {
-            console.log('✅ PASS: Phone numbers are masked (NULL) for guests.');
-        }
+      if (phoneLeakDetected) {
+        console.error('❌ FAIL: Phone numbers are leaking to logged-in users!');
+      } else {
+        console.log('✅ PASS: Phone numbers are masked (NULL) for logged-in users.');
+      }
     } else {
-        console.log('⚠️ Warning: No RPC calls detected (likely cached/SSG/ISR). Cannot verify leak via network.');
+      console.log('⚠️ Warning: No RPC calls detected. (Data might be cached or SSG)');
     }
 
-    // -- 5. Screenshot --
-    const screenshotPath = path.join(__dirname, '../guest-audit-screenshot.png');
+    // -- 6. Screenshot --
+    const screenshotPath = path.join(__dirname, '../audit-logged-in-3g.png');
     await page.screenshot({ path: screenshotPath });
-    console.log(`📸 Screenshot saved to: ${screenshotPath}`);
+    console.log('📸 Screenshot saved: ', screenshotPath);
 
   } catch (error) {
-    console.error('❌ Audit Failed:', error);
+    console.error('❌ Audit Failed:', error.message);
+    await page.screenshot({ path: path.join(__dirname, '../audit-fail.png') });
   } finally {
     await browser.close();
-    console.log('🏁 Audit Complete.');
+    console.log('🏁 Final Audit Complete.');
   }
 })();
