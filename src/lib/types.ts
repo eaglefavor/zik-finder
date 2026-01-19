@@ -24,6 +24,7 @@ export interface LodgeUnit {
 export interface Lodge {
   id: string;
   created_at: string;
+  updated_at?: string; // Support Delta Sync
   title: string;
   description: string;
   price: number;
