@@ -4,10 +4,11 @@ type NetworkType = 'slow-2g' | '2g' | '3g' | '4g' | 'unknown';
 
 export function useNetworkQuality() {
   const [quality, setQuality] = useState<NetworkType>('4g');
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(() => 
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
 
   useEffect(() => {
-    // Basic online/offline check
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -27,11 +28,6 @@ export function useNetworkQuality() {
     if (connection) {
       updateConnectionStatus();
       connection.addEventListener('change', updateConnectionStatus);
-    }
-
-    // Initial check - using a functional update or just the value if it's safe
-    if (typeof navigator !== 'undefined') {
-        setIsOnline(!!navigator.onLine);
     }
 
     return () => {

@@ -392,7 +392,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // 1. Critical Data (Blocking UI)
       await Promise.all([
         fetchInitialLodges(),
-        fetchMyLodges(), // Add this
+        fetchMyLodges(), 
         refreshFavorites(),
         refreshUnreadCount()
       ]);
@@ -400,10 +400,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (mounted) setIsLoading(false);
 
       // 2. Non-Critical Data (Lazy Load)
-      // Requests are only needed for the Market page
       refreshRequests(); 
-      
-      // View Growth is only needed for Landlords
       if (user) refreshViewGrowth();
     };
 
@@ -432,6 +429,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], isRetry = false) => {

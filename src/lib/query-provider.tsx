@@ -20,18 +20,18 @@ export default function QueryProvider({ children }: { children: React.ReactNode 
       })
   );
 
-  const [persister, setPersister] = useState<Persister | null>(null);
-
-  useEffect(() => {
-    // Ensure this only runs on client
+  const [persister] = useState<Persister | null>(() => {
     if (typeof window !== 'undefined') {
-        const localStoragePersister = createSyncStoragePersister({
-          storage: window.localStorage,
-          throttleTime: 1000, // Sync at most once per second
-        });
-        setPersister(localStoragePersister);
+      return createSyncStoragePersister({
+        storage: window.localStorage,
+        throttleTime: 1000,
+      });
     }
-  }, []);
+    return null;
+  });
+
+  // We don't need the useEffect anymore for creating the persister
+
 
   if (!persister) {
     // During SSR or initial mount, just render without persistence to avoid hydration mismatch
