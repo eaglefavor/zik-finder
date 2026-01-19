@@ -1,0 +1,30 @@
+import { encode, decode } from '@msgpack/msgpack';
+
+export const BinaryProtocol = {
+  // Decode server response
+  decode: async (response: Response) => {
+    const buffer = await response.arrayBuffer();
+    return decode(new Uint8Array(buffer));
+  },
+
+  // Encode payload for request
+  encode: (data: any) => {
+    return encode(data);
+  },
+
+  // Helper to fetch with binary protocol
+  fetch: async (url: string, body: any) => {
+    const encoded = encode(body);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-msgpack',
+        'Accept': 'application/x-msgpack'
+      },
+      body: encoded
+    });
+    
+    if (!res.ok) throw new Error(`Binary Fetch Failed: ${res.status}`);
+    return decode(new Uint8Array(await res.arrayBuffer()));
+  }
+};

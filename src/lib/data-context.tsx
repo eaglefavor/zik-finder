@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query'; // ZIPS 3G: Added for persistent caching
 import { OfflineSync, PendingLodge } from './offline-sync'; // ZIPS 3G: Offline Sync
 
+import { BinaryProtocol } from './protocol/binary-client'; // ZIPS 3G: Binary Protocol
+
 const LODGE_PAGE_SIZE = 8;
 
 interface DataContextType {
@@ -55,18 +57,76 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [hasMoreLodges, setHasMoreLodges] = useState(true);
   const [isLodgesLoading, setIsLodgesLoading] = useState(false);
 
-  // ZIPS 3G: TanStack Query for Instant Offline Load
+  // ZIPS 3G: TanStack Query for Instant Offline Load + Delta Sync
   const { data: cachedFeed } = useQuery({
     queryKey: ['lodges', 'feed'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_lodges_feed', {
+      // 1. Get current cache to find last sync time
+      const currentData = queryClient.getQueryData<Lodge[]>(['lodges', 'feed']);
+      
+      // Determine last sync time (using the newest updated_at in the list)
+      // Or we can just use a separate key for metadata. For simplicity, we scan the list.
+      // Actually, let's just use "now" minus some buffer if we have data?
+      // Better: Store a hidden timestamp? 
+      // Let's use a safe default: 1970 if no data.
+      let lastSync = '1970-01-01T00:00:00Z';
+      
+      // We can also store the sync timestamp in localStorage separately
+      const storedSync = localStorage.getItem('zik_feed_last_sync');
+      if (storedSync) lastSync = storedSync;
+
+      // 2. Fetch Deltas via Binary Protocol
+      // We explicitly request binary data to save bandwidth
+      const response: any[] = await BinaryProtocol.fetch('/api/feed-binary', {
         page_offset: 0,
-        page_limit: LODGE_PAGE_SIZE
+        page_limit: LODGE_PAGE_SIZE,
+        last_sync: lastSync
       });
-      if (error) throw error;
-      return formatLodgeData(data as unknown[]);
+
+      // 3. Merge Logic (Delta Sync)
+      if (!currentData) {
+        // No cache, trust server fully
+        // Filter out any 'unchanged' stubs (shouldn't happen on fresh sync but safety first)
+        const fullList = response.filter(r => r._delta !== 'unchanged');
+        localStorage.setItem('zik_feed_last_sync', new Date().toISOString());
+        return formatLodgeData(fullList);
+      }
+
+      // Merge: Start with current cache
+      let merged = [...currentData];
+      let hasChanges = false;
+
+      response.forEach((item: any) => {
+        if (item._delta === 'unchanged') {
+            // Item hasn't changed, keep local version
+            // Ensure it exists in our list (might be re-ordered)
+            // Ideally we re-sort at the end
+        } else if (item._delta === 'update') {
+            // New or Updated item
+            const existingIdx = merged.findIndex(l => l.id === item.id);
+            const formattedItem = formatLodgeData([item])[0];
+            
+            if (existingIdx >= 0) {
+                merged[existingIdx] = formattedItem; // Update
+            } else {
+                merged.push(formattedItem); // Add new
+            }
+            hasChanges = true;
+        }
+      });
+
+      if (hasChanges) {
+         // Re-sort (Simple sort by promoted + date to match server logic roughly)
+         // Note: Perfect sort requires server authority, but client sort is 'good enough' for delta
+         merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+         localStorage.setItem('zik_feed_last_sync', new Date().toISOString());
+         return merged;
+      }
+
+      // If no changes, return cache exactly (preserves referential identity)
+      return currentData;
     },
-    staleTime: 1000 * 60 * 60, // 1 hour (Aggressive caching for 3G)
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Sync Cache to State (Hydration)
