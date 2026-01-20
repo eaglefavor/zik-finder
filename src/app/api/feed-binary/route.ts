@@ -4,9 +4,8 @@ import { encode, decode } from '@msgpack/msgpack';
 
 export const dynamic = 'force-dynamic';
 
-// Fallback to hardcoded keys if env vars are missing (Fix for Vercel deployment)
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wammuxdrpyhppdyhsxam.supabase.co';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhbW11eGRycHlocHBkeWhzeGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMjU5NjYsImV4cCI6MjA4MTgwMTk2Nn0.am7bJAME3vsmCRMfI9hyw3bkEICmu9YbD1bWTceZf9U';
+const SUPABASE_URL = 'https://wammuxdrpyhppdyhsxam.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhbW11eGRycHlocHBkeWhzeGFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYyMjU5NjYsImV4cCI6MjA4MTgwMTk2Nn0.am7bJAME3vsmCRMfI9hyw3bkEICmu9YbD1bWTceZf9U';
 
 export async function POST(request: Request) {
   try {
@@ -29,19 +28,10 @@ export async function POST(request: Request) {
 
     const { page_offset = 0, page_limit = 10, last_sync } = payload as { page_offset?: number, page_limit?: number, last_sync?: string };
 
-    console.log(`[BinaryAPI] Init Supabase with: URL=${SUPABASE_URL}, Key=${SUPABASE_ANON_KEY.slice(0, 10)}...`);
-
+    // Explicitly create client with the hardcoded key to bypass any env var issues
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-      global: {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-        }
+        persistSession: false // Critical for server-side usage
       }
     });
 
