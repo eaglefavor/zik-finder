@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
     // Schema Compaction (Strings -> Integers)
     const compressedData = Array.isArray(data) ? data.map((item: any) => {
-        const compressedItem: Record<number, any> = {};
+        const compressedItem: Record<string | number, any> = {};
         for (const key in item) {
             if (key in LODGE_KEYS) {
                 compressedItem[LODGE_KEYS[key as keyof typeof LODGE_KEYS]] = item[key];
