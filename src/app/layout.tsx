@@ -90,7 +90,7 @@ export default function RootLayout({
         </AppProvider>
         
         {/* Paystack Inline Script */}
-        <Script src="https://js.paystack.co/v1/inline.js" strategy="afterInteractive" />
+        <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
 
         {/* Eruda Debugger */}
         <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
