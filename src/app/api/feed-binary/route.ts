@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { encode, decode } from '@msgpack/msgpack';
 import { LODGE_KEYS } from '@/lib/protocol/schema';
@@ -53,17 +54,14 @@ export async function POST(request: Request) {
     const data = await response.json();
 
     // Schema Compaction (Strings -> Integers)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const compressedData = Array.isArray(data) ? data.map((item: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const compressedItem: Record<number, any> = {};
         for (const key in item) {
             if (key in LODGE_KEYS) {
-                // @ts-ignore
-                compressedItem[LODGE_KEYS[key]] = item[key];
+                compressedItem[LODGE_KEYS[key as keyof typeof LODGE_KEYS]] = item[key];
             } else {
                 // Keep unknown keys as strings (fallback)
-                // @ts-ignore
+                // @ts-expect-error - mixing number/string keys is hacky but valid JS
                 compressedItem[key] = item[key];
             }
         }

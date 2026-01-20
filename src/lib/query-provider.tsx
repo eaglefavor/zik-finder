@@ -1,6 +1,6 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider, Persister } from '@tanstack/react-query-persist-client';
 import { useState } from 'react';
 import { get, set, del } from 'idb-keyval';
