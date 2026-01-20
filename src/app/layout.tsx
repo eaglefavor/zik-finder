@@ -5,6 +5,7 @@ import { AppProvider } from "@/lib/context";
 import { DataProvider } from "@/lib/data-context";
 import { ZipsProvider } from "@/lib/zips-context";
 import BottomNav from "@/components/BottomNav";
+import NetworkStatusIndicator from "@/components/NetworkStatusIndicator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -76,6 +77,7 @@ export default function RootLayout({
           <QueryProvider>
             <DataProvider>
               <ZipsProvider>
+                <NetworkStatusIndicator />
                 <Toaster position="top-center" richColors />
                 <main className="min-h-screen pb-24">
                   {children}
