@@ -29,7 +29,21 @@ export async function POST(request: Request) {
 
     const { page_offset = 0, page_limit = 10, last_sync } = payload as { page_offset?: number, page_limit?: number, last_sync?: string };
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log(`[BinaryAPI] Init Supabase with: URL=${SUPABASE_URL}, Key=${SUPABASE_ANON_KEY.slice(0, 10)}...`);
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+      global: {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      }
+    });
 
     // 2. Call Smart RPC
     // We pass the last_sync timestamp to get delta updates
