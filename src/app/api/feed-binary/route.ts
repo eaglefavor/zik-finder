@@ -61,7 +61,6 @@ export async function POST(request: Request) {
                 compressedItem[LODGE_KEYS[key as keyof typeof LODGE_KEYS]] = item[key];
             } else {
                 // Keep unknown keys as strings (fallback)
-                // @ts-expect-error - mixing number/string keys is hacky but valid JS
                 compressedItem[key] = item[key];
             }
         }

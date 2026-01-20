@@ -41,7 +41,6 @@ export const BinaryProtocol = {
         for (const key in item) {
           const numericKey = Number(key);
           if (numericKey in LODGE_KEYS_REVERSE) {
-            // @ts-expect-error - Dictionary access with number is valid but TS complains about types
             decompressedItem[LODGE_KEYS_REVERSE[numericKey]] = item[key];
           } else {
             // Keep unknown keys as is
