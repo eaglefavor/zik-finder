@@ -140,6 +140,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setHasMoreLodges(cachedFeed.length === LODGE_PAGE_SIZE);
         setIsLoading(false); // Immediate visual feedback
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cachedFeed]);
 
       // ZIPS 3G: Offline Sync Manager
@@ -591,6 +592,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       
     if (error) console.error('Error adding unit:', error);
     await fetchInitialLodges();
+    await fetchMyLodges();
   };
 
   const updateUnit = async (id: string, unitData: Partial<{ name: string, price: number }>) => {
@@ -601,6 +603,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       
     if (error) console.error('Error updating unit:', error);
     await fetchInitialLodges();
+    await fetchMyLodges();
   };
 
   const deleteUnit = async (id: string) => {
@@ -611,6 +614,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       
     if (error) console.error('Error deleting unit:', error);
     await fetchInitialLodges();
+    await fetchMyLodges();
   };
 
   const deleteLodge = async (id: string) => {

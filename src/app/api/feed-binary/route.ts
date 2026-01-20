@@ -13,11 +13,13 @@ export async function POST(request: Request) {
     
     try {
         payload = decode(new Uint8Array(buffer));
-    } catch {
+    } catch (decodeError) {
+        console.warn('MsgPack decode failed, trying JSON:', (decodeError as Error).message, 'Buffer size:', buffer.byteLength);
         try {
             const text = new TextDecoder().decode(buffer);
             payload = JSON.parse(text);
-        } catch {
+        } catch (jsonError) {
+            console.error('JSON decode also failed:', (jsonError as Error).message);
             return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
         }
     }
