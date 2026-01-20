@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { encode, decode } from '@msgpack/msgpack';
+import { LODGE_KEYS } from '@/lib/protocol/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,25 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
-    const encodedData = encode(data);
+    // Schema Compaction (Strings -> Integers)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const compressedData = Array.isArray(data) ? data.map((item: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const compressedItem: Record<number, any> = {};
+        for (const key in item) {
+            if (key in LODGE_KEYS) {
+                // @ts-ignore
+                compressedItem[LODGE_KEYS[key]] = item[key];
+            } else {
+                // Keep unknown keys as strings (fallback)
+                // @ts-ignore
+                compressedItem[key] = item[key];
+            }
+        }
+        return compressedItem;
+    }) : data;
+
+    const encodedData = encode(compressedData);
 
     return new NextResponse(encodedData, {
       headers: {

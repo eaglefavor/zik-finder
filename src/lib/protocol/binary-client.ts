@@ -1,4 +1,5 @@
 import { encode, decode } from '@msgpack/msgpack';
+import { LODGE_KEYS_REVERSE } from './schema';
 
 export const BinaryProtocol = {
   // Decode server response
@@ -29,6 +30,27 @@ export const BinaryProtocol = {
       console.error('Binary Fetch Error Body:', text);
       throw new Error(`Binary Fetch Failed: ${res.status} - ${text.slice(0, 100)}`);
     }
-    return decode(new Uint8Array(await res.arrayBuffer()));
+    
+    const decoded = decode(new Uint8Array(await res.arrayBuffer()));
+
+    // Schema Decompression (Integers -> Strings)
+    if (Array.isArray(decoded)) {
+      return decoded.map((item: any) => {
+        const decompressedItem: Record<string, any> = {};
+        for (const key in item) {
+          const numericKey = Number(key);
+          if (numericKey in LODGE_KEYS_REVERSE) {
+            // @ts-ignore
+            decompressedItem[LODGE_KEYS_REVERSE[numericKey]] = item[key];
+          } else {
+            // Keep unknown keys as is
+            decompressedItem[key] = item[key];
+          }
+        }
+        return decompressedItem;
+      });
+    }
+
+    return decoded;
   }
 };
