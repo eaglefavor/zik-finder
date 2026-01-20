@@ -86,6 +86,12 @@ if (!fs.existsSync(SCREENSHOT_DIR)){
     
     // Wait for the indicator (if it appears)
     try {
+        // Click the dot to expand the status bar
+        console.log('🖱️ Clicking Network Status Dot...');
+        await page.waitForSelector('[data-testid="network-status-dot"]', { timeout: 5000 });
+        await page.click('[data-testid="network-status-dot"]');
+        await page.waitForSelector('[data-testid="network-status-bar"]', { state: 'visible', timeout: 2000 });
+
         // Look for the "ZIPS Active" or "Slow 2G/3G" text in the new System Bar
         const bodyText = await page.textContent('body');
         if (bodyText.includes('ZIPS Active') || bodyText.includes('3G')) {
@@ -126,6 +132,16 @@ if (!fs.existsSync(SCREENSHOT_DIR)){
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 10000 });
         console.log('✅ SUCCESS: Page reloaded while offline (Service Worker active!)');
         
+        // Click the dot to expand the status bar (Offline Mode)
+        try {
+            console.log('🖱️ Clicking Offline Status Dot...');
+            await page.waitForSelector('[data-testid="network-status-dot"]', { timeout: 5000 });
+            await page.click('[data-testid="network-status-dot"]');
+            await page.waitForSelector('[data-testid="network-status-bar"]', { state: 'visible', timeout: 2000 });
+        } catch (e) {
+            console.log('⚠️ Could not click status dot in offline mode:', e.message);
+        }
+
         // Verify "System Offline" text
         const offlineText = await page.textContent('body');
         if (offlineText.includes('System Offline') || offlineText.includes('Offline Mode')) {
