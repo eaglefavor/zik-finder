@@ -221,12 +221,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     try {
         // ZIPS 3G: Refresh the persistent cache
         await queryClient.invalidateQueries({ queryKey: ['lodges', 'feed'] });
-        await queryClient.fetchQuery({ queryKey: ['lodges', 'feed'] });
         
-        // State update is handled by the useEffect above, but we can double ensure here if needed
-        // But invalidating triggers the useQuery which triggers the useEffect.
-        // However, fetchQuery returns the data, so we can set it to ensure immediate UI update if the effect lags.
-        // Actually, let's trust the reactive flow.
+        // State update is handled by the useEffect above
     } catch (error) {
         console.error('Error refreshing lodges:', error);
         toast.error("Failed to refresh feed");
