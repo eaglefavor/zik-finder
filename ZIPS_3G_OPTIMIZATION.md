@@ -28,7 +28,15 @@
         - Wrap `_app` or `layout` with QueryClientProvider.
         - Migrate `useData` context fetching to `useQuery`.
         - Configure `persistClient` with `localStorage` or `IndexedDB`.
-    - **Status:** Dependencies installed (`@tanstack/react-query`, etc.). Implementation Pending.
+    - **Status:** In Progress (Feed Integrated).
+
+- [ ] **Binary Delta Sync (MessagePack):**
+    - **Concept:** Binary protocol to reduce payload size for 3G networks.
+    - **Implementation:**
+        - Create `/api/feed-binary` endpoint.
+        - Implement `BinaryProtocol` client.
+        - Add Fallback to JSON RPC.
+    - **Status:** In Debugging (Endpoint active, fixing 400/500 errors).
 
 - [x] **Compression (Brotli/AVIF):**
     - **Implementation:** `next.config.ts` updated with `compress: true` and `formats: ['image/avif', 'image/webp']`.
