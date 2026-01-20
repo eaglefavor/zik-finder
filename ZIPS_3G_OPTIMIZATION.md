@@ -21,22 +21,23 @@
 ## 💾 Phase 2: Data Architecture (Caching & Compression)
 *Goal: Send less data, load instantly from cache.*
 
-- [ ] **TanStack Query (React Query) + Persistence:**
+- [x] **TanStack Query (React Query) + Persistence:**
     - **Concept:** "Stale-While-Revalidate" engine.
     - **Implementation:**
         - Install `@tanstack/react-query` and persister.
         - Wrap `_app` or `layout` with QueryClientProvider.
         - Migrate `useData` context fetching to `useQuery`.
-        - Configure `persistClient` with `localStorage` or `IndexedDB`.
-    - **Status:** In Progress (Feed Integrated).
+        - Configure `persistClient` with `IndexedDB` (via `idb-keyval`).
+    - **Status:** Done.
 
-- [ ] **Binary Delta Sync (MessagePack):**
+- [x] **Binary Delta Sync (MessagePack):**
     - **Concept:** Binary protocol to reduce payload size for 3G networks.
     - **Implementation:**
         - Create `/api/feed-binary` endpoint.
         - Implement `BinaryProtocol` client.
         - Add Fallback to JSON RPC.
-    - **Status:** In Debugging (Endpoint active, fixing 400/500 errors).
+        - **Optimization:** Implemented Schema Compression (Integers keys) for ~12% extra reduction.
+    - **Status:** Done.
 
 - [x] **Compression (Brotli/AVIF):**
     - **Implementation:** `next.config.ts` updated with `compress: true` and `formats: ['image/avif', 'image/webp']`.
