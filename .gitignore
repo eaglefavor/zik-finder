@@ -47,3 +47,8 @@ next-env.d.ts
 performance-report.html
 *.report.html
 *.report.json
+
+# PWA
+public/sw.js
+public/workbox-*.js
+public/swe-worker-*.js

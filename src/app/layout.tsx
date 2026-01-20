@@ -39,6 +39,15 @@ export const metadata: Metadata = {
     description: "Find your next lodge in Awka with ease.",
   },
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ZikLodge",
+  },
+};
+
+export const viewport = {
+  themeColor: "#2563eb",
 };
 
 import Script from 'next/script';
