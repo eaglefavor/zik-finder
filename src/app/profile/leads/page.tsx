@@ -44,20 +44,32 @@ export default function LeadsPage() {
 
   const fetchLeads = async () => {
     setLoading(true);
-    // We select profiles data. If RLS works correctly, phone_number will be null for pending?
-    // Or we just don't show it in UI.
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*, lodges(title, location, price), profiles!leads_student_id_fkey(name, phone_number)')
-      .eq('landlord_id', user?.id)
-      .eq('type', 'inbound')
-      .order('created_at', { ascending: false });
+    // Use the secure RPC to fetch leads with contact info (if unlocked)
+    const { data, error } = await supabase.rpc('get_landlord_leads');
 
     if (error) {
       console.error('Error fetching leads:', error);
       toast.error('Failed to load leads');
     } else {
-      setLeads(data as unknown as Lead[]);
+      // Transform flat RPC result to match the Lead interface used by the UI
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formatted = (data as any[]).map(row => ({
+        id: row.id,
+        student_id: 'unknown', // Not needed for display
+        lodge_id: 'unknown', // Not needed for display
+        status: row.status,
+        created_at: row.created_at,
+        lodges: {
+          title: row.lodge_title,
+          location: row.lodge_location,
+          price: row.lodge_price
+        },
+        profiles: {
+          name: row.student_name,
+          phone_number: row.student_phone
+        }
+      }));
+      setLeads(formatted as Lead[]);
     }
     setLoading(false);
   };

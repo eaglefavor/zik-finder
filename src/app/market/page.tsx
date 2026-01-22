@@ -77,18 +77,13 @@ export default function MarketRequests() {
   useEffect(() => {
     if (user && (role === 'landlord' || role === 'admin')) {
       const fetchUnlocked = async () => {
-        const { data } = await supabase
-          .from('leads')
-          .select('request_id, profiles!leads_student_id_fkey(phone_number)')
-          .eq('landlord_id', user.id)
-          .eq('type', 'request_unlock')
-          .eq('status', 'unlocked');
+        const { data } = await supabase.rpc('get_my_unlocked_requests');
         
         if (data) {
           const map: Record<string, string> = {};
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data.forEach((lead: any) => {
-            if (lead.request_id) map[lead.request_id] = lead.profiles?.phone_number;
+          data.forEach((row: any) => {
+            if (row.request_id) map[row.request_id] = row.student_phone;
           });
           setUnlockedRequests(map);
         }
@@ -638,11 +633,7 @@ export default function MarketRequests() {
       {/* Filter Modal */}
       {showFilters && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-0 sm:p-4">
-          <motion.div 
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          <div 
             className="bg-white w-full sm:max-w-md sm:rounded-[32px] rounded-t-[32px] max-h-[90vh] flex flex-col shadow-2xl"
           >
             {/* Header */}
@@ -735,7 +726,7 @@ export default function MarketRequests() {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
 

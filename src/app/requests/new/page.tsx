@@ -130,41 +130,7 @@ export default function NewRequest() {
             </div>
           </div>
 
-          {/* Dynamic Landmarks Section */}
-          {(() => {
-            const selectedAreas = formData.locations.filter(l => Object.keys(AREA_LANDMARKS).includes(l));
-            const availableLandmarks = selectedAreas.flatMap(area => AREA_LANDMARKS[area] || []);
-            
-            if (availableLandmarks.length === 0) return null;
-
-            return (
-              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="text-sm font-bold text-gray-700 ml-1 flex items-center gap-2">
-                  <MapPin size={16} className="text-orange-500" /> Specific Landmarks (Optional)
-                </label>
-                <div className="flex flex-wrap gap-2 bg-gray-50/50 p-3 rounded-2xl border border-gray-100">
-                  {availableLandmarks.map(lm => {
-                    const isSelected = formData.locations.includes(lm);
-                    return (
-                      <button
-                        key={lm}
-                        type="button"
-                        onClick={() => toggleLocation(lm)}
-                        className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 ${
-                          isSelected 
-                            ? 'bg-orange-50 text-orange-700 border-orange-200 shadow-sm' 
-                            : 'bg-white text-gray-500 border-gray-200 hover:border-orange-200 hover:text-orange-600'
-                        }`}
-                      >
-                        {lm}
-                        {isSelected && <Check size={12} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
+          {/* Dynamic Landmarks Section - REMOVED */}
 
           {/* Room Type */}
           <div className="relative">
