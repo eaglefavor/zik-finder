@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { useZips } from '@/lib/zips-context';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Lock, Unlock, Phone, MessageCircle, ChevronLeft, MapPin } from 'lucide-react';
+import { Loader2, Lock, Unlock, Phone, MessageCircle, ChevronLeft, MapPin, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -72,6 +72,24 @@ export default function LeadsPage() {
       setLeads(formatted as Lead[]);
     }
     setLoading(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    toast.error('Delete this lead?', {
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          setLeads(prev => prev.filter(l => l.id !== id));
+          const { error } = await supabase.from('leads').delete().eq('id', id);
+          if (error) {
+            toast.error('Failed to delete lead');
+            fetchLeads(); // Revert
+          } else {
+            toast.success('Lead deleted');
+          }
+        }
+      }
+    });
   };
 
   const handleUnlock = async (lead: Lead) => {
@@ -162,9 +180,17 @@ export default function LeadsPage() {
                                     <MapPin size={12} /> {lead.lodges?.title || 'Unknown Lodge'}
                                 </p>
                             </div>
-                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                                {new Date(lead.created_at).toLocaleDateString()}
-                            </span>
+                            <div className="flex flex-col items-end gap-2">
+                                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
+                                    {new Date(lead.created_at).toLocaleDateString()}
+                                </span>
+                                <button 
+                                    onClick={() => handleDelete(lead.id)}
+                                    className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </div>
 
                         {isUnlocked && lead.profiles?.phone_number ? (
