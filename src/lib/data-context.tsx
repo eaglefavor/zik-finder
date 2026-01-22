@@ -705,7 +705,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Force a hard reset of the feed cache to ensure the deleted item is gone
-      // This bypasses the Delta Sync "unchanged" logic which might retain the ghost item
+      // We MUST clear the last_sync timestamp to force a FULL sync, otherwise
+      // the delta sync will assume the deleted item (which is missing from response) is "unchanged"
+      localStorage.removeItem('zik_feed_last_sync');
       await queryClient.resetQueries({ queryKey: ['lodges', 'feed'] });
       
       await fetchInitialLodges();
