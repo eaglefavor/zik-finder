@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Search as SearchIcon, MapPin, SlidersHorizontal, ArrowLeft, X, Check, Banknote } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search as SearchIcon, MapPin, SlidersHorizontal, ArrowLeft, X, Check, Banknote, Loader2 } from 'lucide-react';
 import { useData } from '@/lib/data-context';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ROOM_TYPE_PRESETS, AREA_LANDMARKS, AMENITIES } from '@/lib/constants';
 import Image from 'next/image';
+import { LodgeUnit } from '@/lib/types';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
@@ -26,20 +27,48 @@ export default function SearchPage() {
 
   const router = useRouter();
   const { lodges } = useData();
+  
+  const [searchResults, setSearchResults] = useState<typeof lodges>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Debounced Server Search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (query.trim().length > 1) {
+        setIsSearching(true);
+        try {
+          const res = await fetch(`/api/lodges/search?q=${encodeURIComponent(query)}`);
+          const { data } = await res.json();
+          if (data) setSearchResults(data);
+        } catch (err) {
+          console.error("Search failed", err);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query]);
 
   const filteredListings = useMemo(() => {
-    return lodges.filter(l => {
-      // 0. Status Filter (Only show available lodges to students)
-      if (l.status !== 'available') return false;
+    // Source: If query exists, use server results. Otherwise, use local feed.
+    const sourceData = query.trim().length > 1 ? searchResults : lodges;
 
-      // 1. Text Search (Title, Location, Description, Amenities, Room Types)
-      const searchQuery = query.toLowerCase();
+    return sourceData.filter(l => {
+      // 0. Status Filter (Only show available lodges to students)
+      // Note: API already filters by status, but local feed might not
+      if (l.status && l.status !== 'available') return false;
+
+      // 1. Text Search (Client-side refinement or fallback)
+      // If we used API, we trust it matches the text. If local, we verify.
       const matchesQuery = query ? (
-        l.title.toLowerCase().includes(searchQuery) || 
-        l.location.toLowerCase().includes(searchQuery) ||
-        l.description.toLowerCase().includes(searchQuery) ||
-        l.amenities.some(a => a.toLowerCase().includes(searchQuery)) ||
-        l.units?.some(u => u.name.toLowerCase().includes(searchQuery))
+        sourceData === searchResults ? true : (
+          l.title.toLowerCase().includes(query.toLowerCase()) || 
+          l.location.toLowerCase().includes(query.toLowerCase())
+        )
       ) : true;
 
       // 2. Strict Location Filter
@@ -47,7 +76,7 @@ export default function SearchPage() {
       
       // 3. Room Type Filter (Checks against all units in a lodge)
       const matchesRoomType = filters.roomType 
-        ? l.units?.some(u => u.name === filters.roomType || (filters.roomType === 'Other' && !ROOM_TYPE_PRESETS.includes(u.name)))
+        ? l.units?.some((u: LodgeUnit) => u.name === filters.roomType || (filters.roomType === 'Other' && !ROOM_TYPE_PRESETS.includes(u.name)))
         : true;
 
       // 4. Price Filter (Checks if ANY unit falls within range, or the base price)
@@ -58,13 +87,16 @@ export default function SearchPage() {
       const max = filters.maxPrice ? parseInt(filters.maxPrice) : Infinity;
 
       if (l.units && l.units.length > 0) {
-        matchesPrice = l.units.some(u => u.price >= min && u.price <= max);
+        matchesPrice = l.units.some((u: LodgeUnit) => u.price >= min && u.price <= max);
       } else {
         matchesPrice = l.price >= min && l.price <= max;
       }
 
       // 5. Amenities Filter (AND logic - must have ALL selected)
-      const matchesAmenities = filters.amenities.every(a => l.amenities.includes(a));
+      // Note: API results might not include amenities column for performance, 
+      // so we might need to be careful. The current API select includes limited fields.
+      // Let's assume for now API returns partial data. If amenities is missing, we can't filter by it.
+      const matchesAmenities = l.amenities ? filters.amenities.every(a => l.amenities.includes(a)) : (filters.amenities.length === 0);
 
       return matchesQuery && matchesLocation && matchesRoomType && matchesPrice && matchesAmenities;
     }).sort((a, b) => {
@@ -73,7 +105,7 @@ export default function SearchPage() {
       // Usually the minimum price is good for sorting "Low to High".
       const getPrice = (lodge: typeof lodges[0]) => {
         if (lodge.units && lodge.units.length > 0) {
-          return Math.min(...lodge.units.map(u => u.price));
+          return Math.min(...lodge.units.map((u: LodgeUnit) => u.price));
         }
         return lodge.price;
       };
@@ -83,9 +115,12 @@ export default function SearchPage() {
 
       if (filters.sortBy === 'price_low') return priceA - priceB;
       if (filters.sortBy === 'price_high') return priceB - priceA;
+      
+      // Fallback sort for API results that might lack created_at
+      if (!a.created_at) return 0;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [lodges, query, filters]);
+  }, [lodges, searchResults, query, filters]);
 
   const activeFilterCount = [
     filters.location,
@@ -135,7 +170,11 @@ export default function SearchPage() {
               placeholder="Search by name, area, or description..."
               className="w-full p-3.5 pl-11 bg-white border border-gray-200 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-gray-400 font-medium text-sm"
             />
-            <SearchIcon className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+            {isSearching ? (
+              <Loader2 className="absolute left-4 top-3.5 text-blue-500 animate-spin" size={20} />
+            ) : (
+              <SearchIcon className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+            )}
             {query && (
               <button 
                 onClick={() => setQuery('')}

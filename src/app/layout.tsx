@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+// import { Geist, Geist_Mono } from "next/font/google"; // Disabled due to network build issues
 import "./globals.css";
 import { AppProvider } from "@/lib/context";
 import { DataProvider } from "@/lib/data-context";
@@ -7,6 +7,11 @@ import { ZipsProvider } from "@/lib/zips-context";
 import BottomNav from "@/components/BottomNav";
 import NetworkStatusIndicator from "@/components/NetworkStatusIndicator";
 
+// Fallback font configuration to bypass Google Fonts network dependency
+const geistSans = { variable: "font-sans" }; // Uses Tailwind default sans
+const geistMono = { variable: "font-mono" }; // Uses Tailwind default mono
+
+/* 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -16,6 +21,7 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+*/
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zik-finder.vercel.app'),
@@ -92,11 +98,15 @@ export default function RootLayout({
         {/* Paystack Inline Script */}
         <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
 
-        {/* Eruda Debugger */}
-        <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
-        <Script id="eruda-init" strategy="afterInteractive">
-          {`if (typeof window !== 'undefined' && window.eruda) eruda.init();`}
-        </Script>
+        {/* Eruda Debugger (Dev Only) */}
+        {process.env.NODE_ENV === 'development' && (
+          <>
+            <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
+            <Script id="eruda-init" strategy="afterInteractive">
+              {`if (typeof window !== 'undefined' && window.eruda) eruda.init();`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

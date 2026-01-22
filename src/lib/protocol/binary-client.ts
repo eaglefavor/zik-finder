@@ -31,19 +31,38 @@ export const BinaryProtocol = {
       console.error('Binary Fetch Error Body:', text);
       throw new Error(`Binary Fetch Failed: ${res.status} - ${text.slice(0, 100)}`);
     }
+
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/x-msgpack')) {
+      const text = await res.text();
+      throw new Error(`Invalid content type: expected binary msgpack, got "${contentType}". Body: ${text.slice(0, 100)}`);
+    }
     
     const decoded = decode(new Uint8Array(await res.arrayBuffer()));
+
+    // Handle potential error response from server (e.g. { error: "..." })
+    if (decoded && typeof decoded === 'object' && !Array.isArray(decoded) && 'error' in decoded) {
+        throw new Error(`Binary API Error: ${(decoded as any).error}`);
+    }
 
     // Schema Decompression (Integers -> Strings)
     if (Array.isArray(decoded)) {
       return decoded.map((item: any) => {
+        if (typeof item !== 'object' || item === null) return item;
+        
         const decompressedItem: Record<string, any> = {};
         for (const key in item) {
           const numericKey = Number(key);
-          if (numericKey in LODGE_KEYS_REVERSE) {
-            decompressedItem[LODGE_KEYS_REVERSE[numericKey]] = item[key];
+          if (!isNaN(numericKey)) {
+             if (numericKey in LODGE_KEYS_REVERSE) {
+                decompressedItem[LODGE_KEYS_REVERSE[numericKey]] = item[key];
+             } else {
+                // Warning for unknown keys - indicates schema mismatch
+                console.warn(`Binary Protocol: Unknown key ID ${numericKey} received. Frontend schema may be outdated.`);
+                decompressedItem[key] = item[key];
+             }
           } else {
-            // Keep unknown keys as is
+            // String keys (already decompressed or metadata)
             decompressedItem[key] = item[key];
           }
         }

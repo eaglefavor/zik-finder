@@ -31,12 +31,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid throwing on 0 rows
 
-      if (!error && data) {
+      if (data) {
         const profile = data as Profile;
         setUser(profile);
         setRole(profile.role);
+        return;
+      }
+
+      // If data is null, it means profile doesn't exist (PGRST116 handled by maybeSingle returning null)
+      // Any other actual error (network, permission) should abort
+      if (error) {
+        console.error('Error fetching profile:', error);
         return;
       }
 

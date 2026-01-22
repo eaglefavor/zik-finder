@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
@@ -17,6 +17,13 @@ export default function OnboardingPage() {
     phone: '',
     role: 'student' as UserRole
   });
+
+  // Sync state if user loads after initial render
+  useEffect(() => {
+    if (user?.name && !formData.name) {
+      setFormData(prev => ({ ...prev, name: user.name || '' }));
+    }
+  }, [user, formData.name]);
 
   // If user is already fully set up (has phone and name), redirect home
   if (user && user.phone_number && user.name) {

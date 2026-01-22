@@ -3,7 +3,7 @@
 import { useAppContext } from '@/lib/context';
 import { useData } from '@/lib/data-context';
 import { ShieldCheck, Bell, PlusCircle, Trash2, Edit3, X, CheckCircle, Eye, MapPin, Heart, Phone, MessageCircle, Loader2, Sparkles, Building2, TrendingUp, TrendingDown, Minus, Activity, LayoutGrid, ChevronRight, Search, Zap, ShieldAlert, Mail } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -500,7 +500,7 @@ function HomeContent() {
             </h1>
             <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5">Find your perfect lodge in Awka</p>
           </div>
-          <Link href={user ? "/profile" : "/?login=true"} onClick={() => !user && (window.location.href = '/')} className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden relative">
+          <Link href={user ? "/profile" : "/?login=true"} className="w-11 h-11 bg-blue-50 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg shadow-blue-100 active:scale-90 transition-transform overflow-hidden relative">
             {user?.avatar_url ? (
               <Image src={user.avatar_url} alt={user.name || 'User'} fill className="object-cover" />
             ) : (

@@ -43,7 +43,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^16.1.1",
+    "eslint-config-next": "^15.1.0",
     "lighthouse": "^13.0.1",
     "psi": "^4.1.0",
     "tailwindcss": "^4",

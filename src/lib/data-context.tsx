@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'; // ZIPS 3G: Ad
 import { OfflineSync } from './offline-sync'; // ZIPS 3G: Offline Sync
 
 import { BinaryProtocol } from './protocol/binary-client'; // ZIPS 3G: Binary Protocol
+import { uploadFileResumable } from './tus-upload'; // Added for offline sync
 
 const LODGE_PAGE_SIZE = 8;
 
@@ -27,7 +28,7 @@ interface DataContextType {
   refreshRequests: () => Promise<void>;
   refreshUnreadCount: () => Promise<void>;
   toggleFavorite: (lodgeId: string) => Promise<void>;
-  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], isRetry?: boolean) => Promise<{ success: boolean; error?: string }>;
+  addLodge: (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], files?: Record<string, Blob>, isRetry?: boolean) => Promise<{ success: boolean; data?: Lodge; error?: string }>;
   updateLodge: (id: string, lodgeData: Partial<Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'views'>>) => Promise<{ success: boolean; error?: string }>;
   updateLodgeStatus: (id: string, status: 'available' | 'taken' | 'suspended') => Promise<void>;
   addUnit: (unitData: { lodge_id: string, name: string, price: number, image_urls?: string[] }) => Promise<void>;
@@ -79,6 +80,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       let fullList: Lodge[] = [];
       const newSyncTime = new Date().toISOString();
 
+      // Validate lastSync
+      if (Number.isNaN(Date.parse(lastSync))) {
+          console.warn('Invalid last_sync date detected, resetting to epoch.');
+          lastSync = '1970-01-01T00:00:00Z';
+      }
+
       try {
           // Attempt Binary Delta Sync
           type DeltaItem = Lodge & { _delta: 'update' | 'unchanged' };
@@ -87,6 +94,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             page_limit: LODGE_PAGE_SIZE,
             last_sync: lastSync
           })) as DeltaItem[];
+
+          if (!Array.isArray(response)) {
+            throw new Error('Invalid binary response format: ' + JSON.stringify(response));
+          }
 
           // 3. Merge Logic (Delta Sync)
           if (!currentData) {
@@ -97,6 +108,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             response.forEach((item: any) => {
+                if (!item) return;
+                
                 if (item._delta === 'update') {
                     const existingIdx = merged.findIndex(l => l.id === item.id);
                     const formattedItem = formatLodgeData([item])[0];
@@ -146,6 +159,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // ZIPS 3G: Offline Sync Manager
   useEffect(() => {
     const syncOutbox = async () => {
+      if (!user) return;
       if (!navigator.onLine || isSyncing) return;
       
       const outbox = await OfflineSync.getOutbox();
@@ -156,13 +170,50 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       for (const item of outbox) {
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { success, error } = await addLodge(item.formData as any, item.units as any, true); // true = isRetry
-          if (success) {
+          // 1. Upload pending binary files if any
+          const updatedLodgeData = { ...item.formData };
+          let updatedUnits = [...item.units];
+
+          if (item.files && Object.keys(item.files).length > 0) {
+            toast.loading(`Uploading images for ${updatedLodgeData.title}...`, { id: 'sync-toast' });
+            
+            const urlMap: Record<string, string> = {};
+            
+            for (const [tempId, blob] of Object.entries(item.files)) {
+              const fileName = `offline-${Date.now()}-${tempId}.jpg`;
+              const filePath = `${user.id}/${fileName}`;
+              // Convert Blob to File
+              const file = new File([blob], fileName, { type: 'image/jpeg' });
+              const publicUrl = await uploadFileResumable('lodge-images', filePath, file);
+              urlMap[tempId] = publicUrl;
+            }
+
+            // Replace placeholder URLs with real ones
+            updatedLodgeData.image_urls = (updatedLodgeData.image_urls as string[]).map(url => urlMap[url] || url);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            updatedUnits = (updatedUnits as any[]).map(u => ({
+              ...u,
+              image_urls: (u.image_urls as string[]).map(url => urlMap[url] || url)
+            }));
+          }
+
+          const res = await fetch('/api/lodges/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${item.authToken}`
+            },
+            body: JSON.stringify({
+              lodgeData: updatedLodgeData,
+              units: updatedUnits
+            })
+          });
+
+          if (res.ok) {
             await OfflineSync.removeFromOutbox(item.id);
           } else {
-            console.error('Sync failed for item:', item.id, error);
-            // Keep in outbox to retry later
+            const err = await res.json();
+            console.error('Sync failed for item:', item.id, err.error);
           }
         } catch (e) {
           console.error('Sync error:', e);
@@ -255,7 +306,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setHasMoreLodges(data.length === LODGE_PAGE_SIZE);
     }
     setIsLodgesLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }
 
   const refreshRequests = async () => {
@@ -435,12 +485,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], isRetry = false) => {
+  const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], files?: Record<string, Blob>, isRetry = false) => {
     if (!user) return { success: false, error: 'Not authenticated' };
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
 
     // ZIPS 3G: Offline Intercept
     if (!navigator.onLine && !isRetry) {
-        await OfflineSync.addToOutbox(lodgeData, units || []);
+        if (token) {
+            await OfflineSync.addToOutbox(lodgeData, units || [], token, files);
+            // Register for background sync if supported
+            import('./protocol/sync-manager').then(m => m.SyncManager.registerSync());
+        }
         toast.success('Offline: Lodge saved to Outbox', {
             description: 'We will automatically upload it when you are back online.'
         });
@@ -492,14 +549,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         
         await fetchInitialLodges();
         await fetchMyLodges();
-        return { success: true };
+        return { success: true, data: newLodge as Lodge };
 
     } catch (error: unknown) {
         console.error('Add Lodge Error:', error);
         
         // ZIPS 3G: If failed (and not already a retry loop), save to outbox
-        if (!isRetry) {
-            await OfflineSync.addToOutbox(lodgeData, units || []);
+        if (!isRetry && token) {
+            await OfflineSync.addToOutbox(lodgeData, units || [], token);
+            // Register for background sync if supported
+            import('./protocol/sync-manager').then(m => m.SyncManager.registerSync());
             toast.error('Upload Failed. Saved to Outbox.', {
                 description: 'We will retry automatically when connection is stable.'
             });

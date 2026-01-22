@@ -42,9 +42,17 @@ export default function PaymentModal({
   }, []);
 
   const handlePay = () => {
-    if (!email) {
-      toast.error("Valid email required for payment.");
-      return;
+    // Construct a fallback email if none provided
+    // This ensures payments don't fail for users without email (e.g. phone-only auth)
+    // and avoids grouping everyone under one generic email.
+    let paymentEmail = email;
+    if (!paymentEmail) {
+       const userId = metadata?.user_id || metadata?.userId;
+       if (userId) {
+          paymentEmail = `${userId}@ziklodge.com`;
+       } else {
+          paymentEmail = `guest_${Date.now()}@ziklodge.com`;
+       }
     }
 
     if (typeof window === 'undefined' || !window.PaystackPop) {
@@ -57,7 +65,7 @@ export default function PaymentModal({
     try {
       const handler = window.PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
-        email: email || 'customer@ziklodge.com',
+        email: paymentEmail,
         amount: amount * 100, // Kobo
         currency: 'NGN',
         metadata: {

@@ -7,7 +7,7 @@ import { useData } from '@/lib/data-context';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { LodgeUnit } from '@/lib/types';
+import { Lodge, LodgeUnit } from '@/lib/types';
 import { toast } from 'sonner';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import dynamic from 'next/dynamic';
@@ -63,8 +63,34 @@ export default function LodgeDetail() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loadingReviews, setLoadingHistory] = useState(false);
   
-  const lodge = lodges.find(l => l.id === id);
+  // Direct Link Support: State for fetched lodge
+  const [fetchedLodge, setFetchedLodge] = useState<Lodge | null>(null);
+  const [fetchingLodge, setFetchingLodge] = useState(false);
+
+  // Combine context lodge with fetched lodge
+  const lodge = lodges.find(l => l.id === id) || fetchedLodge;
   const galleryRef = useRef<HTMLDivElement>(null);
+
+  // Fetch Lodge if not in context
+  useEffect(() => {
+    if (id && !lodge && !fetchingLodge) {
+      setFetchingLodge(true);
+      supabase
+        .from('lodges')
+        .select('*, units:lodge_units(*), profiles!lodges_landlord_id_fkey(*)')
+        .eq('id', id)
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data) {
+            // Transform data to match Lodge type
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const formatted: any = { ...data, profiles: data.profiles, units: data.units || [] };
+            setFetchedLodge(formatted as Lodge);
+          }
+          setFetchingLodge(false);
+        });
+    }
+  }, [id, lodge, fetchingLodge]);
 
   // Fetch Reviews
   const fetchReviews = async () => {
@@ -196,6 +222,14 @@ export default function LodgeDetail() {
   };
 
   if (!lodge) {
+    if (fetchingLodge) {
+      return (
+        <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50">
+          <Loader2 className="animate-spin text-blue-600" size={40} />
+          <p className="text-gray-400 font-bold text-sm">Loading Lodge...</p>
+        </div>
+      );
+    }
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50">
         <h1 className="text-xl font-bold">Lodge not found</h1>

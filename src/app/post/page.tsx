@@ -44,6 +44,7 @@ export default function PostLodge() {
   const [generalImages, setGeneralImages] = useState<string[]>([]);
   const [generalBlurHashes, setGeneralBlurHashes] = useState<string[]>([]);
   const [units, setUnits] = useState<TempUnit[]>([]);
+  const [offlineFiles, setOfflineFiles] = useState<Record<string, File>>({}); // ZIPS 3G: Offline File Cache
 
   interface TempUnit {
     tempId: string;
@@ -149,17 +150,37 @@ export default function PostLodge() {
 
     setUploading(true);
     try {
+      const isOnline = navigator.onLine;
       const results = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
-        const [url, hash] = await Promise.all([
-          uploadToStorage(compressed),
-          encodeImageToBlurhash(compressed)
-        ]);
-        return { url, hash };
+        
+        if (isOnline) {
+          const [url, hash] = await Promise.all([
+            uploadToStorage(compressed),
+            encodeImageToBlurhash(compressed)
+          ]);
+          return { url, hash, file: null };
+        } else {
+          // Offline: Queue file and use temp ID as URL
+          const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+          const hash = await encodeImageToBlurhash(compressed);
+          return { url: tempId, hash, file: compressed };
+        }
       }));
       
       setGeneralImages(prev => [...prev, ...results.map(r => r.url)]);
       setGeneralBlurHashes(prev => [...prev, ...results.map(r => r.hash)]);
+      
+      // Store offline files
+      const newOfflineFiles: Record<string, File> = { ...offlineFiles };
+      results.forEach(r => {
+        if (r.file) newOfflineFiles[r.url] = r.file;
+      });
+      setOfflineFiles(newOfflineFiles);
+
+      if (!isOnline) {
+        toast.info('Offline: Images will be uploaded later');
+      }
     } catch {
       toast.error('Upload failed');
     } finally {
@@ -174,13 +195,21 @@ export default function PostLodge() {
 
     setUploading(true);
     try {
+      const isOnline = navigator.onLine;
       const results = await Promise.all(Array.from(files).map(async (file) => {
         const compressed = await compressImage(file);
-        const [url, hash] = await Promise.all([
-          uploadToStorage(compressed),
-          encodeImageToBlurhash(compressed)
-        ]);
-        return { url, hash };
+        
+        if (isOnline) {
+          const [url, hash] = await Promise.all([
+            uploadToStorage(compressed),
+            encodeImageToBlurhash(compressed)
+          ]);
+          return { url, hash, file: null };
+        } else {
+          const fileId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+          const hash = await encodeImageToBlurhash(compressed);
+          return { url: fileId, hash, file: compressed };
+        }
       }));
 
       setUnits(prev => prev.map(u => u.tempId === tempId ? { 
@@ -188,6 +217,17 @@ export default function PostLodge() {
         image_urls: [...u.image_urls, ...results.map(r => r.url)],
         image_blurhashes: [...u.image_blurhashes, ...results.map(r => r.hash)]
       } : u));
+
+      // Store offline files
+      const newOfflineFiles: Record<string, File> = { ...offlineFiles };
+      results.forEach(r => {
+        if (r.file) newOfflineFiles[r.url] = r.file;
+      });
+      setOfflineFiles(newOfflineFiles);
+
+      if (!isOnline) {
+        toast.info('Offline: Unit images will be uploaded later');
+      }
     } catch {
       toast.error('Upload failed');
     } finally {
@@ -236,7 +276,7 @@ export default function PostLodge() {
     const minPrice = units.length > 0 ? Math.min(...units.map(u => u.price)) : 0;
 
     const action = async () => {
-      const { success, error } = await addLodge({
+      const { success, data: createdLodge, error } = await addLodge({
         title: formData.title,
         price: minPrice,
         location: formData.location,
@@ -246,25 +286,26 @@ export default function PostLodge() {
         image_blurhashes: generalBlurHashes,
         amenities: formData.amenities,
         status: 'available',
-      }, finalUnits);
+      }, finalUnits, offlineFiles);
 
       if (!success) throw new Error(error);
 
       // Clear draft
       localStorage.removeItem(DRAFT_KEY);
       
-      // Get the ID of the newly created lodge
-      const { data } = await supabase.from('lodges').select('id').eq('landlord_id', user.id).eq('title', formData.title).order('created_at', { ascending: false }).limit(1).single();
-      
-      if (data) setNewlyCreatedLodgeId(data.id);
-
-      await supabase.from('notifications').insert({
-        user_id: user.id,
-        title: 'Lodge Published! 🎉',
-        message: `Your lodge "${formData.title}" is now live and visible to students.`, 
-        type: 'success',
-        link: data ? `/lodge/${data.id}` : '/profile'
-      });
+      if (createdLodge) {
+        setNewlyCreatedLodgeId(createdLodge.id);
+        
+        if (navigator.onLine) {
+           await supabase.from('notifications').insert({
+              user_id: user.id,
+              title: 'Lodge Published! 🎉',
+              message: `Your lodge "${formData.title}" is now live and visible to students.`, 
+              type: 'success',
+              link: `/lodge/${createdLodge.id}`
+           });
+        }
+      }
       
       setIsSubmitted(true);
       return formData.title;

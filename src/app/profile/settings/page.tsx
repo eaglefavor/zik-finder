@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, Phone, Loader2, Save, Camera, MessageCircle } from 'lucide-react';
 import { useAppContext } from '@/lib/context';
@@ -11,7 +11,7 @@ import Image from 'next/image';
 
 // Cloudinary Configuration
 const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'zik_lodges';
-const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dbj0a6uor';
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dhpvia1ae';
 
 export default function AccountSettingsPage() {
   const { user, role, refreshProfile } = useAppContext();
@@ -25,6 +25,18 @@ export default function AccountSettingsPage() {
     avatar_url: user?.avatar_url || ''
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(user?.avatar_url || null);
+
+  // Sync state if user loads after initial render
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        phone: user.phone_number || '',
+        avatar_url: user.avatar_url || ''
+      });
+      setPreviewUrl(user.avatar_url || null);
+    }
+  }, [user]);
 
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {

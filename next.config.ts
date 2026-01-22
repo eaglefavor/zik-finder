@@ -4,7 +4,8 @@ import withPWAInit from "@ducanh2912/next-pwa";
 const withPWA = withPWAInit({
   dest: "public",
   register: true,
-  disable: process.env.NODE_ENV === "development",
+  disable: true, // process.env.NODE_ENV === "development",
+  // customWorkerDir: "worker", // Removed to fix type error
   workboxOptions: {
     disableDevLogs: true,
     skipWaiting: true,
