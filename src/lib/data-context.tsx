@@ -688,14 +688,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     setLodges(prev => prev.filter(l => l.id !== id));
-    setMyLodges(prev => prev.filter(l => l.id !== id)); // Also update landlord's list
-
-    // Optimistically update the persistent cache to prevent "reappearance" on sync
-    // This is critical because the delta sync might not report deletion immediately
-    queryClient.setQueryData(['lodges', 'feed'], (oldData: Lodge[] | undefined) => {
-       if (!oldData) return [];
-       return oldData.filter(l => l.id !== id);
-    });
+    setMyLodges(prev => prev.filter(l => l.id !== id));
 
     try {
       const res = await fetch('/api/lodges/delete', {
@@ -711,9 +704,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         console.warn('Image deletion API warning:', await res.json());
       }
 
-      // The API route now handles DB deletion atomically.
-      // We don't need to call supabase.rpc('delete_lodge') anymore.
-
+      // Force a hard reset of the feed cache to ensure the deleted item is gone
+      // This bypasses the Delta Sync "unchanged" logic which might retain the ghost item
+      await queryClient.resetQueries({ queryKey: ['lodges', 'feed'] });
+      
       await fetchInitialLodges();
       await fetchMyLodges();
 
