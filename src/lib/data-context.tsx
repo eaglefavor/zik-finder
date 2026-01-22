@@ -690,6 +690,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setLodges(prev => prev.filter(l => l.id !== id));
     setMyLodges(prev => prev.filter(l => l.id !== id)); // Also update landlord's list
 
+    // Optimistically update the persistent cache to prevent "reappearance" on sync
+    // This is critical because the delta sync might not report deletion immediately
+    queryClient.setQueryData(['lodges', 'feed'], (oldData: Lodge[] | undefined) => {
+       if (!oldData) return [];
+       return oldData.filter(l => l.id !== id);
+    });
+
     try {
       const res = await fetch('/api/lodges/delete', {
         method: 'POST',
