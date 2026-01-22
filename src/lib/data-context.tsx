@@ -688,6 +688,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
 
     setLodges(prev => prev.filter(l => l.id !== id));
+    setMyLodges(prev => prev.filter(l => l.id !== id)); // Also update landlord's list
 
     try {
       const res = await fetch('/api/lodges/delete', {
@@ -769,21 +770,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (!studentId) return { success: false, error: 'Invalid student ID' };
 
     try {
-      const { data: lodge } = await supabase
-        .from('lodges')
-        .select('title')
-        .eq('id', lodgeId)
-        .single();
-
-      const { error } = await supabase.from('notifications').insert({
-        user_id: studentId,
-        title: 'Lodge Match! 🏠',
-        message: `${user.name || 'A landlord'} has a lodge ("${lodge?.title || 'Untitled'}") that matches your request!`,
-        type: 'success',
-        link: `/lodge/${lodgeId}`
+      const { data, error } = await supabase.rpc('notify_student_of_match', {
+        p_student_id: studentId,
+        p_lodge_id: lodgeId
       });
 
       if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (data && !(data as any).success) throw new Error((data as any).message);
+      
       return { success: true };
     } catch (err: unknown) {
       console.error("Notification Error:", err);

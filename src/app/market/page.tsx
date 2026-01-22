@@ -731,24 +731,16 @@ export default function MarketRequests() {
       )}
 
       {/* Lodge Selector Modal - Premium Version */}
-      <AnimatePresence>
-        {showLodgeSelector && (
-          <div className="fixed inset-0 z-[100] flex items-end sm:items-center sm:justify-center">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => { setShowLodgeSelector(false); setSelectedStudentId(null); }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-white w-full sm:max-w-md sm:rounded-[40px] rounded-t-[40px] max-h-[85vh] flex flex-col relative z-10 shadow-2xl overflow-hidden"
-            >
-              <div className="flex justify-between items-center p-8 border-b border-gray-50">
+      {showLodgeSelector && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center sm:justify-center">
+          <div 
+            onClick={() => { setShowLodgeSelector(false); setSelectedStudentId(null); }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          />
+          <div 
+            className="bg-white w-full sm:max-w-md sm:rounded-[40px] rounded-t-[40px] max-h-[85vh] flex flex-col relative z-10 shadow-2xl overflow-hidden"
+          >
+            <div className="flex justify-between items-center p-8 border-b border-gray-50">
                 <div>
                   <h2 className="text-2xl font-black text-gray-900 tracking-tight">Match Lodge</h2>
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Select your property</p>
@@ -801,10 +793,9 @@ export default function MarketRequests() {
               <div className="p-8 bg-gray-50 border-t border-gray-100">
                  <p className="text-[10px] text-gray-400 text-center font-bold uppercase tracking-widest leading-relaxed">Students will be notified instantly via their dashboard</p>
               </div>
-            </motion.div>
+            </div>
           </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }
