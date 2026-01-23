@@ -13,6 +13,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: __dirname,
   compress: true, // Force Gzip compression (Vercel Edge upgrades to Brotli)
   poweredByHeader: false, // Security: Hide Next.js tag
   images: {

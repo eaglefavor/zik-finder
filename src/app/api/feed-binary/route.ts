@@ -2,11 +2,12 @@
 import { NextResponse } from 'next/server';
 import { encode, decode } from '@msgpack/msgpack';
 import { LODGE_KEYS } from '@/lib/protocol/schema';
+import { supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_URL = supabaseUrl;
+const SUPABASE_ANON_KEY = supabaseAnonKey;
 
 export async function POST(request: Request) {
   try {
