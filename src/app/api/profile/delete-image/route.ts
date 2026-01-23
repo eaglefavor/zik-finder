@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import cloudinary from '@/lib/cloudinary';
+import { supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
@@ -10,9 +11,6 @@ export async function POST(request: Request) {
     if (!userId || !authHeader) {
       return NextResponse.json({ error: 'Missing userId or Authorization header' }, { status: 400 });
     }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },

@@ -1,5 +1,5 @@
 import { Upload } from 'tus-js-client';
-import { supabase } from './supabase';
+import { supabase, supabaseUrl } from './supabase';
 
 export const uploadFileResumable = async (
   bucketName: string,
@@ -16,7 +16,7 @@ export const uploadFileResumable = async (
     }
 
     const upload = new Upload(file, {
-      endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/upload/resumable`,
+      endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
       retryDelays: [0, 3000, 5000, 10000, 20000], // Aggressive retries for 3G
       headers: {
         authorization: `Bearer ${session.access_token}`,
@@ -40,7 +40,7 @@ export const uploadFileResumable = async (
       },
       onSuccess: () => {
         // Construct public URL
-        const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucketName}/${filePath}`;
+        const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${filePath}`;
         resolve(publicUrl);
       },
     });
