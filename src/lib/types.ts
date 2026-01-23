@@ -94,3 +94,63 @@ export interface MonetizationTransaction {
   status: 'pending' | 'success' | 'failed';
   created_at: string;
 }
+
+// --- ZIPS 5.0 Roommate Matcher Types ---
+
+export interface RoommateHabits {
+  smoke: boolean;
+  cook: boolean;
+  guests: 'no_overnight' | 'weekends' | 'anytime';
+  study_time: 'early_bird' | 'night_owl' | 'flexible';
+  cleanliness: 'relaxed' | 'standard' | 'strict';
+  pets: boolean;
+}
+
+export interface RoommateProfile {
+  user_id: string;
+  gender: 'Male' | 'Female';
+  department: string;
+  level: string;
+  habits: RoommateHabits;
+  bio: string;
+  is_student_verified: boolean;
+  student_id_url?: string;
+  created_at: string;
+}
+
+export interface RoommateListing {
+  id: string;
+  user_id: string;
+  type: 'have_room' | 'need_room';
+  location_area: string;
+  landmark?: string;
+  exact_address_notes?: string;
+  rent_per_person: number;
+  payment_period: string;
+  images: string[];
+  description: string;
+  linked_lodge_id?: string;
+  expires_at: string;
+  status: 'active' | 'filled' | 'expired' | 'closed';
+  created_at: string;
+  
+  // Joins
+  profiles?: Profile;
+  roommate_profiles?: RoommateProfile;
+}
+
+export interface RoommateConnection {
+  id: string;
+  host_id: string;
+  seeker_id: string;
+  listing_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  seeker_safety_acknowledged: boolean;
+  created_at: string;
+  accepted_at?: string;
+  
+  // Joins
+  host?: Profile;
+  seeker?: Profile;
+  listing?: RoommateListing;
+}
