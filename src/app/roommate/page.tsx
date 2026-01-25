@@ -29,7 +29,7 @@ export default function RoommateFeed() {
             name,
             avatar_url,
             role,
-            roommate_profiles:id (
+            roommate_profiles:roommate_profiles!roommate_profiles_user_id_fkey (
               gender,
               level,
               department,
