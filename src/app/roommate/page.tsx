@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { RoommateListing } from '@/lib/types';
-import { Loader2, MapPin, User, PlusCircle, Sparkles, CheckCircle } from 'lucide-react';
+import { Loader2, MapPin, User, PlusCircle, Sparkles, CheckCircle, UserCog, List } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,12 +128,17 @@ export default function RoommateFeed() {
             </h1>
             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Find your tribe • Free & Safe</p>
           </div>
-          <Link 
-            href="/roommate/post" 
-            className="p-2 bg-gray-900 text-white rounded-xl shadow-lg active:scale-95 transition-all"
-          >
-            <PlusCircle size={24} />
-          </Link>
+          <div className="flex gap-2">
+             <Link href="/roommate/setup" className="p-2 bg-gray-100 text-gray-600 rounded-xl active:scale-95 transition-all">
+                <UserCog size={20} />
+             </Link>
+             <Link href="/roommate/manage" className="p-2 bg-gray-100 text-gray-600 rounded-xl active:scale-95 transition-all">
+                <List size={20} />
+             </Link>
+             <Link href="/roommate/post" className="p-2 bg-gray-900 text-white rounded-xl shadow-lg active:scale-95 transition-all">
+                <PlusCircle size={20} />
+             </Link>
+          </div>
         </div>
 
         {/* Filters */}
@@ -219,14 +224,16 @@ export default function RoommateFeed() {
                   </div>
 
                   {item.images && item.images.length > 0 && (
-                    <div className="h-40 w-full bg-gray-100 rounded-2xl mb-4 overflow-hidden relative">
-                      <Image src={item.images[0]} fill className="object-cover" alt="Room" />
-                      {item.images.length > 1 && (
-                        <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-lg font-bold backdrop-blur-sm">
-                          +{item.images.length - 1}
-                        </div>
-                      )}
-                    </div>
+                    <Link href={`/roommate/${item.id}`}>
+                      <div className="h-40 w-full bg-gray-100 rounded-2xl mb-4 overflow-hidden relative">
+                        <Image src={item.images[0]} fill className="object-cover" alt="Room" />
+                        {item.images.length > 1 && (
+                          <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-lg font-bold backdrop-blur-sm">
+                            +{item.images.length - 1}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
                   )}
 
                   <div className="flex flex-wrap gap-2 mb-4">
@@ -250,12 +257,12 @@ export default function RoommateFeed() {
                   </p>
 
                   <div className="flex gap-3">
-                    <button 
-                      onClick={() => toast.info('Coming soon: Full profile view')}
-                      className="flex-1 py-3.5 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
+                    <Link 
+                      href={`/roommate/${item.id}`}
+                      className="flex-1 py-3.5 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all text-center flex items-center justify-center"
                     >
                       View Profile
-                    </button>
+                    </Link>
                     <button 
                       onClick={() => handleRequest(item.id, item.user_id)}
                       disabled={isRequested}
