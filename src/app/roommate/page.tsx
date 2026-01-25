@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
 import { RoommateListing } from '@/lib/types';
-import { Loader2, Filter, MapPin, User, Search, PlusCircle, Sparkles } from 'lucide-react';
+import { Loader2, MapPin, User, PlusCircle, Sparkles, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ export default function RoommateFeed() {
   const [listings, setListings] = useState<RoommateListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<'all' | 'have_room' | 'need_room'>('all');
+  const [myRequests, setMyRequests] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -51,14 +52,68 @@ export default function RoommateFeed() {
         console.error('Error fetching roommate listings:', error);
         toast.error('Failed to load feed');
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setListings(data as any[]);
+        setListings(data as unknown as RoommateListing[]);
       }
       setLoading(false);
     };
 
     fetchListings();
   }, [filterType]);
+
+  // Fetch my requests status
+  useEffect(() => {
+    if (!user) return;
+    const fetchMyRequests = async () => {
+      const { data } = await supabase
+        .from('roommate_connections')
+        .select('listing_id')
+        .eq('seeker_id', user.id);
+      
+      if (data) {
+        setMyRequests(new Set(data.map(r => r.listing_id)));
+      }
+    };
+    fetchMyRequests();
+  }, [user]);
+
+  const handleRequest = async (listingId: string, hostId: string) => {
+    if (!user) {
+        toast.error("Please login to pair");
+        return;
+    }
+    if (user.id === hostId) {
+        toast.error("You can't pair with yourself");
+        return;
+    }
+
+    // Optimistic Update
+    setMyRequests(prev => new Set(prev).add(listingId));
+    toast.loading('Sending request...', { id: 'req-toast' });
+
+    try {
+        const { error } = await supabase
+            .from('roommate_connections')
+            .insert({
+                host_id: hostId,
+                seeker_id: user.id,
+                listing_id: listingId,
+                status: 'pending',
+                seeker_safety_acknowledged: true
+            });
+
+        if (error) throw error;
+        toast.success('Request sent! Waiting for host.', { id: 'req-toast' });
+    } catch (err) {
+        console.error(err);
+        toast.error('Failed to send request', { id: 'req-toast' });
+        // Revert
+        setMyRequests(prev => {
+            const next = new Set(prev);
+            next.delete(listingId);
+            return next;
+        });
+    }
+  };
 
   if (authLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
@@ -129,85 +184,97 @@ export default function RoommateFeed() {
           </div>
         ) : (
           <AnimatePresence>
-            {listings.map((item, idx) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group"
-              >
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-14 h-14 bg-gray-100 rounded-2xl overflow-hidden relative shrink-0 border border-gray-100">
-                    {item.profiles?.avatar_url ? (
-                      <Image src={item.profiles.avatar_url} fill className="object-cover" alt="" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
-                        <User size={24} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-bold text-gray-900 text-base truncate">{item.profiles?.name || 'Student'}</h3>
-                      <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                        item.type === 'have_room' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
-                      }`}>
-                        {item.type === 'have_room' ? 'Has Room' : 'Seeker'}
-                      </span>
+            {listings.map((item, idx) => {
+              const isRequested = myRequests.has(item.id);
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group"
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-14 h-14 bg-gray-100 rounded-2xl overflow-hidden relative shrink-0 border border-gray-100">
+                      {item.profiles?.avatar_url ? (
+                        <Image src={item.profiles.avatar_url} fill className="object-cover" alt="" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                          <User size={24} />
+                        </div>
+                      )}
                     </div>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    <p className="text-xs text-gray-500 font-medium">{(item as any).roommate_profiles?.level || 'Student'} • {(item as any).roommate_profiles?.department || 'Unizik'}</p>
-                  </div>
-                </div>
-
-                {item.images && item.images.length > 0 && (
-                  <div className="h-40 w-full bg-gray-100 rounded-2xl mb-4 overflow-hidden relative">
-                    <Image src={item.images[0]} fill className="object-cover" alt="Room" />
-                    {item.images.length > 1 && (
-                      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-lg font-bold backdrop-blur-sm">
-                        +{item.images.length - 1}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-gray-900 text-base truncate">{item.profiles?.name || 'Student'}</h3>
+                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                          item.type === 'have_room' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                        }`}>
+                          {item.type === 'have_room' ? 'Has Room' : 'Seeker'}
+                        </span>
                       </div>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      <p className="text-xs text-gray-500 font-medium">{(item as any).roommate_profiles?.level || 'Student'} • {(item as any).roommate_profiles?.department || 'Unizik'}</p>
+                    </div>
+                  </div>
+
+                  {item.images && item.images.length > 0 && (
+                    <div className="h-40 w-full bg-gray-100 rounded-2xl mb-4 overflow-hidden relative">
+                      <Image src={item.images[0]} fill className="object-cover" alt="Room" />
+                      {item.images.length > 1 && (
+                        <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] px-2 py-1 rounded-lg font-bold backdrop-blur-sm">
+                          +{item.images.length - 1}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100 flex items-center gap-1">
+                      <MapPin size={10} /> {item.location_area}
+                    </span>
+                    <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100">
+                      ₦{item.rent_per_person?.toLocaleString()}/{item.payment_period === 'Yearly' ? 'yr' : 'sem'}
+                    </span>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {(item as any).roommate_profiles?.gender && (
+                      <span className="px-2.5 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded-lg border border-purple-100">
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {(item as any).roommate_profiles?.gender} Only
+                      </span>
                     )}
                   </div>
-                )}
 
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100 flex items-center gap-1">
-                    <MapPin size={10} /> {item.location_area}
-                  </span>
-                  <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100">
-                    ₦{item.rent_per_person?.toLocaleString()}/{item.payment_period === 'Yearly' ? 'yr' : 'sem'}
-                  </span>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {(item as any).roommate_profiles?.gender && (
-                    <span className="px-2.5 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded-lg border border-purple-100">
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {(item as any).roommate_profiles?.gender} Only
-                    </span>
-                  )}
-                </div>
+                  <p className="text-sm text-gray-600 mb-6 line-clamp-3 leading-relaxed italic border-l-2 border-gray-200 pl-3">
+                    &quot;{item.description}&quot;
+                  </p>
 
-                <p className="text-sm text-gray-600 mb-6 line-clamp-3 leading-relaxed italic border-l-2 border-gray-200 pl-3">
-                  &quot;{item.description}&quot;
-                </p>
-
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => toast.info('Coming soon: Full profile view')}
-                    className="flex-1 py-3.5 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
-                  >
-                    View Profile
-                  </button>
-                  <button 
-                    onClick={() => toast.success('Request sent! (Simulation)')}
-                    className="flex-[1.5] py-3.5 bg-gray-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-                  >
-                    Request to Pair
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => toast.info('Coming soon: Full profile view')}
+                      className="flex-1 py-3.5 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                      View Profile
+                    </button>
+                    <button 
+                      onClick={() => handleRequest(item.id, item.user_id)}
+                      disabled={isRequested}
+                      className={`flex-[1.5] py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all ${
+                        isRequested 
+                            ? 'bg-green-100 text-green-700 cursor-default' 
+                            : 'bg-gray-900 text-white active:scale-95'
+                      }`}
+                    >
+                      {isRequested ? (
+                        <span className="flex items-center justify-center gap-2"><CheckCircle size={14} /> Requested</span>
+                      ) : (
+                        'Request to Pair'
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         )}
       </div>

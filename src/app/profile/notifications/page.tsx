@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bell, Trash2, Info, CheckCircle, AlertTriangle, XCircle, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, Bell, Trash2, Info, CheckCircle, AlertTriangle, XCircle, ChevronRight, Loader2, UserCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAppContext } from '@/lib/context';
-import { Notification } from '@/lib/types';
+import { Notification, RoommateConnection } from '@/lib/types';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -13,14 +13,52 @@ export default function NotificationsPage() {
   const { user } = useAppContext();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [requests, setRequests] = useState<RoommateConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
   const [clearingAll, setClearingAll] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [processingReq, setProcessingReq] = useState<string | null>(null);
+
+  const fetchNotifications = useCallback(async (retryCount = 0) => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      if (retryCount < 1 && (err as Error)?.message?.includes('fetch')) {
+        setTimeout(() => fetchNotifications(retryCount + 1), 1000);
+      } else {
+        toast.error('Failed to load notifications. Please check your connection.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const fetchRequests = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+        .from('roommate_connections')
+        .select('*, seeker:seeker_id(name, avatar_url, phone_number), listing:listing_id(type, rent_per_person)')
+        .eq('host_id', user.id)
+        .eq('status', 'pending');
+    
+    if (data) {
+        setRequests(data as unknown as RoommateConnection[]);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       fetchNotifications();
+      fetchRequests();
 
       // Subscribe to real-time notifications
       const channel = supabase
@@ -43,28 +81,26 @@ export default function NotificationsPage() {
         supabase.removeChannel(channel);
       };
     }
-  }, [user]);
-
-  const fetchNotifications = async (retryCount = 0) => {
+  }, [user, fetchNotifications, fetchRequests]);
+  const handleAcceptRequest = async (connId: string) => {
+    setProcessingReq(connId);
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
+        const { data, error } = await supabase.rpc('accept_roommate_invitation', {
+            p_connection_id: connId
+        });
+        
+        if (error) throw error;
+        if (!data.success) throw new Error(data.message);
 
-      if (error) throw error;
-      setNotifications(data || []);
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-      // Simple retry logic for network errors
-      if (retryCount < 1 && (err as Error)?.message?.includes('fetch')) {
-        setTimeout(() => fetchNotifications(retryCount + 1), 1000);
-      } else {
-        toast.error('Failed to load notifications. Please check your connection.');
-      }
+        toast.success("Request Accepted!");
+        // Update local state
+        setRequests(prev => prev.filter(r => r.id !== connId));
+        // Refresh notifications to see the new "Connection Established" one
+        fetchNotifications();
+    } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : 'Failed to accept');
     } finally {
-      setLoading(false);
+        setProcessingReq(null);
     }
   };
 
@@ -79,7 +115,6 @@ export default function NotificationsPage() {
 
     if (error) {
       console.error('Error marking as read:', error);
-      // Revert if error (optional, but good practice)
     }
   };
 
@@ -211,6 +246,39 @@ export default function NotificationsPage() {
           )}
         </div>
       </header>
+
+      {requests.length > 0 && (
+        <div className="mb-8 space-y-4">
+             <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 px-2">Pending Requests</h2>
+             {requests.map(req => (
+                 <div key={req.id} className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl">
+                    <div className="flex gap-4 mb-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                             {req.seeker?.avatar_url ? (
+                                /* eslint-disable-next-line @next/next/no-img-element */
+                                <img src={req.seeker.avatar_url} alt="Seeker" className="w-full h-full object-cover"/>
+                             ) : (
+                                <UserCheck className="text-blue-600" size={24} />
+                             )}
+                        </div>
+                        <div>
+                             <h3 className="font-bold text-gray-900">{req.seeker?.name || 'Student'}</h3>
+                             <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wide bg-blue-100 px-2 py-0.5 rounded-md inline-block mb-1">Wants to pair</p>
+                             <p className="text-xs text-gray-500 font-medium">Listing: {req.listing?.rent_per_person ? `₦${req.listing.rent_per_person.toLocaleString()}` : 'Room'}</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => handleAcceptRequest(req.id)}
+                        disabled={!!processingReq}
+                        className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                        {processingReq === req.id ? <Loader2 className="animate-spin" size={16}/> : <CheckCircle size={16} />}
+                        Accept & Share Contact
+                    </button>
+                 </div>
+             ))}
+        </div>
+      )}
 
       {notifications.length > 0 ? (
         <div className="space-y-3">
