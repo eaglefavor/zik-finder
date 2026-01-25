@@ -1,0 +1,31 @@
+
+> ziklodge@0.1.0 dev:test
+> next dev --hostname 127.0.0.1
+
+   ▲ Next.js 15.5.9
+   - Local:        http://127.0.0.1:3000
+   - Network:      http://127.0.0.1:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ○ (pwa) PWA support is disabled.
+ ✓ Ready in 28.9s
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+ ○ Compiling / ...
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+ ✓ Compiled / in 79.2s (1926 modules)
+ GET / 200 in 89198ms
+ ✓ Compiled in 11.3s (847 modules)
+ ✓ Compiled in 2.5s (847 modules)
+ ✓ Compiled in 1730ms (847 modules)
+ ✓ Compiled in 1409ms (847 modules)
+ ✓ Compiled in 1079ms (847 modules)
+ ✓ Compiled in 1747ms (847 modules)
+ ✓ Compiled in 3.5s (847 modules)
+ ✓ Compiled in 2.8s (847 modules)
+ ✓ Compiled in 3.8s (847 modules)
+ ✓ Compiled in 4s (847 modules)
+ ✓ Compiled in 6.5s (847 modules)
+ ✓ Compiled in 5.3s (847 modules)
+ GET / 200 in 6312ms
+ ✓ Compiled in 7.8s (847 modules)

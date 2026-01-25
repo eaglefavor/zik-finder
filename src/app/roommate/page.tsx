@@ -199,32 +199,32 @@ export default function RoommateFeed() {
                   transition={{ delay: idx * 0.05 }}
                   className="bg-white p-5 rounded-[32px] border border-gray-100 shadow-sm relative overflow-hidden group"
                 >
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-14 h-14 bg-gray-100 rounded-2xl overflow-hidden relative shrink-0 border border-gray-100">
-                      {item.profiles?.avatar_url ? (
-                        <Image src={item.profiles.avatar_url} fill className="object-cover" alt="" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
-                          <User size={24} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <h3 className="font-bold text-gray-900 text-base truncate">{item.profiles?.name || 'Student'}</h3>
-                        <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                          item.type === 'have_room' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
-                        }`}>
-                          {item.type === 'have_room' ? 'Has Room' : 'Seeker'}
-                        </span>
+                  <Link href={`/roommate/${item.id}`} className="block">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-14 h-14 bg-gray-100 rounded-2xl overflow-hidden relative shrink-0 border border-gray-100">
+                        {item.profiles?.avatar_url ? (
+                          <Image src={item.profiles.avatar_url} fill className="object-cover" alt="" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                            <User size={24} />
+                          </div>
+                        )}
                       </div>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      <p className="text-xs text-gray-500 font-medium">{(item as any).roommate_profiles?.level || 'Student'} • {(item as any).roommate_profiles?.department || 'Unizik'}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-bold text-gray-900 text-base truncate">{item.profiles?.name || 'Student'}</h3>
+                          <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                            item.type === 'have_room' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
+                          }`}>
+                            {item.type === 'have_room' ? 'Has Room' : 'Seeker'}
+                          </span>
+                        </div>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        <p className="text-xs text-gray-500 font-medium">{(item as any).roommate_profiles?.level || 'Student'} • {(item as any).roommate_profiles?.department || 'Unizik'}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  {item.images && item.images.length > 0 && (
-                    <Link href={`/roommate/${item.id}`}>
+                    {item.images && item.images.length > 0 && (
                       <div className="h-40 w-full bg-gray-100 rounded-2xl mb-4 overflow-hidden relative">
                         <Image src={item.images[0]} fill className="object-cover" alt="Room" />
                         {item.images.length > 1 && (
@@ -233,40 +233,34 @@ export default function RoommateFeed() {
                           </div>
                         )}
                       </div>
-                    </Link>
-                  )}
-
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100 flex items-center gap-1">
-                      <MapPin size={10} /> {item.location_area}
-                    </span>
-                    <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100">
-                      ₦{item.rent_per_person?.toLocaleString()}/{item.payment_period === 'Yearly' ? 'yr' : 'sem'}
-                    </span>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {(item as any).roommate_profiles?.gender && (
-                      <span className="px-2.5 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded-lg border border-purple-100">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {(item as any).roommate_profiles?.gender} Only
-                      </span>
                     )}
-                  </div>
 
-                  <p className="text-sm text-gray-600 mb-6 line-clamp-3 leading-relaxed italic border-l-2 border-gray-200 pl-3">
-                    &quot;{item.description}&quot;
-                  </p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100 flex items-center gap-1">
+                        <MapPin size={10} /> {item.location_area}
+                      </span>
+                      <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold rounded-lg border border-gray-100">
+                        ₦{item.rent_per_person?.toLocaleString()}/{item.payment_period === 'Yearly' ? 'yr' : 'sem'}
+                      </span>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {(item as any).roommate_profiles?.gender && (
+                        <span className="px-2.5 py-1 bg-purple-50 text-purple-600 text-[10px] font-bold rounded-lg border border-purple-100">
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {(item as any).roommate_profiles?.gender} Only
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-sm text-gray-600 mb-6 line-clamp-3 leading-relaxed italic border-l-2 border-gray-200 pl-3">
+                      &quot;{item.description}&quot;
+                    </p>
+                  </Link>
 
                   <div className="flex gap-3">
-                    <Link 
-                      href={`/roommate/${item.id}`}
-                      className="flex-1 py-3.5 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all text-center flex items-center justify-center"
-                    >
-                      View Profile
-                    </Link>
                     <button 
                       onClick={() => handleRequest(item.id, item.user_id)}
                       disabled={isRequested}
-                      className={`flex-[1.5] py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all ${
+                      className={`w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all ${
                         isRequested 
                             ? 'bg-green-100 text-green-700 cursor-default' 
                             : 'bg-gray-900 text-white active:scale-95'

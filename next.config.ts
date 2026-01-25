@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
         hostname: 'res.cloudinary.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'wammuxdrpyhppdyhsxam.supabase.co',
+        pathname: '/**',
+      },
     ],
   },
   async headers() {

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/lib/context';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Edit3, Trash2, PlusCircle, ChevronLeft, MapPin } from 'lucide-react';
+import { Loader2, Edit3, Trash2, PlusCircle, ChevronLeft, MapPin, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { RoommateListing } from '@/lib/types';
@@ -17,22 +17,41 @@ export default function ManageListings() {
 
   useEffect(() => {
     if (!user) return;
-    const fetchListings = async () => {
-      const { data, error } = await supabase
-        .from('roommate_listings')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        toast.error('Failed to load listings');
-      } else {
-        setListings(data as unknown as RoommateListing[]);
-      }
-      setLoading(false);
-    };
     fetchListings();
   }, [user]);
+
+  const fetchListings = async () => {
+    const { data, error } = await supabase
+      .from('roommate_listings')
+      .select('*')
+      .eq('user_id', user!.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      toast.error('Failed to load listings');
+    } else {
+      setListings(data as unknown as RoommateListing[]);
+    }
+    setLoading(false);
+  };
+
+  const handleDelete = async (id: string) => {
+      if (!confirm('Are you sure you want to delete this listing?')) return;
+      
+      // Optimistic update
+      setListings(prev => prev.filter(l => l.id !== id));
+      toast.success('Listing deleted');
+
+      const { error } = await supabase
+        .from('roommate_listings')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+          toast.error('Failed to delete');
+          fetchListings(); // Revert
+      }
+  };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600"/></div>;
 
@@ -78,12 +97,15 @@ export default function ManageListings() {
                     </div>
 
                     <div className="flex gap-2 border-t border-gray-50 pt-4">
-                        <Link href={`/roommate/edit/${item.id}`} className="flex-1 py-2 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2">
+                        <Link href={`/roommate/${item.id}`} className="py-2.5 px-4 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2">
+                            <Eye size={16} />
+                        </Link>
+                        <Link href={`/roommate/edit/${item.id}`} className="flex-1 py-2.5 bg-gray-50 text-gray-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2">
                             <Edit3 size={14} /> Edit
                         </Link>
-                        <Link href={`/roommate/${item.id}`} className="flex-1 py-2 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs flex items-center justify-center gap-2">
-                            View
-                        </Link>
+                        <button onClick={() => handleDelete(item.id)} className="py-2.5 px-4 bg-red-50 text-red-500 rounded-xl font-bold text-xs flex items-center justify-center gap-2">
+                            <Trash2 size={16} />
+                        </button>
                     </div>
                 </div>
             ))}

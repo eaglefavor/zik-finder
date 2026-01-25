@@ -98,15 +98,13 @@ export default function RootLayout({
         {/* Paystack Inline Script */}
         <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
 
-        {/* Eruda Debugger (Dev Only) */}
-        {process.env.NODE_ENV === 'development' && (
-          <>
-            <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
-            <Script id="eruda-init" strategy="afterInteractive">
-              {`if (typeof window !== 'undefined' && window.eruda) eruda.init();`}
-            </Script>
-          </>
-        )}
+        {/* Eruda Debugger (Always Enabled) */}
+        <>
+          <Script src="//cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
+          <Script id="eruda-init" strategy="afterInteractive">
+            {`if (typeof window !== 'undefined' && window.eruda) eruda.init();`}
+          </Script>
+        </>
       </body>
     </html>
   );
