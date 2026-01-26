@@ -71,7 +71,7 @@ export default function NewRequest() {
     
     if (success) {
       setSubmitted(true);
-      setTimeout(() => router.push('/market'), 2000);
+      setTimeout(() => router.push('/requests?tab=lodges'), 2000);
     } else {
       toast.error('Failed to post request: ' + error);
     }

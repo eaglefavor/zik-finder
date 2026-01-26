@@ -22,7 +22,7 @@ const AREA_LANDMARKS: Record<string, string[]> = {
 const ROOM_TYPE_KEYWORDS = ['self con', 'self-con', 'self contained', 'flat', 'apartment', 'single room', 'shared', '2 bedroom', '3 bedroom'];
 const AMENITY_KEYWORDS = ['water', 'light', 'power', 'security', 'fenced', 'tile', 'wardrobe', 'ac', 'a/c', 'generator', 'wifi'];
 
-export default function MarketRequests() {
+export default function LodgeRequestsFeed() {
   const { role, user, isLoading } = useAppContext();
   const { requests, deleteRequest, lodges, notifyStudentOfMatch } = useData();
   const [showLodgeSelector, setShowLodgeSelector] = useState(false);
@@ -339,13 +339,13 @@ export default function MarketRequests() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-24">
+    <div className="bg-gray-50/50 pb-24">
       {/* Premium Header - Optimized for small screens */}
-      <div className="bg-white border-b border-gray-100 px-4 py-6 sticky top-0 z-30 shadow-sm shadow-gray-100/50 backdrop-blur-xl bg-white/80">
+      <div className="bg-white border-b border-gray-100 px-4 py-6 sticky top-[72px] z-30 shadow-sm shadow-gray-100/50 backdrop-blur-xl bg-white/80">
         <div className="flex justify-between items-start mb-5">
           <div className="min-w-0 pr-2">
             <h1 className="text-2xl xs:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-              {role === 'student' ? 'Requests' : 'Marketplace'} <Sparkles className="text-blue-500 fill-blue-500 shrink-0" size={18} />
+              Find a Lodge <Sparkles className="text-blue-500 fill-blue-500 shrink-0" size={18} />
             </h1>
             <p className="text-xs xs:text-sm text-gray-500 font-medium mt-0.5 truncate">
               {role === 'student' ? 'See what others are asking for' : 'Connect with students looking for lodges'}

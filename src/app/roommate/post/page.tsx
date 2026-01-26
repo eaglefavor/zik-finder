@@ -84,7 +84,7 @@ export default function PostRoommateAd() {
             }
         } else {
             toast.success('Ad posted successfully!');
-            router.push('/roommate');
+            router.push('/requests?tab=roommates');
         }
     } catch (err) {
         console.error(err);

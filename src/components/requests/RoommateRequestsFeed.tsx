@@ -7,10 +7,10 @@ import { RoommateListing } from '@/lib/types';
 import { Loader2, MapPin, User, PlusCircle, Sparkles, CheckCircle, UserCog, List } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
-export default function RoommateFeed() {
+export default function RoommateRequestsFeed() {
   const { user, isLoading: authLoading } = useAppContext();
   const [listings, setListings] = useState<RoommateListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,13 +118,13 @@ export default function RoommateFeed() {
   if (authLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="bg-gray-50/50 pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-30 shadow-sm">
+      <div className="bg-white border-b border-gray-100 px-4 py-4 sticky top-[72px] z-30 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-              Roommate Matcher <Sparkles className="text-purple-500 fill-purple-500" size={18} />
+              Find a Roommate <Sparkles className="text-purple-500 fill-purple-500" size={18} />
             </h1>
             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Find your tribe • Free & Safe</p>
           </div>
@@ -188,7 +188,7 @@ export default function RoommateFeed() {
             <Link href="/roommate/post" className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold text-sm">Create Post</Link>
           </div>
         ) : (
-          <AnimatePresence>
+          <>
             {listings.map((item, idx) => {
               const isRequested = myRequests.has(item.id);
               return (
@@ -276,7 +276,7 @@ export default function RoommateFeed() {
                 </motion.div>
               );
             })}
-          </AnimatePresence>
+          </>
         )}
       </div>
     </div>

@@ -75,7 +75,7 @@ export default function RoommateProfileSetup() {
         }
       } else {
         toast.success('Profile updated!');
-        router.push('/roommate');
+        router.push('/requests?tab=roommates');
       }
     } catch (err: unknown) {
       toast.error('Failed to save profile');
