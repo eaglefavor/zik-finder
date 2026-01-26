@@ -485,6 +485,50 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  // ZIPS 3G: Real-Time Cache Invalidation & Consistency
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:lodges-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lodges' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            console.log('⚡ Realtime: Deleting lodge', deletedId);
+            
+            // 1. Kill local state (Optimistic)
+            setLodges(prev => prev.filter(l => l.id !== deletedId));
+            setMyLodges(prev => prev.filter(l => l.id !== deletedId));
+            
+            // 2. Kill persistent cache (TanStack Query)
+            queryClient.setQueryData<Lodge[]>(['lodges', 'feed'], (old) => {
+              if (!old) return [];
+              return old.filter(l => l.id !== deletedId);
+            });
+          } 
+          else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as Partial<Lodge>;
+            console.log('⚡ Realtime: Updating lodge', updated.id);
+
+            // Update cache preserving joins
+            queryClient.setQueryData<Lodge[]>(['lodges', 'feed'], (old) => {
+              if (!old) return [];
+              return old.map(l => l.id === updated.id ? { ...l, ...updated } : l);
+            });
+            
+            setLodges(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+            setMyLodges(prev => prev.map(l => l.id === updated.id ? { ...l, ...updated } : l));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const addLodge = async (lodgeData: Omit<Lodge, 'id' | 'landlord_id' | 'created_at' | 'units' | 'views'>, units?: Omit<import('./types').LodgeUnit, 'id' | 'lodge_id'>[], files?: Record<string, Blob>, isRetry = false) => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
